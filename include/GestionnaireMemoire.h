@@ -1,5 +1,10 @@
-
+#ifndef GESTIONNAIREMEMOIRE_H
+#define GESTIONNAIREMEMOIRE_H
 
 class GestionnaireMemoire {
-    // Gestion des onglets, de l'historique, et de la mémoire
+public:
+    void surveillerUtilisationMemoire();
+    void optimiserMemoire();
 };
+
+#endif

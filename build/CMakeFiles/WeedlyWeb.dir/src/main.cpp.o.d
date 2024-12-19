@@ -947,4 +947,8 @@ CMakeFiles/WeedlyWeb.dir/src/main.cpp.o: \
  /usr/include/webkitgtk-4.1/webkit/WebKitUserMediaPermissionRequest.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitVersion.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitWebsiteDataAccessPermissionRequest.h \
- /usr/include/webkitgtk-4.1/webkit/WebKitAutocleanups.h
+ /usr/include/webkitgtk-4.1/webkit/WebKitAutocleanups.h \
+ /usr/include/c++/14/vector /usr/include/c++/14/bits/stl_uninitialized.h \
+ /usr/include/c++/14/bits/stl_vector.h \
+ /usr/include/c++/14/bits/stl_bvector.h \
+ /usr/include/c++/14/bits/vector.tcc

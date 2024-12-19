@@ -1,4 +1,9 @@
+#ifndef MOTEURRENDU_H
+#define MOTEURRENDU_H
 
 class MoteurRendu {
-    // Interprète et affiche les pages
+public:
+    void afficherPage();
 };
+
+#endif

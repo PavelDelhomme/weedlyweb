@@ -3,10 +3,11 @@
 
 #include <string>
 #include <iostream>
+#include <curl/curl.h>
 
 class GestionnaireHTTP {
-    public:
-        void recuperer(const std::string& url);
+public:
+    std::string recuperer(const std::string& url);
 };
 
 #endif
