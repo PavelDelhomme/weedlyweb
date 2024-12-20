@@ -1,54 +1,46 @@
 #ifndef NAVIGATEUR_H
 #define NAVIGATEUR_H
 
-#include <webkit2/webkit2.h>
+#include <memory>
 #include <gtk/gtk.h>
 #include <string>
 #include <vector>
+#include <nlohmann/json.hpp>
+#include "MoteurRendu.h"
+#include "GestionnaireHTTP.h"
+#include "GestionnaireMemoire.h"
 
 class Navigateur {
 public:
     Navigateur();
+    ~Navigateur();
+
     void lancer();
-    void chargerURL(const char* url);
-    void afficherMessage(const char* message);
+    void chargerURL(const std::string& url);
+    void afficherMessage(const std::string& message);
     void chargerConfiguration();
+    void sauvegarderConfiguration();
     void ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag);
     void afficherHistorique();
     void afficherFavoris();
-    void ouvrirParametres();
-    void mettreAJourURLBarre(const gchar* url);
-    void chargerPageAccueil();
     void fermerApplication();
 
 private:
-    MoteurRendu *moteurRendu;
-    GtkWidget *fenetre;
-    GtkWidget *vueWeb;
-    GtkWidget *barreURL;
-    GtkWidget *boutonsNavigation;
-    GtkWidget *barreFavoris;
-    GtkWidget *historiqueWidget;
-    GtkWidget *boutonEtoileFavori;
-    GtkWidget *boutonMenuOptions;
-    GtkWidget *boutonAccueil;
-    GtkWidget *boutonRecharger;
+    std::unique_ptr<MoteurRendu> moteurRendu;
+    std::unique_ptr<GestionnaireHTTP> gestionnaireHTTP;
+    std::unique_ptr<GestionnaireMemoire> gestionnaireMemoire;
+
+    GtkWidget *fenetre = nullptr;
+    GtkWidget *barreURL = nullptr;
+    GtkWidget *boutonAccueil = nullptr;
 
     std::string homepage;
+    nlohmann::json favoris; // Au lieu de std::vector<nlohmann::json>
     std::vector<std::string> historique;
 
-    // Fonctions de navigation
-    static void on_barre_url_active(GtkEntry *entry, Navigateur *navigateur);
-    static void on_bouton_retour_clicked(GtkButton *button, Navigateur *navigateur);
-    static void on_bouton_suivant_clicked(GtkButton *button, Navigateur *navigateur);
-    static void on_bouton_recharger_clicked(GtkButton *button, Navigateur *navigateur);
-    static void on_button_accueil_clicked(GtkButton *button, Navigateur *navigateur);
-    static void on_load_changed(WebKitWebView *web_view, WebKitLoadEvent load_event, Navigateur *navigateur);
-    static void on_etoile_favori_clicked(GtkButton *button, Navigateur *navigateur);
-    static void on_bouton_parametres_clicked(GtkButton *button, Navigateur *navigateur);
-    static void on_load_failed(WebKitWebView *web_view, WebKitLoadEvent load_event, const gchar *failing_uri, GError *error, Navigateur *navigateur); // ✅ Ajouté cette déclaration manquante
-
     void construireInterface();
+    void chargerFavoris();
+    void sauvegarderFavoris();
 };
 
 #endif

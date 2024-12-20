@@ -2,7 +2,6 @@
 #define GESTIONNAIREHTTP_H
 
 #include <string>
-#include <iostream>
 #include <curl/curl.h>
 
 class GestionnaireHTTP {

@@ -153,6 +153,54 @@ src/GestionnaireHTTP.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.s
 .PHONY : src/GestionnaireHTTP.cpp.s
 
+src/GestionnaireMemoire.o: src/GestionnaireMemoire.cpp.o
+.PHONY : src/GestionnaireMemoire.o
+
+# target to build an object file
+src/GestionnaireMemoire.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o
+.PHONY : src/GestionnaireMemoire.cpp.o
+
+src/GestionnaireMemoire.i: src/GestionnaireMemoire.cpp.i
+.PHONY : src/GestionnaireMemoire.i
+
+# target to preprocess a source file
+src/GestionnaireMemoire.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.i
+.PHONY : src/GestionnaireMemoire.cpp.i
+
+src/GestionnaireMemoire.s: src/GestionnaireMemoire.cpp.s
+.PHONY : src/GestionnaireMemoire.s
+
+# target to generate assembly for a file
+src/GestionnaireMemoire.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.s
+.PHONY : src/GestionnaireMemoire.cpp.s
+
+src/MoteurRendu.o: src/MoteurRendu.cpp.o
+.PHONY : src/MoteurRendu.o
+
+# target to build an object file
+src/MoteurRendu.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o
+.PHONY : src/MoteurRendu.cpp.o
+
+src/MoteurRendu.i: src/MoteurRendu.cpp.i
+.PHONY : src/MoteurRendu.i
+
+# target to preprocess a source file
+src/MoteurRendu.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.i
+.PHONY : src/MoteurRendu.cpp.i
+
+src/MoteurRendu.s: src/MoteurRendu.cpp.s
+.PHONY : src/MoteurRendu.s
+
+# target to generate assembly for a file
+src/MoteurRendu.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.s
+.PHONY : src/MoteurRendu.cpp.s
+
 src/Navigateur.o: src/Navigateur.cpp.o
 .PHONY : src/Navigateur.o
 
@@ -213,6 +261,12 @@ help:
 	@echo "... src/GestionnaireHTTP.o"
 	@echo "... src/GestionnaireHTTP.i"
 	@echo "... src/GestionnaireHTTP.s"
+	@echo "... src/GestionnaireMemoire.o"
+	@echo "... src/GestionnaireMemoire.i"
+	@echo "... src/GestionnaireMemoire.s"
+	@echo "... src/MoteurRendu.o"
+	@echo "... src/MoteurRendu.i"
+	@echo "... src/MoteurRendu.s"
 	@echo "... src/Navigateur.o"
 	@echo "... src/Navigateur.i"
 	@echo "... src/Navigateur.s"

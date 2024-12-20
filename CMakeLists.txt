@@ -24,7 +24,9 @@ find_package(CURL REQUIRED)
 set(SOURCES
     src/main.cpp
     src/Navigateur.cpp
+    src/MoteurRendu.cpp
     src/GestionnaireHTTP.cpp
+    src/GestionnaireMemoire.cpp
 )
 
 # Créer l'exécutable

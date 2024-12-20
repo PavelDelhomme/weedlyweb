@@ -1,8 +1,8 @@
 #ifndef MOTEURRENDU_H
 #define MOTEURRENDU_H
 
-#include <webkit2/webkit2.h>
 #include <gtk/gtk.h>
+#include <webkit2/webkit2.h>
 #include <string>
 
 class MoteurRendu {
@@ -10,18 +10,13 @@ public:
     MoteurRendu();
     ~MoteurRendu();
 
-    void initialiserRendu(GtkWidget *conteneur);
+    void initialiserRendu(GtkWidget *fenetre, GtkWidget *barreURL);
     void afficherPage(const std::string& url);
-    void afficherHTML(const std::string& contenuHTML);
     void rafraichirPage();
-    void arreterChargement();
-    void allerEnArriere();
-    void allerEnAvant();
+    GtkWidget* creerBouton(const std::string& label, GCallback callback, gpointer data);
+    GtkWidget* creerChampTexte(GCallback callback, gpointer data);
+
     std::string obtenirURLActuelle() const;
-    void definirParametresParDefaut();
-    void activerJavaScript(bool activer);
-    void activerImages(bool activer);
-    void activerCache(bool activer);
     
 private:
     WebKitWebView *vueWeb;

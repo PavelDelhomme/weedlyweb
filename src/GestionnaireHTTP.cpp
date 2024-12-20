@@ -16,6 +16,5 @@ std::string GestionnaireHTTP::recuperer(const std::string& url) {
         res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
     }
-
     return response;
 }
