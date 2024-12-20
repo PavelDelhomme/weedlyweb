@@ -1,10 +1,17 @@
 #include "Navigateur.h"
+#include "MoteurRendu.h"
+#include "GestionnaireHTTP.h"
+#include "GestionnaireMemoire.h"
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <nlohmann/json.hpp>
 
 Navigateur::Navigateur() {
+    moteurRendu = new MoteurRendu();
+    gestionnaireMemoire = new GestionnaireMemoire();
+    gestionnaireHTTP = new GestionnaireHTTP();
+    gestionnaireMemoire->initialiserSurveillance();
     chargerConfiguration();
     construireInterface();
 }
@@ -14,12 +21,23 @@ void Navigateur::construireInterface() {
     fenetre = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fenetre), "WeedlyWeb");
     gtk_window_set_default_size(GTK_WINDOW(fenetre), 1024, 768);
-    g_signal_connect(fenetre, "destroy", G_CALLBACK(gtk_main_quit), nullptr);
+    g_signal_connect(fenetre, "destroy", G_CALLBACK(+[](GtkWidget *widget, gpointer data) {
+        Navigateur *navigateur = static_cast<Navigateur*>(data);
+        navigateur->fermerApplication();
+    }), this);
 
     // Barre d'URL
     barreURL = gtk_entry_new();
     g_signal_connect(barreURL, "activate", G_CALLBACK(on_barre_url_active), this);
 
+    // Configuration de WebKitSettings
+    vueWeb = webkit_web_view_new();
+    WebKitSettings *settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(vueWeb));
+    g_object_set(G_OBJECT(settings), 
+        "enable-javascript", FALSE, 
+        "media-playback-requires-user-gesture", TRUE,
+        "enable-accelerated-2d-canvas", TRUE,
+        NULL);
 
     // Boutons de navigation
     boutonEtoileFavori = gtk_button_new_with_label("⭐");
@@ -33,7 +51,7 @@ void Navigateur::construireInterface() {
     g_signal_connect(boutonRetour, "clicked", G_CALLBACK(on_bouton_retour_clicked), this);
     g_signal_connect(boutonSuivant, "clicked", G_CALLBACK(on_bouton_suivant_clicked), this);
     g_signal_connect(boutonRecharger, "clicked", G_CALLBACK(on_bouton_recharger_clicked), this);
-    g_signal_connect(boutonAccueil, "clicked", G_CALLBACK(on_bouton_accueil_clicked), this);
+    g_signal_connect(boutonAccueil, "clicked", G_CALLBACK(on_button_accueil_clicked), this);
     g_signal_connect(boutonMenuOptions, "clicked", G_CALLBACK(on_bouton_parametres_clicked), this);
 
     GtkWidget *barreNavigation = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
@@ -45,13 +63,13 @@ void Navigateur::construireInterface() {
     gtk_box_pack_start(GTK_BOX(barreNavigation), boutonEtoileFavori, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(barreNavigation), boutonMenuOptions, FALSE, FALSE, 0);
 
-    // Vue Web
-    vueWeb = webkit_web_view_new();
-    g_signal_connect(vueWeb, "load-changed", G_CALLBACK(on_load_changed), this);
- 
+    // Barre de favoris
+    barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+
     // Conteneur principal
     GtkWidget *conteneurPrincipal = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), vueWeb, TRUE, TRUE, 0);
 
     gtk_container_add(GTK_CONTAINER(fenetre), conteneurPrincipal);
@@ -59,6 +77,7 @@ void Navigateur::construireInterface() {
 
 void Navigateur::lancer() {
     gtk_widget_show_all(fenetre);
+    moteurRendu->afficherPage();
     chargerURL(homepage.c_str());
 }
 
@@ -75,12 +94,28 @@ void Navigateur::on_etoile_favori_clicked(GtkButton *button, Navigateur *navigat
 }
 
 
+void Navigateur::on_favoris_loaded(GObject *source_object, GAsyncResult *res, gpointer user_data) {
+    GError *error = NULL;
+    gsize length;
+    char *contents = NULL;
+
+    if (g_file_load_contents_finish(G_FILE(source_object), res, &contents, &length, NULL, &error)) {
+        // Traiter le contenu de 'contents'
+        std::cout << "📁 Favoris chargés avec succès" << std::endl;
+    } else {
+        std::cerr << "❌ Erreur de lecture du fichier des favoris : " << error->message << std::endl;
+        g_error_free(error);
+    }
+
+    g_free(contents);
+}
 
 void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
     try {
         // Lecture du fichier favoris.json
         nlohmann::json favoris;
-        std::ifstream fichierLecture("favoris.json");
+        GFile *file = g_file_new_for_path("favoris.json");
+        g_file_load_contents_async(file, NULL, on_favoris_loaded, this);
 
         // Si le fichier n'existe pas, on le crée avec un tableau vide
         if (!fichierLecture) {
@@ -149,6 +184,10 @@ void Navigateur::on_bouton_retour_clicked(GtkButton *button, Navigateur *navigat
     webkit_web_view_go_back(WEBKIT_WEB_VIEW(navigateur->vueWeb));
 }
 
+void Navigateur::on_button_accueil_clicked(GtkButton *button, Navigateur *navigateur) {
+    navigateur->chargerURL(navigateur->homepage.c_str());
+}
+
 void Navigateur::on_bouton_suivant_clicked(GtkButton *button, Navigateur *navigateur) {
     webkit_web_view_go_forward(WEBKIT_WEB_VIEW(navigateur->vueWeb));
 }
@@ -162,10 +201,9 @@ void Navigateur::on_bouton_parametres_clicked(GtkButton *button, Navigateur *nav
 }
 
 void Navigateur::on_load_changed(WebKitWebView *web_view, WebKitLoadEvent load_event, Navigateur *navigateur) {
-    if (load_event == WEBKIT_LOAD_FINISHED) {
-        const gchar *url = webkit_web_view_get_uri(WEBKIT_WEB_VIEW(web_view));
-        navigateur->mettreAJourURLBarre(url);
-    }
+    if (load_event != WEBKIT_LOAD_FINISHED) return; // 🟢 Ignore tous les autres événements
+    const gchar *url = webkit_web_view_get_uri(WEBKIT_WEB_VIEW(web_view));
+    navigateur->mettreAJourURLBarre(url);
 }
 
 void Navigateur::on_load_failed(WebKitWebView *web_view, WebKitLoadEvent load_event, const gchar *failing_uri, GError *error, Navigateur *navigateur) {
@@ -194,4 +232,14 @@ void Navigateur::chargerConfiguration() {
         std::cerr << "Erreur de lecture de la configuration : " << e.what() << std::endl;
         homepage = "https://www.duckduckgo.com";
     }
+}
+
+void Navigateur::fermerApplication() {
+    gestionnaireMemoire->optimiserMemoire();
+    if (vueWeb) g_object_unref(vueWeb);
+    if (fenetre) gtk_widget_destroy(fenetre);
+    delete moteurRendu;
+    delete gestionnaireMemoire;
+    delete gestionnaireHTTP;
+    gtk_main_quit();
 }

@@ -124,6 +124,8 @@ WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/main.cpp.o
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/build.make
+WeedlyWeb: /usr/lib/x86_64-linux-gnu/libcurl.so
+WeedlyWeb: /usr/lib/x86_64-linux-gnu/libcurl.so
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable WeedlyWeb"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/WeedlyWeb.dir/link.txt --verbose=$(VERBOSE)

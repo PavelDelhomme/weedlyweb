@@ -19,8 +19,10 @@ public:
     void ouvrirParametres();
     void mettreAJourURLBarre(const gchar* url);
     void chargerPageAccueil();
+    void fermerApplication();
 
 private:
+    MoteurRendu *moteurRendu;
     GtkWidget *fenetre;
     GtkWidget *vueWeb;
     GtkWidget *barreURL;
@@ -40,11 +42,11 @@ private:
     static void on_bouton_retour_clicked(GtkButton *button, Navigateur *navigateur);
     static void on_bouton_suivant_clicked(GtkButton *button, Navigateur *navigateur);
     static void on_bouton_recharger_clicked(GtkButton *button, Navigateur *navigateur);
-    static void on_bouton_accueil_clicked(GtkButton *button, Navigateur *navigateur);
-    static void on_load_failed(WebKitWebView *web_view, WebKitLoadEvent load_event, const gchar *failing_uri, GError *error, Navigateur *navigateur);
+    static void on_button_accueil_clicked(GtkButton *button, Navigateur *navigateur);
     static void on_load_changed(WebKitWebView *web_view, WebKitLoadEvent load_event, Navigateur *navigateur);
     static void on_etoile_favori_clicked(GtkButton *button, Navigateur *navigateur);
     static void on_bouton_parametres_clicked(GtkButton *button, Navigateur *navigateur);
+    static void on_load_failed(WebKitWebView *web_view, WebKitLoadEvent load_event, const gchar *failing_uri, GError *error, Navigateur *navigateur); // ✅ Ajouté cette déclaration manquante
 
     void construireInterface();
 };
