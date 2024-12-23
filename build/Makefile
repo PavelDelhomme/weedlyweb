@@ -129,6 +129,30 @@ WeedlyWeb/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/build
 .PHONY : WeedlyWeb/fast
 
+src/GestionnaireFichiers.o: src/GestionnaireFichiers.cpp.o
+.PHONY : src/GestionnaireFichiers.o
+
+# target to build an object file
+src/GestionnaireFichiers.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o
+.PHONY : src/GestionnaireFichiers.cpp.o
+
+src/GestionnaireFichiers.i: src/GestionnaireFichiers.cpp.i
+.PHONY : src/GestionnaireFichiers.i
+
+# target to preprocess a source file
+src/GestionnaireFichiers.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.i
+.PHONY : src/GestionnaireFichiers.cpp.i
+
+src/GestionnaireFichiers.s: src/GestionnaireFichiers.cpp.s
+.PHONY : src/GestionnaireFichiers.s
+
+# target to generate assembly for a file
+src/GestionnaireFichiers.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.s
+.PHONY : src/GestionnaireFichiers.cpp.s
+
 src/GestionnaireHTTP.o: src/GestionnaireHTTP.cpp.o
 .PHONY : src/GestionnaireHTTP.o
 
@@ -258,6 +282,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... WeedlyWeb"
+	@echo "... src/GestionnaireFichiers.o"
+	@echo "... src/GestionnaireFichiers.i"
+	@echo "... src/GestionnaireFichiers.s"
 	@echo "... src/GestionnaireHTTP.o"
 	@echo "... src/GestionnaireHTTP.i"
 	@echo "... src/GestionnaireHTTP.s"

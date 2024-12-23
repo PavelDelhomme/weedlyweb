@@ -19,9 +19,11 @@ public:
     void chargerURL(const std::string& url);
     void ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag);
     void fermerApplication();
-    void ajouterNouvelOnglet(const std::string &url);
+    void ajouterNouvelOnglet(const std::string &url = "");
+    void supprimerOnglet(GtkWidget *ongletWidget);
     void afficherMessage(const std::string& message);
     void afficherParametres();
+    void configurerRaccourcisClavier();
 
     //void chargerConfiguration();
     //void sauvegarderConfiguration();
@@ -37,6 +39,19 @@ private:
     void sauvegarderFavoris();
     void initialiserBarreNavigation();
     void initialiserBarreOnglets();
+    void initialiserBarreFavoris();
+    void mettreEnSurbrillance(GtkWidget* ongletWidget);
+    void rafraichirBarreFavoris();
+    void chargerStyles();
+    void ajouterBouton(GtkWidget* conteneur, const std::string& iconName, GCallback callback, gpointer data);
+    static void onCliqueFavori(GtkButton *button, Navigateur *navigateur, const std::string& url);
+    static void onNaviguerRetour(GtkButton *button, Navigateur *navigateur);
+    static void onNaviguerSuivant(GtkButton *button, Navigateur *navigateur);
+    static void onRafraichirPage(GtkButton *button, Navigateur *navigateur);
+    static void onAllerAccueil(GtkButton *button, Navigateur *navigateur);
+    static void onAjouterFavori(GtkButton *button, Navigateur *navigateur);
+    static void onBarreURLActivate(GtkEntry *entry, Navigateur *navigateur);
+    static void onNaviguerRetourWrapper(GtkButton *button, gpointer user_data);
 
     // Membres
     std::unique_ptr<MoteurRendu> moteurRendu;
@@ -48,6 +63,7 @@ private:
     GtkWidget *barreURL = nullptr;
     GtkWidget *barreNavigation = nullptr;
     GtkWidget *barreOnglets = nullptr;
+    GtkWidget *barreFavoris = nullptr;
 
     std::vector<std::pair<std::string, GtkWidget*>> onglets;
     std::vector<std::string> historique;

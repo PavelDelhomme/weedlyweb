@@ -1107,7 +1107,8 @@ CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o: \
  /usr/include/x86_64-linux-gnu/curl/websockets.h \
  /usr/include/x86_64-linux-gnu/curl/mprintf.h \
  /home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/include/GestionnaireMemoire.h \
- /usr/include/c++/14/iostream /usr/include/c++/14/fstream \
+ /home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/include/GestionnaireFichiers.h \
+ /usr/include/c++/14/fstream \
  /usr/include/x86_64-linux-gnu/c++/14/bits/basic_file.h \
  /usr/include/x86_64-linux-gnu/c++/14/bits/c++io.h \
- /usr/include/c++/14/bits/fstream.tcc
+ /usr/include/c++/14/bits/fstream.tcc /usr/include/c++/14/iostream

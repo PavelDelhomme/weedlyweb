@@ -38,6 +38,7 @@ fi
 EXECUTABLE="$BUILD_DIR/WeedlyWeb"
 
 if [ -f "$EXECUTABLE" ]; then
+    cd "$BUILD_DIR" || exit 1
     echo "Lancement de l'application avec gdb..."
     gdb -ex "start" -ex "continue" "$EXECUTABLE"
 else
