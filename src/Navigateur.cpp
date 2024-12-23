@@ -13,7 +13,7 @@ Navigateur::Navigateur()
 
 
 Navigateur::~Navigateur() {
-    if (fenetre) {
+    /*if (fenetre) {
         gtk_widget_destroy(fenetre);
         fenetre = nullptr;
     }
@@ -24,32 +24,70 @@ Navigateur::~Navigateur() {
     if (boutonAccueil) {
         gtk_widget_destroy(boutonAccueil);
         boutonAccueil = nullptr;
-    }
-    
+    }*/
+    if (fenetre) gtk_widget_destroy(fenetre);    
 }
 
 void Navigateur::construireInterface() {
     fenetre = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fenetre), "WeedlyWeb");
     gtk_window_set_default_size(GTK_WINDOW(fenetre), 1024, 768);
-    g_signal_connect(fenetre, "destroy", G_CALLBACK(+[](GtkWidget *widget, gpointer data) {
-        Navigateur *navigateur = static_cast<Navigateur*>(data);
-        navigateur->fermerApplication();
+
+    // Conteneur principal
+    conteneurPrincipal = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_add(GTK_CONTAINER(fenetre), conteneurPrincipal);
+
+    // Ajout de la barre d'onglets
+    initialiserBarreOnglets();
+    initialiserBarreNavigation();
+    moteurRendu->initialiserRendu(conteneurPrincipal);
+
+    g_signal_connect(fenetre, "destroy", G_CALLBACK(+[](GtkWidget *, gpointer data) {
+        static_cast<Navigateur *>(data)->fermerApplication();
     }), this);
 
-    // Barre d'URL
-    // Création de la barre URL
-    barreURL = moteurRendu->creerChampTexte(G_CALLBACK(+[](GtkEntry *entry, Navigateur *navigateur) {
-        const char *url = gtk_entry_get_text(entry);
-        navigateur->chargerURL(url);
-    }), this);
-    boutonAccueil = moteurRendu->creerBouton("Accueil", G_CALLBACK(+[](GtkButton *button, Navigateur *navigateur) {
-        navigateur->chargerURL(navigateur->homepage);
-    }), this);
-
-    moteurRendu->initialiserRendu(fenetre, barreURL);
     gtk_widget_show_all(fenetre);
 }
+
+
+void Navigateur::initialiserBarreNavigation() {
+    barreNavigation = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+
+    auto ajouterBouton = [this](const std::string &label, GCallback callback) {
+        GtkWidget *bouton = moteurRendu->creerBouton(label, callback, this);
+        gtk_box_pack_start(GTK_BOX(barreNavigation), bouton, FALSE, FALSE, 0);
+    };
+
+    ajouterBouton("Retour", G_CALLBACK(+[](GtkButton *, Navigateur *n) { n->moteurRendu->naviguerRetour(); }));
+    ajouterBouton("Suivant", G_CALLBACK(+[](GtkButton *, Navigateur *n) { n->moteurRendu->naviguerSuivant(); }));
+    ajouterBouton("Recharger", G_CALLBACK(+[](GtkButton *, Navigateur *n) { n->chargerURL(n->moteurRendu->obtenirURLActuelle()); }));
+    ajouterBouton("Accueil", G_CALLBACK(+[](GtkButton *, Navigateur *n) { n->chargerURL(n->homepage); }));
+
+    barreURL = moteurRendu->creerChampTexte(G_CALLBACK(+[](GtkEntry *entry, Navigateur *n) {
+        n->chargerURL(gtk_entry_get_text(entry));
+    }), this);
+
+    gtk_box_pack_start(GTK_BOX(barreNavigation), barreURL, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
+}
+
+
+void Navigateur::initialiserBarreOnglets() {
+    barreOnglets = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    ajouterNouvelOnglet(homepage);
+    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreOnglets, FALSE, FALSE, 0);
+}
+
+void Navigateur::ajouterNouvelOnglet(const std::string &url) {
+    GtkWidget *boutonOnglet = moteurRendu->creerBouton("Nouvel onglet", G_CALLBACK(+[](GtkButton *, Navigateur *n) {
+        n->chargerURL(n->homepage);
+    }), this);
+
+    onglets.push_back({url, boutonOnglet});
+    gtk_box_pack_start(GTK_BOX(barreOnglets), boutonOnglet, FALSE, FALSE, 0);
+    gtk_widget_show_all(barreOnglets);
+}
+
 
 void Navigateur::chargerURL(const std::string& url) {
     moteurRendu->afficherPage(url);
@@ -125,6 +163,14 @@ void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, c
     favoris.push_back({{"name", nom}, {"url", url}, {"tag", tag}});
     sauvegarderFavoris();
 }
+
+
+
+void Navigateur::afficherParametres() {
+    // Logique pour afficher une page de configuration
+    moteurRendu->afficherPage("file://parametres.html");
+}
+
 
 void Navigateur::fermerApplication() {
     sauvegarderConfiguration();

@@ -10,9 +10,11 @@ public:
     MoteurRendu();
     ~MoteurRendu();
 
-    void initialiserRendu(GtkWidget *fenetre, GtkWidget *barreURL);
+    void initialiserRendu(GtkWidget *conteneurPrincipal);
     void afficherPage(const std::string& url);
     void rafraichirPage();
+    void naviguerRetour();
+    void naviguerSuivant();
     GtkWidget* creerBouton(const std::string& label, GCallback callback, gpointer data);
     GtkWidget* creerChampTexte(GCallback callback, gpointer data);
 

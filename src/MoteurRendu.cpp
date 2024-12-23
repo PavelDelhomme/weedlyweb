@@ -12,11 +12,10 @@ MoteurRendu::~MoteurRendu() {
 }
 
 
-void MoteurRendu::initialiserRendu(GtkWidget *fenetre, GtkWidget *barreURL) {
+void MoteurRendu::initialiserRendu(GtkWidget *conteneurPrincipal) {
     GtkWidget *conteneur = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start(GTK_BOX(conteneur), GTK_WIDGET(vueWeb), TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(conteneur), barreURL, FALSE, FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(fenetre), conteneur);
+    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), conteneur, TRUE, TRUE, 0);
 }
 
 void MoteurRendu::afficherPage(const std::string& url) {
@@ -26,6 +25,19 @@ void MoteurRendu::afficherPage(const std::string& url) {
 std::string MoteurRendu::obtenirURLActuelle() const {
     const gchar *url = webkit_web_view_get_uri(vueWeb);
     return url ? std::string(url) : "";
+}
+
+
+void MoteurRendu::naviguerRetour() {
+    if (webkit_web_view_can_go_back(vueWeb)) {
+        webkit_web_view_go_back(vueWeb);
+    }
+}
+
+void MoteurRendu::naviguerSuivant() {
+    if (webkit_web_view_can_go_forward(vueWeb)) {
+        webkit_web_view_go_forward(vueWeb);
+    }
 }
 
 GtkWidget* MoteurRendu::creerBouton(const std::string& label, GCallback callback, gpointer data) {

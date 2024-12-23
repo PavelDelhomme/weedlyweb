@@ -29,9 +29,16 @@ set(SOURCES
     src/GestionnaireMemoire.cpp
 )
 
+
 # Créer l'exécutable
 add_executable(WeedlyWeb ${SOURCES})
 
 # Lier les bibliothèques nécessaires
 target_include_directories(WeedlyWeb PRIVATE ${WEBKIT2GTK_INCLUDE_DIRS})
 target_link_libraries(WeedlyWeb ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES})
+
+add_custom_command(TARGET WeedlyWeb POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/parametres.html
+    ${CMAKE_BINARY_DIR}/parametres.html
+)
