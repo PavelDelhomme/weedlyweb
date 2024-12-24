@@ -81,5 +81,10 @@ install(FILES
 )
 
 # Ajouter une cible clean
-set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_BINARY_DIR})
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "build/*")
 
+add_custom_target(clean
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/CMakeFiles/CMakeCleanRules.cmake
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/*
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
