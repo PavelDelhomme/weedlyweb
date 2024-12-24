@@ -5,6 +5,7 @@ project(WeedlyWeb VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_BUILD_TYPE Debug)
+
 # Inclure le répertoire des en-têtes
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
@@ -40,30 +41,11 @@ target_link_libraries(WeedlyWeb ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES})
 
 
 add_custom_command(TARGET WeedlyWeb POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-    ${CMAKE_BINARY_DIR}/assets/settings
-)
-
-add_custom_command(TARGET WeedlyWeb POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-    ${CMAKE_BINARY_DIR}/assets/datas
-)
-
-
-add_custom_command(TARGET WeedlyWeb POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/assets/settings/config.json
-    ${CMAKE_BINARY_DIR}/assets/settings/config.json
-)
-add_custom_command(TARGET WeedlyWeb POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/assets/datas/favoris.json
-    ${CMAKE_BINARY_DIR}/assets/datas/favoris.json
-)
-add_custom_command(TARGET WeedlyWeb POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/assets/styles/style.css
-    ${CMAKE_BINARY_DIR}/assets/styles/style.css
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/settings
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/datas
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/settings/config.json ${CMAKE_BINARY_DIR}/assets/settings/config.json
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/datas/favoris.json ${CMAKE_BINARY_DIR}/assets/datas/favoris.json
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/styles/style.css ${CMAKE_BINARY_DIR}/assets/styles/style.css
 )
 
 # Définir le répertoire d'installation
@@ -80,11 +62,9 @@ install(FILES
     DESTINATION ${INSTALL_DIR}/share/WeedlyWeb
 )
 
-# Ajouter une cible clean
-set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "build/*")
 
-add_custom_target(clean
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/CMakeFiles/CMakeCleanRules.cmake
+# Ajouter une cible de nettoyage sécurisée (renommée pour éviter les conflits avec `make clean`)
+add_custom_target(custom_clean ALL
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/*
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Nettoyage sécurisé du répertoire de build"
 )
