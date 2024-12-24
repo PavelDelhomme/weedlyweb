@@ -1,1 +1,8 @@
-[]
+[
+    {
+        "name": "DuckDuckGo",
+        "url": "https://www.duckduckgo.com",
+        "tag": "Recherche"
+    }
+]
+

@@ -11,8 +11,8 @@ public:
     MoteurRendu();
     ~MoteurRendu();
 
-    void connecterSignalPageChargee(std::function<void(const std::string&)> callback);
     void connecterSignalURLChangee(std::function<void(const std::string&)> callback);
+    void connecterSignalPageChargee(std::function<void(const std::string&)> callback);
     void initialiserRendu(GtkWidget *conteneurPrincipal);
     void afficherPage(const std::string& url);
     void rafraichirPage();

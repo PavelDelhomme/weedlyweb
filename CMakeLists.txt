@@ -65,3 +65,21 @@ add_custom_command(TARGET WeedlyWeb POST_BUILD
     ${CMAKE_SOURCE_DIR}/assets/styles/style.css
     ${CMAKE_BINARY_DIR}/assets/styles/style.css
 )
+
+# Définir le répertoire d'installation
+set(INSTALL_DIR /usr/local)
+
+# Ajouter une cible install pour l'exécutable
+install(TARGETS WeedlyWeb RUNTIME DESTINATION ${INSTALL_DIR}/bin)
+
+# Installer les fichiers de configuration et styles
+install(FILES
+    ${CMAKE_SOURCE_DIR}/assets/settings/config.json
+    ${CMAKE_SOURCE_DIR}/assets/datas/favoris.json
+    ${CMAKE_SOURCE_DIR}/assets/styles/style.css
+    DESTINATION ${INSTALL_DIR}/share/WeedlyWeb
+)
+
+# Ajouter une cible clean
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_BINARY_DIR})
+

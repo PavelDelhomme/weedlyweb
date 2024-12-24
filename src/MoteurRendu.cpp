@@ -1,5 +1,6 @@
 #include "MoteurRendu.h"
 #include <iostream>
+#include <memory>
 
 // Fonction statique pour gérer "notify::title"
 static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer user_data) {
@@ -11,13 +12,30 @@ static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer us
         return;
     }
 
-    auto* callback = data->second;
     const gchar* title = webkit_web_view_get_title(vueWeb);
-    if (title && callback) {
-        (*callback)(std::string(title));
+    if (title) {
+        auto& callback = data->second;
+        callback(std::string(title));
     }
 }
 
+
+// Fonction statique pour gérer "notify::uri"
+static void on_notify_uri(GObject *object, GParamSpec *param_spec, gpointer user_data) {
+    auto data = static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
+    WebKitWebView* vueWeb = (*data)->first;
+
+    if (!WEBKIT_IS_WEB_VIEW(vueWeb)) {
+        std::cerr << "Erreur : WebView invalide dans on_notify_uri." << std::endl;
+        return;
+    }
+
+    const gchar* uri = webkit_web_view_get_uri(vueWeb);
+    if (uri) {
+        auto& callback = data->second;
+        callback(std::string(uri));
+    }
+}
 
 // Fonction statique pour gérer "destroy"
 static void on_destroy_callback(GObject *object, gpointer user_data) {
@@ -53,7 +71,11 @@ void MoteurRendu::afficherPage(const std::string& url) {
         return;
     }
     std::cout << "Chargement de l'URL : " << url << std::endl;
-    webkit_web_view_load_uri(vueWeb, url.c_str());
+    try {
+        webkit_web_view_load_uri(vueWeb, url.c_str());
+    } catch (const std::exception& e) {
+        std::cerr << "Exception lors du chargement de l'URL : " << e.what() << std::endl;
+    }
 }
 
 
@@ -89,45 +111,20 @@ GtkWidget* MoteurRendu::creerChampTexte(GCallback callback, gpointer data) {
     g_signal_connect(champ, "activate", callback, data);
     return champ;
 }
-/*
-void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::string&)> callback) {
-    // Vérifiez que le callback est valide
-    if (!callback) {
-        std::cerr << "Callback invalide passé à connecterSignalPageChargee." << std::endl;
-        return;
-    }
-    // Connecte le signal si le callback est valide
-    if (vueWeb) {
-        g_signal_connect(vueWeb, "notify::title", G_CALLBACK(on_notify_title), new std::function(callback));
-    } else {
-        std::cerr << "WebView non initialisé dans connecterSignalPageChargee." << std::endl;
-    }
-
-    // Crée un pointeur dynamique pour capturer vueWeb et le callback
-    auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>*>(vueWeb, &callback);
-
-    // Connecte le signal "notify::title"
-    g_signal_connect(vueWeb, "notify::title", G_CALLBACK(on_notify_title), data);
-
-    // Nettoie les données dynamiques lorsque l'objet est détruit
-    g_signal_connect(vueWeb, "destroy", G_CALLBACK(on_destroy_callback), data);
+static void supprimer_data(gpointer user_data, GClosure *) {
+    delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
 }
-*/
+
 void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::string&)> callback) {
-    if (!vueWeb || !WEBKIT_IS_WEB_VIEW(vueWeb)) {
-        std::cerr << "Erreur : WebView invalide dans connecterSignalPageChargee." << std::endl;
-        return;
-    }
+    if (!vueWeb || !callback) return;
 
-    if (!callback) {
-        std::cerr << "Erreur : Callback invalide dans connecterSignalPageChargee." << std::endl;
-        return;
-    }
+    auto data = new std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(
+        std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback));
 
-    auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>*>(vueWeb, &callback);
-    g_signal_connect(vueWeb, "notify::title", G_CALLBACK(on_notify_title), data);
-    g_signal_connect(vueWeb, "destroy", G_CALLBACK(on_destroy_callback), data);
+    g_signal_connect_data(vueWeb, "notify::title", G_CALLBACK(on_notify_title), data,
+                          supprimer_data, G_CONNECT_SWAPPED);
 }
+
 
 void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string&)> callback) {
     if (!vueWeb || !WEBKIT_IS_WEB_VIEW(vueWeb)) {
@@ -135,39 +132,33 @@ void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string
         return;
     }
 
-    auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>*>(vueWeb, &callback);
-    g_signal_connect(vueWeb, "notify::uri", G_CALLBACK(+[](GObject *object, GParamSpec *param_spec, gpointer user_data) {
-        auto *data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>*>*>(user_data);
-        WebKitWebView* vueWeb = data->first;
-
-        if (!WEBKIT_IS_WEB_VIEW(vueWeb)) {
-            std::cerr << "Erreur : WebView invalide dans notify::uri." << std::endl;
-            return;
-        }
-
-        auto* callback = data->second;
-        const gchar* uri = webkit_web_view_get_uri(vueWeb);
-        if (uri && callback) {
-            (*callback)(std::string(uri));
-        }
-    }), data);
-
-    g_signal_connect(vueWeb, "destroy", G_CALLBACK(on_destroy_callback), data);
+    auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
+    g_signal_connect_data(vueWeb, "notify::uri", G_CALLBACK(on_notify_uri), new auto(data),
+                          supprimer_data, G_CONNECT_SWAPPED);
 }
-
 
 void MoteurRendu::onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer user_data) {
-    auto *data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>*>*>(user_data);
-    WebKitWebView* vueWeb = data->first;
+    auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+    if (!data || !WEBKIT_IS_WEB_VIEW(data->first)) return;
 
-    if (!WEBKIT_IS_WEB_VIEW(vueWeb)) {
-        std::cerr << "Erreur : WebView invalide dans onNotifyUri." << std::endl;
-        return;
-    }
-
-    auto* callback = data->second;
-    const gchar* uri = webkit_web_view_get_uri(vueWeb);
-    if (uri && callback) {
-        (*callback)(std::string(uri));
-    }
+    const gchar* uri = webkit_web_view_get_uri(data->first);
+    if (uri) data->second(std::string(uri));
 }
+
+
+// void MoteurRendu::onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer user_data) {
+//     auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+//     g_signal_connect(vueWeb, "notify::uri", G_CALLBACK(&MoteurRendu::onNotifyUri), data);
+//     WebKitWebView* vueWeb = data->first;
+
+//     if (!WEBKIT_IS_WEB_VIEW(vueWeb)) {
+//         std::cerr << "Erreur : WebView invalide dans onNotifyUri." << std::endl;
+//         return;
+//     }
+
+//     auto* callback = data->second;
+//     const gchar* uri = webkit_web_view_get_uri(vueWeb);
+//     if (uri && callback) {
+//         (*callback)(std::string(uri));
+//     }
+// }

@@ -20,18 +20,6 @@ Navigateur::Navigateur()
 
 
 Navigateur::~Navigateur() {
-    /*if (fenetre) {
-        gtk_widget_destroy(fenetre);
-        fenetre = nullptr;
-    }
-    if (barreURL) {
-        gtk_widget_destroy(barreURL);
-        barreURL = nullptr;
-    }
-    if (boutonAccueil) {
-        gtk_widget_destroy(boutonAccueil);
-        boutonAccueil = nullptr;
-    }*/
     if (fenetre) gtk_widget_destroy(fenetre);    
 }
 
@@ -111,16 +99,23 @@ void Navigateur::initialiserBarreNavigation() {
 void Navigateur::initialiserBarreFavoris() {
     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    if (favoris.empty()) {
+    if (favoris.empty() || !favoris.is_array()) {
+        std::cerr << "Aucun favori disponible ou JSON invalide." << std::endl;
         GtkWidget *labelVide = gtk_label_new("Aucun favori disponible.");
         gtk_box_pack_start(GTK_BOX(barreFavoris), labelVide, FALSE, FALSE, 0);
     } else {
         for (const auto &favori : favoris) {
+            if (!favori.contains("name") || !favori.contains("url")) {
+                std::cerr << "Favori invalide : manque 'name' ou 'url'." << std::endl;
+                continue;
+            }
+
             std::string nom = favori["name"];
             std::string url = favori["url"];
+            
             GtkWidget *boutonFavori = moteurRendu->creerBouton(
                 nom,
-                G_CALLBACK(Navigateur::onCliqueFavoriWrapper),
+                G_CALLBACK(&Navigateur::onCliqueFavoriWrapper),
                 new std::pair<Navigateur*, std::string>(this, url)
             );
             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
@@ -197,32 +192,7 @@ void Navigateur::ajouterNouvelOnglet(const std::string &url) {
 }
 
 
-/*
-void Navigateur::ajouterNouvelOnglet(const std::string &url) {
-    GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);                         
 
-    GtkWidget *labelTitre = gtk_label_new("Nouvel onglet");
-    gtk_box_pack_start(GTK_BOX(hboxOnglet), labelTitre, FALSE, FALSE, 0);
-
-    GtkWidget *boutonOnglet = moteurRendu->creerBouton("Nouvel onglet", G_CALLBACK(+[](GtkButton *, Navigateur *n) {
-        n->chargerURL(n->homepage);
-    }), this);
-    gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonOnglet, FALSE, FALSE, 0);
-
-    // Bouton "Fermer"
-    GtkWidget *boutonFermer = moteurRendu->creerBouton("X", G_CALLBACK(+[](GtkButton *button, Navigateur *n) {
-        GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(button)); // Trouver le parent
-        n->supprimerOnglet(parent); // Supprimer l'onglet
-    }), this);
-    gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonFermer, FALSE, FALSE, 0);
-
-    // Ajouter à la liste des onglets
-    onglets.push_back({url, hboxOnglet});
-    gtk_box_pack_start(GTK_BOX(barreOnglets), hboxOnglet, FALSE, FALSE, 0);
-
-    gtk_widget_show_all(barreOnglets);
-}
-*/
 void Navigateur::supprimerOnglet(GtkWidget *ongletWidget) {
     // Trouver l'onglet à supprimer
     auto it = std::find_if(onglets.begin(), onglets.end(), [ongletWidget](const auto &pair) {
@@ -273,32 +243,11 @@ void Navigateur::afficherMessage(const std::string& message) {
     std::cout << "Message : " << message << std::endl;
 }
 
-/*
-void Navigateur::chargerConfiguration() {
-    try {
-        std::ifstream fichier("config.json");
-        if (!fichier.is_open()) {
-            std::cerr << "Fichier de configuration non trouvé. Création d'une configuration par défaut." << std::endl;
-            nlohmann::json config;
-            config["homepage"] = "https://www.duckduckgo.com";
-            std::ofstream fichierParDefaut("config.json");
-            fichierParDefaut << config.dump(4);
-            homepage = "https://www.duckduckgo.com";
-        } else {
-            nlohmann::json config;
-            fichier >> config;
-            homepage = config.value("homepage", "https://www.duckduckgo.com");
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Erreur lors du chargement de la configuration : " << e.what() << std::endl;
-        homepage = "https://www.duckduckgo.com";
-    }
-}*/
+
 void Navigateur::chargerConfiguration() {
     std::string chemin = GestionnaireFichiers::cheminConfigJSON();
     nlohmann::json config = GestionnaireFichiers::lireJSON(chemin);
     
-    // Si "homepage" n'est pas défini, crée un fichier de configuration par défaut
     if (config.is_null() || config.empty()) {
         std::cerr << "Fichier de configuration non trouvé ou vide. Création d'une configuration par défaut." << std::endl;
         config["homepage"] = "https://www.duckduckgo.com";
@@ -306,65 +255,34 @@ void Navigateur::chargerConfiguration() {
     }
     
     homepage = config.value("homepage", "https://www.duckduckgo.com");
+    std::cout << "Page d'accueil définie sur : " << homepage << std::endl;
 }
 
-/*
-void Navigateur::sauvegarderConfiguration() {
-    nlohmann::json config;
-    config["homepage"] = homepage;
-    std::ofstream fichier("config.json");
-    fichier << config.dump(4);
-}*/
+
 void Navigateur::sauvegarderConfiguration() {
     nlohmann::json config;
     config["homepage"] = homepage;
     GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminConfigJSON(), config);
 }
 
-/*
-void Navigateur::chargerFavoris() {
-    try {
-        std::ifstream fichier("favoris.json");
-        if (fichier.is_open()) {
-            fichier >> favoris;
-            if (!favoris.is_array()) { // Vérifie si favoris est bien un tableau JSON
-                std::cerr << "Le contenu de favoris.json n'est pas un tableau valide. Réinitialisation." << std::endl;
-                favoris = nlohmann::json::array();
-            }
-        } else {
-            std::cerr << "Fichier favoris.json introuvable. Initialisation des favoris à un tableau vide." << std::endl;
-            favoris = nlohmann::json::array();
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Erreur lors du chargement des favoris : " << e.what() << std::endl;
-        favoris = nlohmann::json::array();
-    }
-}*/
 void Navigateur::chargerFavoris() {
     std::string chemin = GestionnaireFichiers::cheminFavorisJSON();
     favoris = GestionnaireFichiers::lireJSON(chemin);
     
-    // Si le fichier est vide ou n'est pas un tableau JSON, créez un tableau vide
-    if (favoris.is_null() || !favoris.is_array()) {
-        std::cerr << "Fichier favoris.json introuvable ou invalide. Création d'un fichier vide." << std::endl;
-        favoris = nlohmann::json::array();
+    if (favoris.is_null() || !favoris.is_array() || favoris.empty()) {
+        std::cerr << "Fichier favoris.json introuvable, invalide ou vide. Initialisation avec un favori par défaut." << std::endl;
+
+        // Ajouter un favori par défaut
+        favoris = nlohmann::json::array({
+            {{"name", "DuckDuckGo"}, {"url", "https://www.duckduckgo.com"}, {"tag", "Recherche"}}
+        });
+
         GestionnaireFichiers::ecrireJSON(chemin, favoris); // Sauvegarde du fichier vide
+    } else {
+        std::cout << "Favoris chargés avec succès : " << favoris.dump(4) << std::endl;
     }
 }
 
-/*
-void Navigateur::sauvegarderFavoris() {
-    try {
-        std::ofstream fichier("favoris.json");
-        if (!fichier.is_open()) {
-            throw std::ios_base::failure("Impossible d'ouvrir favoris.json pour écriture");
-        }
-        fichier << favoris.dump(4); // Écrit le JSON (4 espaces d'indentation)
-    } catch (const std::exception& e) {
-        std::cerr << "Erreur lors de la sauvegarde des favoris : " << e.what() << std::endl;
-    }
-}
-*/
 void Navigateur::sauvegarderFavoris() {
     GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminFavorisJSON(), favoris);
 }
@@ -382,18 +300,10 @@ void Navigateur::rafraichirBarreFavoris() {
 }
 
 
-/*
-void Navigateur::afficherParametres() {
-    // Logique pour afficher une page de configuration
-    std::string cheminParametres = obtenirCheminAbsolu("parametres.html");
-    moteurRendu->afficherPage("file://" + cheminParametres);
-}*/
 void Navigateur::afficherParametres() {
     std::string cheminParametres = GestionnaireFichiers::cheminParametresHTML();
     moteurRendu->afficherPage("file://" + cheminParametres);
 }
-
-
 
 
 void Navigateur::configurerRaccourcisClavier() {
@@ -416,25 +326,6 @@ void Navigateur::configurerRaccourcisClavier() {
 }
 
 
-/*
-void Navigateur::chargerStyles() {
-    GtkCssProvider *provider = gtk_css_provider_new();
-    GError *error = NULL;
-
-    std::string cheminCSS = obtenirCheminAbsolu("assets/styles/style.css");
-    gtk_css_provider_load_from_path(provider, cheminCSS.c_str(), &error);
-
-    if (error) {
-        g_warning("Erreur de chargement du CSS : %s", error->message);
-        g_error_free(error);
-    }
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_USER
-    );
-    g_object_unref(provider);
-}*/
 void Navigateur::chargerStyles() {
     GtkCssProvider *provider = gtk_css_provider_new();
     GError *error = NULL;
@@ -499,5 +390,20 @@ void Navigateur::onNaviguerRetourWrapper(GtkButton *button, gpointer user_data) 
     auto *navigateur = static_cast<Navigateur*>(user_data);
     if (navigateur) {
         navigateur->onNaviguerRetour(button, navigateur);
+    }
+}
+
+
+void Navigateur::onNaviguerSuivantWrapper(GtkButton *button, gpointer user_data) {
+    auto *navigateur = static_cast<Navigateur*>(user_data);
+    if (navigateur) {
+        navigateur->onNaviguerSuivant(button, navigateur);
+    }
+}
+
+void Navigateur::onRafraichirPageWrapper(GtkButton *button, gpointer user_data) {
+    auto *navigateur = static_cast<Navigateur*>(user_data);
+    if (navigateur) {
+        navigateur->onRafraichirPage(button, navigateur);
     }
 }
