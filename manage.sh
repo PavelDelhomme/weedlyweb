@@ -1,41 +1,39 @@
 #!/bin/bash
 
-# Chemin de base
+# Chemins de base
 ROOT_DIR=$(pwd)
 BUILD_DIR="$ROOT_DIR/build"
 EXECUTABLE="$BUILD_DIR/WeedlyWeb"
 INSTALL_DIR="/usr/local/bin"
 
-
 # Fonction de nettoyage
 clean_project() {
-    echo "🧹 Nettoyage du répertoire de build..."
-    if [ -d "$BUILD_DIR" ]; then
-        rm -rf "$BUILD_DIR"
-        echo "✔️ Nettoyage terminé."
-    else
-        echo "❌ Aucun répertoire de build à nettoyer."
-    fi
+    echo "🧹 Nettoyage du répertoire de build et des fichiers racine CMake..."
+    
+    # Supprimer les fichiers générés par CMake dans le répertoire racine
+    rm -f "$ROOT_DIR/CMakeCache.txt" "$ROOT_DIR/Makefile"
+    rm -rf "$ROOT_DIR/CMakeFiles" "$ROOT_DIR/cmake_install.cmake"
+    
+    # Nettoyer le répertoire de build
+    rm -rf "$BUILD_DIR"
+    
+    echo "✔️ Nettoyage terminé."
 }
 
 # Fonction de configuration et de build
 build_project() {
     echo "🔨 Construction du projet..."
+    
+    # Créer le répertoire de build s'il n'existe pas
     mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR" || exit 1
-
-
-    if [ ! -f "$ROOT_DIR/CMakeLists.txt" ]; then
-        echo "❌ Fichier CMakeLists.txt introuvable dans le répertoire racine."
-        exit 1
-    fi
     
     echo "⚙️ Génération des fichiers de build avec CMake..."
     if ! cmake ..; then
         echo "❌ Erreur lors de la configuration CMake. Vérifiez votre CMakeLists.txt."
         exit 1
     fi
-
+    
     echo "⚒️ Compilation avec make..."
     if ! make -j$(nproc); then
         echo "❌ Erreur lors de la compilation."
