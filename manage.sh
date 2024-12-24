@@ -18,18 +18,31 @@ clean_project() {
     fi
 }
 
-# Fonction de build
+# Fonction de configuration et de build
 build_project() {
     echo "🔨 Construction du projet..."
     mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR" || exit 1
-    cmake ..
-    if make -j$(nproc); then
-        echo "✔️ Build terminé avec succès."
-    else
+
+
+    if [ ! -f "$ROOT_DIR/CMakeLists.txt" ]; then
+        echo "❌ Fichier CMakeLists.txt introuvable dans le répertoire racine."
+        exit 1
+    fi
+    
+    echo "⚙️ Génération des fichiers de build avec CMake..."
+    if ! cmake ..; then
+        echo "❌ Erreur lors de la configuration CMake. Vérifiez votre CMakeLists.txt."
+        exit 1
+    fi
+
+    echo "⚒️ Compilation avec make..."
+    if ! make -j$(nproc); then
         echo "❌ Erreur lors de la compilation."
         exit 1
     fi
+
+    echo "✔️ Build terminé avec succès."
 }
 
 # Fonction d'exécution
@@ -70,6 +83,7 @@ install_project() {
         echo "❌ L'exécutable n'existe pas. Essayez de lancer le build d'abord."
         exit 1
     fi
+    cd "$BUILD_DIR" || exit 1
     sudo make install
     echo "✔️ Installation réussie. Vous pouvez maintenant lancer le programme avec 'WeedlyWeb'."
 }
