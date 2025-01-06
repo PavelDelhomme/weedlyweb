@@ -171,50 +171,7 @@ void Navigateur::initialiserBarreOnglets() {
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreOnglets, FALSE, FALSE, 0);
 }
 
-// void Navigateur::ajouterNouvelOnglet(const std::string &url) {
-//     GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    // Titre de l'onglet
-    // GtkWidget *labelTitre = gtk_label_new("Nouvel Onglet");
-    // gtk_box_pack_start(GTK_BOX(hboxOnglet), labelTitre, FALSE, FALSE, 0);
-
-    // // Bouton "Fermer"
-    // GtkWidget *boutonFermer = moteurRendu->creerBouton("window-close", G_CALLBACK(+[](GtkButton *button, Navigateur *n) {
-    //     GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(button));
-    //     n->supprimerOnglet(parent);
-    // }), this);
-    // gtk_widget_set_visible(boutonFermer, FALSE);
-    // gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonFermer, FALSE, FALSE, 0);
-
-    // // Connecter les signaux pour afficher/masquer la croix au survol
-    // g_signal_connect(hboxOnglet, "enter-notify-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventCrossing *, GtkWidget *bouton) {
-    //     gtk_widget_set_visible(bouton, TRUE); // Afficher la croix
-    //     return FALSE;
-    // }), boutonFermer);
-    // g_signal_connect(hboxOnglet, "leave-notify-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventCrossing *, GtkWidget *bouton) {
-    //     gtk_widget_set_visible(bouton, FALSE); // Masquer la croix
-    //     return FALSE;
-    // }), boutonFermer);
-
-    // onglets.push_back({url, hboxOnglet});
-    // gtk_box_pack_start(GTK_BOX(barreOnglets), hboxOnglet, FALSE, FALSE, 0);
-
-    // // Déplacer le bouton "+" à la fin
-    // GtkWidget *boutonAjouterOnglet = obtenirDernierEnfant(GTK_WIDGET(barreOnglets));
-    // gtk_box_reorder_child(GTK_BOX(barreOnglets), boutonAjouterOnglet, -1);
-
-    // gtk_widget_show_all(barreOnglets);
-
-    // if (!url.empty()) {
-    //     chargerURL(url);
-    //     // Mettre à jour le titre de l'onglet lorsqu'il est chargé
-    //     moteurRendu->connecterSignalPageChargee([labelTitre](const std::string &titre) {
-    //         gtk_label_set_text(GTK_LABEL(labelTitre), titre.c_str());
-    //     });
-    // }
-
-    // gestionnaireMemoire->surveillerUtilisationMemoire();
-// }
 void Navigateur::ajouterNouvelOnglet(const std::string &url) {
     GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 

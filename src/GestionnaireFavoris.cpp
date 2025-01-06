@@ -101,25 +101,6 @@ void GestionnaireFavoris::afficherListeFavoris() {
     g_object_unref(store); // Libérer le modèle
 }
 
-// void GestionnaireFavoris::afficherDetailsFavori(const nlohmann::json& favori) {
-//     gtk_container_foreach(GTK_CONTAINER(formulaireModification), (GtkCallback)gtk_widget_destroy, NULL);
-
-//     // Champ pour le nom
-//     GtkWidget *labelNom = gtk_label_new("Nom :");
-//     GtkWidget *entryNom = gtk_entry_new();
-//     gtk_entry_set_text(GTK_ENTRY(entryNom), favori["name"].get<std::string>().c_str());
-//     gtk_box_pack_start(GTK_BOX(formulaireModification), labelNom, FALSE, FALSE, 0);
-//     gtk_box_pack_start(GTK_BOX(formulaireModification), entryNom, FALSE, FALSE, 0);
-
-//     // Champ pour l'URL
-//     GtkWidget *labelURL = gtk_label_new("URL :");
-//     GtkWidget *entryURL = gtk_entry_new();
-//     gtk_entry_set_text(GTK_ENTRY(entryURL), favori["url"].get<std::string>().c_str());
-//     gtk_box_pack_start(GTK_BOX(formulaireModification), labelURL, FALSE, FALSE, 0);
-//     gtk_box_pack_start(GTK_BOX(formulaireModification), entryURL, FALSE, FALSE, 0);
-
-//     gtk_widget_show_all(formulaireModification);
-// }
 
 void GestionnaireFavoris::sauvegarderModifications() {
     GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(listeFavoris));
