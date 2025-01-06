@@ -5,11 +5,16 @@
 // Méthode pour obtenir la racine du projet
 std::string GestionnaireFichiers::obtenirCheminRacine() {
     auto current_path = std::filesystem::current_path();
-    std::cout << "Chemin racine détecté : " << current_path.string() << std::endl;
-    return current_path.parent_path().string();
-    //std::string cheminRacine = std::filesystem::path(__FILE__).parent_path().parent_path().string();
-    //return cheminRacine + "/build";
+    
+    // Si exécuté depuis le dossier build
+    if (current_path.filename() == "build") {
+        return current_path.parent_path().string(); // Retourne le chemin racine
+    }
+
+    // Sinon, retourne le chemin actuel
+    return current_path.string();
 }
+
 
 // Retourne un chemin absolu en combinant le chemin actuel avec un chemin relatif
 std::string GestionnaireFichiers::obtenirCheminAbsolu(const std::string& cheminRelatif) {
@@ -41,7 +46,8 @@ nlohmann::json GestionnaireFichiers::lireJSON(const std::string& chemin) {
     try {
         std::ifstream fichier(chemin);
         if (!fichier.is_open()) {
-            throw std::ios_base::failure("Impossible d'ouvrir le fichier en lecture : " + chemin);
+            std::cerr << "Erreur : Le fichier " << chemin << " est introuvable ou inaccessible." << std::endl;
+            return nlohmann::json::object(); // Retourne un objet JSON vide
         }
         nlohmann::json contenu;
         fichier >> contenu;
@@ -57,9 +63,10 @@ void GestionnaireFichiers::ecrireJSON(const std::string& chemin, const nlohmann:
     try {
         std::ofstream fichier(chemin);
         if (!fichier.is_open()) {
-            throw std::ios_base::failure("Impossible d'ouvrir le fichier en écriture : " + chemin);
+            std::cerr << "Erreur : Impossible d'écrire dans le fichier " << chemin << std::endl;
+            return;
         }
-        fichier << contenu.dump(4); // Ecrit avec un indentation de 4 espaces
+        fichier << contenu.dump(4);
     } catch (const std::exception& e) {
         std::cerr << "Erreur lors de l'écriture du fichier JSON (" << chemin << ") : " << e.what() << std::endl;
     }

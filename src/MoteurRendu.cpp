@@ -15,15 +15,66 @@ static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer us
     const gchar* title = webkit_web_view_get_title(vueWeb);
     if (title) {
         auto& callback = data->second;
-        callback(std::string(title));
+        (*callback)(std::string(title));
     }
 }
 
-
 // Fonction statique pour gérer "notify::uri"
 static void on_notify_uri(GObject *object, GParamSpec *param_spec, gpointer user_data) {
+    auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+    if (!data || !WEBKIT_IS_WEB_VIEW(data->first)) {
+        std::cerr << "Erreur : WebView invalide dans on_notify_uri." << std::endl;
+        return;
+    }
+
+    WebKitWebView* vueWeb = data->first;
+    const gchar* uri = webkit_web_view_get_uri(vueWeb);
+    if (uri) {
+        data->second(std::string(uri));
+    }
+}
+/*
+// Fonction statique pour gérer "notify::uri"
+static void on_notify_uri(GObject *object, GParamSpec *param_spec, gpointer user_data) {
+    auto* raw_data = static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
+    if (!raw_data || !(*raw_data)) {
+        std::cerr << "Erreur : données utilisateur invalides dans on_notify_uri." << std::endl;
+        return;
+    }
+    auto data = *raw_data;
+    WebKitWebView* vueWeb = data->first;
     auto data = static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
     WebKitWebView* vueWeb = (*data)->first;
+    
+    if (!WEBKIT_IS_WEB_VIEW(vueWeb)) {
+        std::cerr << "Erreur : WebView invalide dans on_notify_uri." << std::endl;
+        return;
+    }
+
+    const gchar* uri = webkit_web_view_get_uri(vueWeb);
+    if (uri) {
+        data->second(std::string(uri));
+        //auto& callback = (*data)->second;
+        //callback(std::string(uri));
+    }
+    if (!vueWeb || !WEBKIT_IS_WEB_VIEW(vueWeb)) {
+        std::cerr << "Erreur : WebView invalide dans connecterSignalURLChangee." << std::endl;
+        return;
+    }
+
+    // Utilisateur de std::unique_ptr pour gérer les données de manière sécurisée
+    //auto data = new std::pair<WebKitWebView*
+
+    auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+    if (!data || !WEBKIT_IS_WEB_VIEW(data->first)) {
+        std::cerr << "Erreur : WebView invalide dans on_notify_uri." << std::endl;
+        return;
+    }
+
+    WebKitWebView* vueWeb = data->first;
+
+    std::cout << "Vérification de vueWeb dans on_notify_uri" << std::endl;
+    std::cout << "Vérification de vueWeb dans on_notify_uri" << std::endl;
 
     if (!WEBKIT_IS_WEB_VIEW(vueWeb)) {
         std::cerr << "Erreur : WebView invalide dans on_notify_uri." << std::endl;
@@ -32,10 +83,9 @@ static void on_notify_uri(GObject *object, GParamSpec *param_spec, gpointer user
 
     const gchar* uri = webkit_web_view_get_uri(vueWeb);
     if (uri) {
-        auto& callback = data->second;
-        callback(std::string(uri));
+        data->second(std::string(uri));
     }
-}
+}*/
 
 // Fonction statique pour gérer "destroy"
 static void on_destroy_callback(GObject *object, gpointer user_data) {
@@ -111,20 +161,38 @@ GtkWidget* MoteurRendu::creerChampTexte(GCallback callback, gpointer data) {
     g_signal_connect(champ, "activate", callback, data);
     return champ;
 }
-static void supprimer_data(gpointer user_data, GClosure *) {
-    delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
-}
+//static void supprimer_data(gpointer user_data, GClosure *) {
+//    delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
+//}
 
 void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::string&)> callback) {
     if (!vueWeb || !callback) return;
+    if (!vueWeb || !WEBKIT_IS_WEB_VIEW(vueWeb)) {
+        std::cerr << "Erreur : WebView invalide dans connecterSignal." << std::endl;
+        return;
+    }
 
-    auto data = new std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(
-        std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback));
 
-    g_signal_connect_data(vueWeb, "notify::title", G_CALLBACK(on_notify_title), data,
-                          supprimer_data, G_CONNECT_SWAPPED);
+    auto data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
+
+    g_signal_connect_data(
+        vueWeb,
+        "notify::title",
+        G_CALLBACK(on_notify_title),
+        data,
+        [](gpointer user_data, GClosure*) {
+            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+        },
+        G_CONNECT_SWAPPED
+    );
 }
 
+
+void MoteurRendu::rafraichirPage() {
+    if (vueWeb && WEBKIT_IS_WEB_VIEW(vueWeb)) {
+        webkit_web_view_reload(vueWeb);
+    }
+}
 
 void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string&)> callback) {
     if (!vueWeb || !WEBKIT_IS_WEB_VIEW(vueWeb)) {
@@ -132,10 +200,20 @@ void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string
         return;
     }
 
-    auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
-    g_signal_connect_data(vueWeb, "notify::uri", G_CALLBACK(on_notify_uri), new auto(data),
-                          supprimer_data, G_CONNECT_SWAPPED);
+    auto data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
+
+    g_signal_connect_data(
+        vueWeb,
+        "notify::uri",
+        G_CALLBACK(on_notify_uri),
+        data,
+        [](gpointer user_data, GClosure*) {
+            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+        },
+        G_CONNECT_SWAPPED
+    );
 }
+
 
 void MoteurRendu::onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer user_data) {
     auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);

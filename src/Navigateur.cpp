@@ -1,5 +1,6 @@
 #include "Navigateur.h"
 #include "GestionnaireFichiers.h"
+#include "GestionnaireFavoris.h"
 #include <iostream>
 #include <filesystem>
 #include <string>
@@ -12,7 +13,8 @@ std::string obtenirCheminAbsolu(const std::string& fichier) {
 Navigateur::Navigateur() 
     : moteurRendu(std::make_unique<MoteurRendu>()),
       gestionnaireHTTP(std::make_unique<GestionnaireHTTP>()),
-      gestionnaireMemoire(std::make_unique<GestionnaireMemoire>()) {
+      gestionnaireMemoire(std::make_unique<GestionnaireMemoire>()),
+      moteurScript(std::make_unique<MoteurScript>()) {
     chargerConfiguration();
     chargerFavoris();
     construireInterface();
@@ -91,9 +93,21 @@ void Navigateur::initialiserBarreNavigation() {
     GtkWidget *boutonParametres = moteurRendu->creerBouton("preferences-system", G_CALLBACK(+[](GtkButton *, Navigateur *n) {
         n->afficherParametres();
     }), this);
+    GtkWidget *boutonGestionnaireFavoris = moteurRendu->creerBouton("folder", G_CALLBACK(+[](GtkButton*, Navigateur* n) {
+        n->afficherGestionnaireFavoris();
+    }), this);
+    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonGestionnaireFavoris, FALSE, FALSE, 0);
+
     gtk_box_pack_start(GTK_BOX(barreNavigation), boutonParametres, FALSE, FALSE, 0); // Ajoute boutonParametres à la barre
 
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
+}
+
+void Navigateur::afficherGestionnaireFavoris() {
+    auto gestionnaireFavoris = new GestionnaireFavoris(favoris, [this]() {
+        this->rafraichirBarreFavoris();
+    });
+    gestionnaireFavoris->afficherFenetre();
 }
 
 void Navigateur::initialiserBarreFavoris() {
@@ -118,6 +132,15 @@ void Navigateur::initialiserBarreFavoris() {
                 G_CALLBACK(&Navigateur::onCliqueFavoriWrapper),
                 new std::pair<Navigateur*, std::string>(this, url)
             );
+
+            // Menu contextuel clic droit
+            g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventButton *event, Navigateur *n, std::string nom) {
+                if (event->button == 3) { // Clic droit
+                    n->creerMenuContextuelFavoris(widget, nom);
+                }
+                return FALSE;
+            }), this);
+
             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
         }
     }
@@ -148,50 +171,102 @@ void Navigateur::initialiserBarreOnglets() {
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreOnglets, FALSE, FALSE, 0);
 }
 
+// void Navigateur::ajouterNouvelOnglet(const std::string &url) {
+//     GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+
+    // Titre de l'onglet
+    // GtkWidget *labelTitre = gtk_label_new("Nouvel Onglet");
+    // gtk_box_pack_start(GTK_BOX(hboxOnglet), labelTitre, FALSE, FALSE, 0);
+
+    // // Bouton "Fermer"
+    // GtkWidget *boutonFermer = moteurRendu->creerBouton("window-close", G_CALLBACK(+[](GtkButton *button, Navigateur *n) {
+    //     GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(button));
+    //     n->supprimerOnglet(parent);
+    // }), this);
+    // gtk_widget_set_visible(boutonFermer, FALSE);
+    // gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonFermer, FALSE, FALSE, 0);
+
+    // // Connecter les signaux pour afficher/masquer la croix au survol
+    // g_signal_connect(hboxOnglet, "enter-notify-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventCrossing *, GtkWidget *bouton) {
+    //     gtk_widget_set_visible(bouton, TRUE); // Afficher la croix
+    //     return FALSE;
+    // }), boutonFermer);
+    // g_signal_connect(hboxOnglet, "leave-notify-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventCrossing *, GtkWidget *bouton) {
+    //     gtk_widget_set_visible(bouton, FALSE); // Masquer la croix
+    //     return FALSE;
+    // }), boutonFermer);
+
+    // onglets.push_back({url, hboxOnglet});
+    // gtk_box_pack_start(GTK_BOX(barreOnglets), hboxOnglet, FALSE, FALSE, 0);
+
+    // // Déplacer le bouton "+" à la fin
+    // GtkWidget *boutonAjouterOnglet = obtenirDernierEnfant(GTK_WIDGET(barreOnglets));
+    // gtk_box_reorder_child(GTK_BOX(barreOnglets), boutonAjouterOnglet, -1);
+
+    // gtk_widget_show_all(barreOnglets);
+
+    // if (!url.empty()) {
+    //     chargerURL(url);
+    //     // Mettre à jour le titre de l'onglet lorsqu'il est chargé
+    //     moteurRendu->connecterSignalPageChargee([labelTitre](const std::string &titre) {
+    //         gtk_label_set_text(GTK_LABEL(labelTitre), titre.c_str());
+    //     });
+    // }
+
+    // gestionnaireMemoire->surveillerUtilisationMemoire();
+// }
 void Navigateur::ajouterNouvelOnglet(const std::string &url) {
     GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    // Titre de l'onglet
-    GtkWidget *labelTitre = gtk_label_new("Chargement...");
+    GtkWidget *labelTitre = gtk_label_new("Nouvel Onglet");
     gtk_box_pack_start(GTK_BOX(hboxOnglet), labelTitre, FALSE, FALSE, 0);
 
-    // Bouton "Fermer"
     GtkWidget *boutonFermer = moteurRendu->creerBouton("window-close", G_CALLBACK(+[](GtkButton *button, Navigateur *n) {
         GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(button));
         n->supprimerOnglet(parent);
     }), this);
-    gtk_widget_set_visible(boutonFermer, FALSE); // Masquer le bouton au départ
     gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonFermer, FALSE, FALSE, 0);
 
-    // Connecter les signaux pour afficher/masquer la croix au survol
-    g_signal_connect(hboxOnglet, "enter-notify-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventCrossing *, GtkWidget *bouton) {
-        gtk_widget_set_visible(bouton, TRUE); // Afficher la croix
-        return FALSE;
-    }), boutonFermer);
-    g_signal_connect(hboxOnglet, "leave-notify-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventCrossing *, GtkWidget *bouton) {
-        gtk_widget_set_visible(bouton, FALSE); // Masquer la croix
-        return FALSE;
-    }), boutonFermer);
-
-    onglets.push_back({url, hboxOnglet});
     gtk_box_pack_start(GTK_BOX(barreOnglets), hboxOnglet, FALSE, FALSE, 0);
+    onglets.push_back({url, hboxOnglet});
 
-    // Déplacer le bouton "+" à la fin
-    GtkWidget *boutonAjouterOnglet = obtenirDernierEnfant(GTK_WIDGET(barreOnglets));
-    gtk_box_reorder_child(GTK_BOX(barreOnglets), boutonAjouterOnglet, -1);
+    // Correct : lambda avec capture explicite de `this`
+    g_signal_connect(hboxOnglet, "button-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEventButton*, gpointer user_data) {
+        auto* n = static_cast<Navigateur*>(user_data);
+        if (n) {
+            n->changerOngletActif(widget);
+        }
+        return FALSE;
+    }), this);
+
+
+    moteurRendu->afficherPage(url);
+    moteurRendu->connecterSignalPageChargee([labelTitre](const std::string &titre) {
+        gtk_label_set_text(GTK_LABEL(labelTitre), titre.c_str());
+    });
 
     gtk_widget_show_all(barreOnglets);
+}
 
-    if (!url.empty()) {
-        chargerURL(url);
-        // Mettre à jour le titre de l'onglet lorsqu'il est chargé
-        moteurRendu->connecterSignalPageChargee([labelTitre](const std::string &titre) {
-            gtk_label_set_text(GTK_LABEL(labelTitre), titre.c_str());
-        });
+void Navigateur::changerOngletActif(GtkWidget* ongletWidget) {
+    for (auto &[url, widget] : onglets) {
+        if (widget == ongletWidget) {
+            moteurRendu->afficherPage(url);
+            mettreEnSurbrillance(widget);
+            return;
+        }
     }
 }
 
 
+
+void Navigateur::executerScriptDansOngletActif(const std::string& script) {
+    if (!onglets.empty()) {
+        GtkWidget* ongletActif = onglets.back().second;
+        WebKitWebView* vueWeb = WEBKIT_WEB_VIEW(gtk_bin_get_child(GTK_BIN(ongletActif)));
+        moteurScript->executerScript(vueWeb, script);
+    }
+}
 
 void Navigateur::supprimerOnglet(GtkWidget *ongletWidget) {
     // Trouver l'onglet à supprimer
@@ -200,9 +275,16 @@ void Navigateur::supprimerOnglet(GtkWidget *ongletWidget) {
     });
 
     if (it != onglets.end()) {
-        // Supprimer le widget graphique de la barre d'onglets
-        gtk_widget_destroy(it->second);
+        GtkWidget *hboxOnglet = it->second;
+
+        // Conversion explicite vers WebKitWebView*
+        WebKitWebView *vueWeb = WEBKIT_WEB_VIEW(gtk_bin_get_child(GTK_BIN(hboxOnglet)));
+        if (vueWeb && WEBKIT_IS_WEB_VIEW(vueWeb)) {
+            gestionnaireMemoire->hibernerOnglet(vueWeb); // Mise en veille de l'onglet
+        }
+
         // Supprimer l'onglet de la liste
+        gtk_widget_destroy(hboxOnglet);
         onglets.erase(it);
 
         // Si aucun onglet n'est présent, fermer l'application
@@ -237,6 +319,7 @@ void Navigateur::chargerURL(const std::string& url) {
             gtk_label_set_text(GTK_LABEL(labelTitre), titre.c_str());
         }
     });
+    gestionnaireMemoire->optimiserMemoire();
 }
 
 void Navigateur::afficherMessage(const std::string& message) {
@@ -289,9 +372,19 @@ void Navigateur::sauvegarderFavoris() {
 
 
 void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
+    // Vérifie si l'URL existe déjà
+    for (const auto& favori : favoris) {
+        if (favori["url"] == url) {
+            std::cerr << "Favori déjà existant : " << url << std::endl;
+            return;
+        }
+    }
+
+    // Ajoute le nouveau favori
     favoris.push_back({{"name", nom}, {"url", url}, {"tag", tag}});
     sauvegarderFavoris();
 }
+
 
 void Navigateur::rafraichirBarreFavoris() {
     gtk_widget_destroy(barreFavoris); // Supprime la barre actuelle
@@ -299,6 +392,126 @@ void Navigateur::rafraichirBarreFavoris() {
     gtk_widget_show_all(conteneurPrincipal); // Met à jour l'interface
 }
 
+void Navigateur::ajouterDossierFavoris(const std::string& nom) {
+    favoris.push_back({{"name", nom}, {"type", "folder"}, {"children", nlohmann::json::array()}});
+    sauvegarderFavoris();
+}
+
+
+void Navigateur::ajouterFavoriDansDossier(const std::string& dossier, const std::string& nom, const std::string& url, const std::string& tag) {
+    for (auto& favori : favoris) {
+        if (favori["name"] == dossier && favori["type"] == "folder") {
+            favori["children"].push_back({{"name", nom}, {"url", url}, {"tag", tag}});
+            sauvegarderFavoris();
+            return;
+        }
+    }
+    std::cerr << "Dossier introuvable : " << dossier << std::endl;
+}
+
+void Navigateur::creerMenuContextuelFavoris(GtkWidget* bouton, const nlohmann::json& favori) {
+    GtkWidget *menu = gtk_menu_new();
+
+    // Modifier le favori
+    GtkWidget *modifierItem = gtk_menu_item_new_with_label("Modifier");
+    g_signal_connect(modifierItem, "activate", G_CALLBACK(+[](GtkWidget*, Navigateur* navigateur, nlohmann::json favori) {
+        navigateur->modifierFavori(favori);
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifierItem);
+
+    // Supprimer le favori
+    GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer");
+    g_signal_connect(supprimerItem, "activate", G_CALLBACK(+[](GtkWidget*, Navigateur* navigateur, nlohmann::json favori) {
+        navigateur->supprimerFavori(favori);
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_widget(GTK_MENU(menu), bouton, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, nullptr);
+}
+
+void Navigateur::modifierFavori(const nlohmann::json& favori) {
+    std::cout << "Modification du favori : " << favori.dump() << std::endl;
+}
+
+void Navigateur::supprimerFavori(const nlohmann::json& favori) {
+    std::cout << "Suppression du favori : " << favori.dump() << std::endl;
+    favoris.erase(std::remove(favoris.begin(), favoris.end(), favori), favoris.end());
+    sauvegarderFavoris();
+    rafraichirBarreFavoris(); 
+}
+
+void Navigateur::afficherFavoris(const nlohmann::json& favoris) {
+    gtk_widget_destroy(barreFavoris); // Supprime la barre actuelle
+    barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+
+    for (const auto& favori : favoris) {
+        if (!favori.contains("name") || !favori.contains("url")) {
+            continue;
+        }
+
+        GtkWidget *boutonFavori = moteurRendu->creerBouton(
+            favori["name"].get<std::string>(),
+            G_CALLBACK(&Navigateur::onCliqueFavoriWrapper),
+            new std::pair<Navigateur*, std::string>(this, favori["url"].get<std::string>())
+        );
+        gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
+    }
+
+    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 0);
+    gtk_widget_show_all(conteneurPrincipal);
+}
+
+
+void Navigateur::naviguerDansDossier(const std::string& dossier) {
+    for (const auto& favori : favoris) {
+        if (favori["name"] == dossier && favori["type"] == "folder") {
+            afficherFavoris(favori["children"]);
+            return;
+        }
+    }
+    std::cerr << "Dossier introuvable : " << dossier << std::endl;
+}
+
+void Navigateur::creerDossierFavoris(const std::string& nom) {
+    favoris.push_back({{"name", nom}, {"type", "folder"}, {"children", nlohmann::json::array()}});
+    sauvegarderFavoris();
+    rafraichirBarreFavoris();
+}
+
+
+void Navigateur::deplacerFavori(const std::string& nomFavori, const std::string& dossierDestination) {
+    nlohmann::json* dossierCible = nullptr;
+    nlohmann::json favoriADeplacer;
+
+    // Trouver le dossier cible
+    for (auto& favori : favoris) {
+        if (favori["name"] == dossierDestination && favori["type"] == "folder") {
+            dossierCible = &favori["children"];
+            break;
+        }
+    }
+
+    if (!dossierCible) {
+        std::cerr << "Dossier introuvable : " << dossierDestination << std::endl;
+        return;
+    }
+
+    // Trouver et retirer le favori de la liste principale
+    auto it = std::find_if(favoris.begin(), favoris.end(), [&nomFavori](const auto& f) {
+        return f["name"] == nomFavori;
+    });
+
+    if (it != favoris.end()) {
+        favoriADeplacer = *it;
+        favoris.erase(it);
+        dossierCible->push_back(favoriADeplacer);
+        sauvegarderFavoris();
+        rafraichirBarreFavoris();
+    } else {
+        std::cerr << "Favori introuvable : " << nomFavori << std::endl;
+    }
+}
 
 void Navigateur::afficherParametres() {
     std::string cheminParametres = GestionnaireFichiers::cheminParametresHTML();

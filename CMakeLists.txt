@@ -26,21 +26,25 @@ set(SOURCES
     src/main.cpp
     src/Navigateur.cpp
     src/MoteurRendu.cpp
+    src/MoteurScript.cpp
     src/GestionnaireHTTP.cpp
     src/GestionnaireMemoire.cpp
     src/GestionnaireFichiers.cpp
+    src/GestionnaireFavoris.cpp
 )
-
 
 # Créer l'exécutable
 add_executable(WeedlyWeb ${SOURCES})
 
-# Lier les bibliothèques nécessaires
+# Inclure les répertoires nécessaires
 target_include_directories(WeedlyWeb PRIVATE ${WEBKIT2GTK_INCLUDE_DIRS})
-target_link_libraries(WeedlyWeb ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES})
 
+# Lier les bibliothèques nécessaires
+target_link_libraries(WeedlyWeb PRIVATE ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES})
 
+# Ajouter des commandes post-build
 add_custom_command(TARGET WeedlyWeb POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/assets
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/settings
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/datas
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/settings/config.json ${CMAKE_BINARY_DIR}/assets/settings/config.json
@@ -65,6 +69,7 @@ install(FILES
 
 # Ajouter une cible de nettoyage sécurisée (renommée pour éviter les conflits avec `make clean`)
 add_custom_target(custom_clean ALL
-    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/*
-    COMMENT "Nettoyage sécurisé du répertoire de build"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/assets
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/WeedlyWeb
+    COMMENT "Nettoyage sécurisé du répertoire de build sans supprimer les dépendances"
 )
