@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <string>
 #include <fstream>
+#include <set>
 
 std::string obtenirCheminAbsolu(const std::string& fichier) {
     return std::filesystem::current_path().string() + "/" + fichier;
@@ -16,7 +17,6 @@ Navigateur::Navigateur()
       gestionnaireMemoire(std::make_unique<GestionnaireMemoire>()),
       moteurScript(std::make_unique<MoteurScript>()) {
     chargerConfiguration();
-    chargerFavoris();
     construireInterface();
 }
 
@@ -134,12 +134,16 @@ void Navigateur::initialiserBarreFavoris() {
             );
 
             // Menu contextuel clic droit
-            g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventButton *event, Navigateur *n, std::string nom) {
+            g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+                auto* data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
                 if (event->button == 3) { // Clic droit
-                    n->creerMenuContextuelFavoris(widget, nom);
+                    data->first->creerMenuContextuelFavoris(widget, data->second);
+                    return TRUE;
                 }
                 return FALSE;
-            }), this);
+            }), new std::pair<Navigateur*, std::string>(this, url));
+
+
 
             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
         }
@@ -321,6 +325,12 @@ void Navigateur::chargerFavoris() {
     } else {
         std::cout << "Favoris chargés avec succès : " << favoris.dump(4) << std::endl;
     }
+
+    // Éviter les doublons
+    std::set<std::string> urls;
+    favoris.erase(std::remove_if(favoris.begin(), favoris.end(), [&urls](const nlohmann::json& favori) {
+        return !favori.contains("url") || !urls.insert(favori["url"]).second;
+    }), favoris.end());
 }
 
 void Navigateur::sauvegarderFavoris() {

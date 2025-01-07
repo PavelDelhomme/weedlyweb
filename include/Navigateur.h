@@ -10,6 +10,7 @@
 #include "GestionnaireHTTP.h"
 #include "GestionnaireMemoire.h"
 #include "MoteurScript.h"
+#include <set>
 
 class Navigateur {
 public:
@@ -21,6 +22,7 @@ public:
     void ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag);
     void fermerApplication();
     void ajouterNouvelOnglet(const std::string &url = "");
+    void changerOngletActif(GtkWidget* ongletWidget);
     static void onCliqueFavoriWrapper(GtkButton* button, gpointer user_data);
     static void onNaviguerSuivantWrapper(GtkButton *button, gpointer user_data);
     static void onRafraichirPageWrapper(GtkButton *button, gpointer user_data);

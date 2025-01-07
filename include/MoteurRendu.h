@@ -18,6 +18,7 @@ public:
     void rafraichirPage();
     void naviguerRetour();
     void naviguerSuivant();
+    void nettoyerSignaux();
     static void onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer user_data);
 
     GtkWidget* creerBouton(const std::string& label, GCallback callback, gpointer data);

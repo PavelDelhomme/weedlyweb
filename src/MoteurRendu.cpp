@@ -40,6 +40,14 @@ static void on_destroy_callback(GObject *object, gpointer user_data) {
     delete data; // Libère la mémoire allouée dynamiquement
 }
 
+// Définition de la fonction statique helper (à mettre dans MoteurRendu.cpp)
+static void on_notify_title_helper(GObject* object, GParamSpec*, gpointer user_data) {
+    auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+    if (!data || !WEBKIT_IS_WEB_VIEW(data->first)) return;
+    const gchar* title = webkit_web_view_get_title(data->first);
+    if (title) data->second(std::string(title));
+}
+
 
 MoteurRendu::MoteurRendu() {
     vueWeb = WEBKIT_WEB_VIEW(webkit_web_view_new());
@@ -51,7 +59,8 @@ MoteurRendu::MoteurRendu() {
 
 MoteurRendu::~MoteurRendu() {
     if (vueWeb) {
-        g_clear_object(&vueWeb);
+        // g_clear_object(&vueWeb);
+        g_object_unref(vueWeb);// Utilisation de g_object_unref au lieu de g_clear_object pour éviter les conflits
     }
 }
 
@@ -109,24 +118,22 @@ GtkWidget* MoteurRendu::creerChampTexte(GCallback callback, gpointer data) {
     return champ;
 }
 
+
+// Mise à jour de la connexion au signal
 void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::string&)> callback) {
     if (!vueWeb || !callback) return;
-    if (!vueWeb || !WEBKIT_IS_WEB_VIEW(vueWeb)) {
-        std::cerr << "Erreur : WebView invalide dans connecterSignal." << std::endl;
-        return;
-    }
-
 
     auto data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
 
     g_signal_connect_data(
         vueWeb,
         "notify::title",
-        G_CALLBACK(on_notify_title),
+        G_CALLBACK(on_notify_title_helper), // Appelle la fonction statique
         data,
-        [](gpointer user_data, GClosure*) {
-            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-        },
+        nullptr, // Suppression du destructeur ici pour éviter les double delete
+        //[](gpointer user_data, GClosure*) {
+        //    delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+        //},
         G_CONNECT_SWAPPED
     );
 }
@@ -151,9 +158,10 @@ void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string
         "notify::uri",
         G_CALLBACK(on_notify_uri),
         data,
-        [](gpointer user_data, GClosure*) {
-            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-        },
+        // [](gpointer user_data, GClosure*) {
+        //     delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+        // },
+        nullptr, // Suppression de la libération automatique ici
         G_CONNECT_SWAPPED
     );
 }
@@ -165,4 +173,12 @@ void MoteurRendu::onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer 
 
     const gchar* uri = webkit_web_view_get_uri(data->first);
     if (uri) data->second(std::string(uri));
+}
+
+
+void MoteurRendu::nettoyerSignaux() {
+    if (vueWeb) {
+        g_signal_handlers_disconnect_by_func(vueWeb, (gpointer)on_notify_title_helper, nullptr);
+        g_signal_handlers_disconnect_by_func(vueWeb, (gpointer)on_notify_uri, nullptr);
+    }
 }
