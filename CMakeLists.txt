@@ -32,15 +32,24 @@ set(SOURCES
     src/GestionnaireFichiers.cpp
     src/GestionnaireFavoris.cpp
 )
+set(HEADERS
+    include/Navigateur.h
+    include/MoteurRendu.h
+    include/GestionnaireFavoris.h
+    include/GestionnaireHTTP.h
+    include/GestionnaireMemoire.h
+    include/GestionnaireFichiers.h
+    include/MoteurScript.h
+)
 
 # Créer l'exécutable
-add_executable(WeedlyWeb ${SOURCES})
+add_executable(WeedlyWeb ${SOURCES} ${HEADERS})
 
 # Inclure les répertoires nécessaires
 target_include_directories(WeedlyWeb PRIVATE ${WEBKIT2GTK_INCLUDE_DIRS})
 
 # Lier les bibliothèques nécessaires
-target_link_libraries(WeedlyWeb PRIVATE ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES})
+target_link_libraries(WeedlyWeb PRIVATE ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES} nlohmann_json)
 
 # Ajouter des commandes post-build
 add_custom_command(TARGET WeedlyWeb POST_BUILD

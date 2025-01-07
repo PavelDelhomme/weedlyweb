@@ -63,3 +63,10 @@
   - [ ] Suivre les pages visitées et permettre de les consulter.
 - [ ] Mode sombre :
   - [ ] Ajouter un thème sombre pour l'interface.
+- [ ] Accès cookies
+- [ ] Infos serveur
+- [ ] Utilisation de tor
+- [ ] Intégration similaire a burpsuite
+- [ ] Gérer soit même des requête
+- [ ] Analyser tous les éléments chargés
+- [ ] Montrer les page indexer automatiquemet

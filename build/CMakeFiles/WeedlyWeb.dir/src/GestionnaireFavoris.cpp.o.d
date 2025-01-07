@@ -947,4 +947,8 @@ CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o: \
  /usr/include/nlohmann/ordered_map.hpp /usr/include/c++/14/any \
  /usr/include/nlohmann/detail/macro_unscope.hpp \
  /usr/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
- /usr/include/c++/14/iostream
+ /home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/include/GestionnaireFichiers.h \
+ /usr/include/c++/14/fstream \
+ /usr/include/x86_64-linux-gnu/c++/14/bits/basic_file.h \
+ /usr/include/x86_64-linux-gnu/c++/14/bits/c++io.h \
+ /usr/include/c++/14/bits/fstream.tcc /usr/include/c++/14/iostream

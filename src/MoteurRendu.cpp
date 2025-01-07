@@ -152,8 +152,18 @@ void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string
     }
 
     auto data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
-
     g_signal_connect_data(
+        vueWeb,
+        "notify::uri",
+        G_CALLBACK(on_notify_uri),
+        data,
+        [](gpointer user_data, GClosure *) {
+            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+        },
+        static_cast<GConnectFlags>(0) // Supprimez `G_CONNECT_SWAPPED`
+    );
+
+    /*g_signal_connect_data(
         vueWeb,
         "notify::uri",
         G_CALLBACK(on_notify_uri),
@@ -163,7 +173,7 @@ void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string
         // },
         nullptr, // Suppression de la libération automatique ici
         G_CONNECT_SWAPPED
-    );
+    );*/
 }
 
 
