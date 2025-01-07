@@ -1,4 +1,5 @@
 #include "GestionnaireFavoris.h"
+#include "GestionnaireFichiers.h"
 #include <iostream>
 
 GestionnaireFavoris::GestionnaireFavoris(nlohmann::json& favoris, std::function<void()> callbackRafraichir)
@@ -22,15 +23,12 @@ void GestionnaireFavoris::creerInterface() {
     listeFavoris = gtk_tree_view_new();
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), listeFavoris, TRUE, TRUE, 0);
 
-    // Formulaire de modification
-    formulaireModification = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), formulaireModification, FALSE, FALSE, 0);
-
-    GtkWidget *boutonSauvegarder = gtk_button_new_with_label("Sauvegarder");
-    g_signal_connect(boutonSauvegarder, "clicked", G_CALLBACK(+[](GtkWidget*, GestionnaireFavoris* gf) {
-        gf->sauvegarderModifications();
+    GtkWidget *boutonFermer = gtk_button_new_with_label("Fermer");
+    g_signal_connect(boutonFermer, "clicked", G_CALLBACK([](GtkWidget*, gpointer user_data) {
+        auto* gestionnaire = static_cast<GestionnaireFavoris*>(user_data);
+        gtk_widget_destroy(gestionnaire->fenetre);
     }), this);
-    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), boutonSauvegarder, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), boutonFermer, FALSE, FALSE, 0);
 
     afficherListeFavoris();
     gtk_widget_show_all(fenetre);

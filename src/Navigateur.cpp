@@ -71,11 +71,10 @@ GtkWidget* obtenirPremierEnfant(GtkWidget* parent) {
 void Navigateur::initialiserBarreNavigation() {
     barreNavigation = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    ajouterBouton(barreNavigation, "go-previous", G_CALLBACK(&Navigateur::onNaviguerRetour), this);
-    ajouterBouton(barreNavigation, "go-next", G_CALLBACK(&Navigateur::onNaviguerSuivant), this);
-    ajouterBouton(barreNavigation, "view-refresh", G_CALLBACK(&Navigateur::onRafraichirPage), this);
+    ajouterBouton(barreNavigation, "go-previous", G_CALLBACK(&Navigateur::onNaviguerRetourWrapper), this);
+    ajouterBouton(barreNavigation, "go-next", G_CALLBACK(&Navigateur::onNaviguerSuivantWrapper), this);
+    ajouterBouton(barreNavigation, "view-refresh", G_CALLBACK(&Navigateur::onRafraichirPageWrapper), this);
     ajouterBouton(barreNavigation, "go-home", G_CALLBACK(&Navigateur::onAllerAccueil), this);
-
 
     barreURL = moteurRendu->creerChampTexte(G_CALLBACK(&Navigateur::onBarreURLActivate), this);
     gtk_box_pack_start(GTK_BOX(barreNavigation), barreURL, TRUE, TRUE, 0);
@@ -83,68 +82,36 @@ void Navigateur::initialiserBarreNavigation() {
     GtkWidget *boutonFavoris = moteurRendu->creerBouton("star", G_CALLBACK(+[](GtkButton *, Navigateur *n) {
         std::string url = n->moteurRendu->obtenirURLActuelle();
         if (!url.empty()) {
-            n->ajouterFavori("Favori", url, ""); // Ajoute le favori avec un nom par défaut
-            n->rafraichirBarreFavoris(); // Met à jour la barre des favoris
+            GestionnaireFavoris gestionnaire(n->favoris, [n]() {
+                n->rafraichirBarreFavoris();
+            });
+            gestionnaire.ajouterFavori("Favori", url, "");
+            n->rafraichirBarreFavoris();
         }
-    }), this); // Ferme correctement la lambda ici
-
-    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonFavoris, FALSE, FALSE, 0); // Ajoute boutonFavoris à la barre
-        
-    GtkWidget *boutonParametres = moteurRendu->creerBouton("preferences-system", G_CALLBACK(+[](GtkButton *, Navigateur *n) {
-        n->afficherParametres();
     }), this);
-    GtkWidget *boutonGestionnaireFavoris = moteurRendu->creerBouton("folder", G_CALLBACK(+[](GtkButton*, Navigateur* n) {
-        n->afficherGestionnaireFavoris();
-    }), this);
-    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonGestionnaireFavoris, FALSE, FALSE, 0);
 
-    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonParametres, FALSE, FALSE, 0); // Ajoute boutonParametres à la barre
-
-    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
-}
-
-void Navigateur::afficherGestionnaireFavoris() {
-    auto gestionnaireFavoris = new GestionnaireFavoris(favoris, [this]() {
-        this->rafraichirBarreFavoris();
-    });
-    gestionnaireFavoris->afficherFenetre();
+    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonFavoris, FALSE, FALSE, 0);
+    gkt_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
 }
 
 void Navigateur::initialiserBarreFavoris() {
     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    if (favoris.empty() || !favoris.is_array()) {
-        std::cerr << "Aucun favori disponible ou JSON invalide." << std::endl;
-        GtkWidget *labelVide = gtk_label_new("Aucun favori disponible.");
-        gtk_box_pack_start(GTK_BOX(barreFavoris), labelVide, FALSE, FALSE, 0);
-    } else {
-        for (const auto &favori : favoris) {
-            if (!favori.contains("name") || !favori.contains("url")) {
-                std::cerr << "Favori invalide : manque 'name' ou 'url'." << std::endl;
-                continue;
-            }
+    GtkWidget *boutonGestionFavoris = moteurRendu->creerBouton("folder", G_CALLBACK([](GtkButton*, gpointer user_data) {
+        auto *navigateur = static_cast<Navigateur*>(user_data);
+        GestionnaireFavoris gestionnaireFavoris(navigateur->favoris, [navigateur]() {
+            navigateur->rafraichirBarreFavoris();
+        });
+        gestionnaireFavoris.afficherFenetre();
+    }), this);
 
-            std::string nom = favori["name"];
-            std::string url = favori["url"];
-            
-            GtkWidget *boutonFavori = moteurRendu->creerBouton(
-                nom,
-                G_CALLBACK(&Navigateur::onCliqueFavoriWrapper),
-                new std::pair<Navigateur*, std::string>(this, url)
-            );
+    gtk_box_pack_start(GTK_BOX(barreFavoris), boutonGestionFavoris, FALSE, FALSE, 0);
 
-            // Menu contextuel clic droit
-            g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-                auto* data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
-                if (event->button == 3) { // Clic droit
-                    data->first->creerMenuContextuelFavoris(widget, data->second);
-                    return TRUE;
-                }
-                return FALSE;
-            }), new std::pair<Navigateur*, std::string>(this, url));
-
-
-
+    // Chargement des favoris
+    for (const auto& favori : favoris) {
+        if (favori.contains("name") && favori.contains("url")) {
+            GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], G_CALLBACK(&Navigateur::onCliqueFavoriWrapper),
+                                                                new std::pair<Navigateur*, std::string>(this, favori["url"]));
             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
         }
     }
@@ -152,6 +119,13 @@ void Navigateur::initialiserBarreFavoris() {
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 0);
     gtk_widget_show_all(conteneurPrincipal);
 }
+
+
+void Navigateur::rafraichirBarreFavoris() {
+    gtk_widget_destroy(barreFavoris);
+    initialiserBarreFavoris();
+}
+
 
 void Navigateur::onCliqueFavoriWrapper(GtkButton *button, gpointer user_data) {
     auto *data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
@@ -352,12 +326,6 @@ void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, c
     sauvegarderFavoris();
 }
 
-
-void Navigateur::rafraichirBarreFavoris() {
-    gtk_widget_destroy(barreFavoris); // Supprime la barre actuelle
-    initialiserBarreFavoris();        // Reconstruit la barre
-    gtk_widget_show_all(conteneurPrincipal); // Met à jour l'interface
-}
 
 void Navigateur::ajouterDossierFavoris(const std::string& nom) {
     favoris.push_back({{"name", nom}, {"type", "folder"}, {"children", nlohmann::json::array()}});
