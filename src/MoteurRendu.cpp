@@ -4,20 +4,20 @@
 
 // Fonction statique pour gérer "notify::title"
 static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer user_data) {
-    auto *data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>*>*>(user_data);
-    WebKitWebView* vueWeb = data->first;
-
-    if (!WEBKIT_IS_WEB_VIEW(vueWeb)) {
+    auto* data = static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
+    if (!data || !data->get()->first || !WEBKIT_IS_WEB_VIEW(data->get()->first)) {
         std::cerr << "Erreur : WebView invalide dans on_notify_title." << std::endl;
         return;
     }
 
+    WebKitWebView* vueWeb = data->get()->first;
     const gchar* title = webkit_web_view_get_title(vueWeb);
     if (title) {
-        auto& callback = data->second;
-        (*callback)(std::string(title));
+        auto& callback = data->get()->second;
+        callback(std::string(title));
     }
 }
+
 
 // Fonction statique pour gérer "notify::uri"
 static void on_notify_uri(GObject *object, GParamSpec *param_spec, gpointer user_data) {
@@ -27,8 +27,7 @@ static void on_notify_uri(GObject *object, GParamSpec *param_spec, gpointer user
         return;
     }
 
-    WebKitWebView* vueWeb = data->first;
-    const gchar* uri = webkit_web_view_get_uri(vueWeb);
+    const gchar* uri = webkit_web_view_get_uri(data->first);
     if (uri) {
         data->second(std::string(uri));
     }
@@ -51,16 +50,15 @@ static void on_notify_title_helper(GObject* object, GParamSpec*, gpointer user_d
 
 MoteurRendu::MoteurRendu() {
     vueWeb = WEBKIT_WEB_VIEW(webkit_web_view_new());
-    if (!vueWeb) {
-        std::cerr << "Erreur : Impossible de créer une instance de WebKitWebView." << std::endl;
-        throw std::runtime_error("WebKitWebView non initialisé.");
+    if (!vueWeb) {    
+        std::cerr << "Erreur : WebView non initialisé." << std::endl;
+        return;
     }
 }
 
 MoteurRendu::~MoteurRendu() {
     if (vueWeb) {
-        // g_clear_object(&vueWeb);
-        g_object_unref(vueWeb);// Utilisation de g_object_unref au lieu de g_clear_object pour éviter les conflits
+        g_clear_object(&vueWeb);
     }
 }
 
@@ -123,18 +121,19 @@ GtkWidget* MoteurRendu::creerChampTexte(GCallback callback, gpointer data) {
 void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::string&)> callback) {
     if (!vueWeb || !callback) return;
 
-    auto data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
+    // Utilisation de std::make_shared pour une gestion propre de la mémoire
+    auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
 
+    // Connexion du signal avec gestion sécurisée
     g_signal_connect_data(
         vueWeb,
         "notify::title",
-        G_CALLBACK(on_notify_title_helper), // Appelle la fonction statique
-        data,
-        nullptr, // Suppression du destructeur ici pour éviter les double delete
-        //[](gpointer user_data, GClosure*) {
-        //    delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-        //},
-        G_CONNECT_SWAPPED
+        G_CALLBACK(on_notify_title),
+        new std::shared_ptr(data),  // <- Corrigé ici, `data.get()` n'était pas utilisé correctement
+        [](gpointer user_data, GClosure *) {
+            delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
+        },
+        static_cast<GConnectFlags>(0)
     );
 }
 
@@ -151,29 +150,21 @@ void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string
         return;
     }
 
-    auto data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
+    auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
+
     g_signal_connect_data(
         vueWeb,
         "notify::uri",
         G_CALLBACK(on_notify_uri),
-        data,
+        new std::shared_ptr(data),
         [](gpointer user_data, GClosure *) {
             delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
         },
-        static_cast<GConnectFlags>(0) // Supprimez `G_CONNECT_SWAPPED`
+        static_cast<GConnectFlags>(0)
     );
 
-    /*g_signal_connect_data(
-        vueWeb,
-        "notify::uri",
-        G_CALLBACK(on_notify_uri),
-        data,
-        // [](gpointer user_data, GClosure*) {
-        //     delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-        // },
-        nullptr, // Suppression de la libération automatique ici
-        G_CONNECT_SWAPPED
-    );*/
+    // Libération du ownership, car GTK prend le contrôle
+    //data.release();
 }
 
 

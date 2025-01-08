@@ -70,24 +70,11 @@ private:
     void chargerStyles();
     void ajouterBouton(GtkWidget* conteneur, const std::string& iconName, GCallback callback, gpointer data);
 
-    // void creerMenuContextuelFavoris(GtkWidget* bouton, const nlohmann::json& favori);
-    // void executerScriptDansOngletActif(const std::string& script);
-
-    // Gestion des favoris
-    // void chargerFavoris();
-    // void sauvegarderFavoris();
-    // void modifierFavori(const nlohmann::json& favori);
-
     // Gestion des onglets
     void supprimerOnglet(GtkWidget* ongletWidget);
 
-    // Autres méthode privée non indiquer par toi ChatGPT...
-    // void ajouterDossierFavoris(const std::string& nom);
-    // void supprimerFavori(const nlohmann::json& favori);
-    // void afficherGestionnaireFavoris();
-
     // Gestion des favoris via GestionnaireFavoris
-    GestionnaireFavoris* gestionnaireFavoris = nullptr;
+    std::unique_ptr<GestionnaireFavoris> gestionnaireFavoris;
 
     // Membres privés
     std::unique_ptr<MoteurRendu> moteurRendu;

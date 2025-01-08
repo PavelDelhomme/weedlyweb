@@ -29,8 +29,9 @@ Navigateur::Navigateur()
     : moteurRendu(std::make_unique<MoteurRendu>()),
       gestionnaireHTTP(std::make_unique<GestionnaireHTTP>()),
       gestionnaireMemoire(std::make_unique<GestionnaireMemoire>()),
-      moteurScript(std::make_unique<MoteurScript>()),
-      gestionnaireFavoris = new GestionnaireFavoris(favoris, [this]() { rafraichirBarreFavoris(); });{
+      moteurScript(std::make_unique<MoteurScript>())
+{
+    gestionnaireFavoris = std::make_unique<GestionnaireFavoris>(favoris, [this]() { rafraichirBarreFavoris(); });
     chargerConfiguration();
     construireInterface();
 }
@@ -38,7 +39,6 @@ Navigateur::Navigateur()
 
 Navigateur::~Navigateur() {
     if (fenetre) gtk_widget_destroy(fenetre);
-    delete gestionnaireFavoris;
 }
 
 nlohmann::json& Navigateur::getFavoris() {
@@ -115,6 +115,11 @@ void Navigateur::initialiserBarreFavoris() {
 
     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
+    // Toujours afficher la barre, même si elle est vide
+    if (favoris.empty()) {
+        GtkWidget *labelAucunFavori = gtk_label_new("");
+        gtk_box_pack_start(GTK_BOX(barreFavoris), labelAucunFavori, FALSE, FALSE, 0);
+    }
     for (const auto& favori : favoris) {
         if (favori.contains("name") && favori.contains("url")) {
             GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
@@ -125,89 +130,25 @@ void Navigateur::initialiserBarreFavoris() {
                 std::string url = navigateur->getURLActuelle();
                 navigateur->chargerURL(url);
             }), this);
-
-            // Gestion du clic molette (ouvre dans un nouvel onglet)
-            g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-                auto* navigateur = static_cast<Navigateur*>(user_data);
-                if (event->button == 2) {  // Bouton molette
-                    auto iter = std::find_if(navigateur->favoris.begin(), navigateur->favoris.end(), 
-                        [&](const nlohmann::json& fav) { return fav["name"] == gtk_button_get_label(GTK_BUTTON(widget)); });
-                    if (iter != navigateur->favoris.end()) {
-                        navigateur->ajouterNouvelOnglet((*iter)["url"]);
-                    }
-                }
-                return FALSE;
-            }), this);
-
-            // Menu contextuel (clic droit)
-            g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(+[](GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-                if (event->button == 3) {  // Clic droit
-                    auto *navigateur = static_cast<Navigateur*>(user_data);
-                    std::string favori = gtk_button_get_label(GTK_BUTTON(widget));
-                    navigateur->gestionnaireFavoris->creerMenuContextuelFavori(widget, favori);
-                }
-                return FALSE;
-            }), this);
-
+            
             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
         }
     }
 
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 0);
     gtk_widget_show_all(conteneurPrincipal);
-
-    // GtkWidget *boutonGestionFavoris = gtk_button_new_with_label("Gérer Favoris");
-    // g_signal_connect(boutonGestionFavoris, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-    //     auto* navigateur = static_cast<Navigateur*>(user_data);
-    //     navigateur->afficherGestionnaireFavoris();
-    // }), this);
-
-    // gtk_box_pack_start(GTK_BOX(barreFavoris), boutonGestionFavoris, FALSE, FALSE, 0);
-    // gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 0);
-
-    // GtkWidget *boutonGestionFavoris = moteurRendu->creerBouton("folder", G_CALLBACK([](GtkButton*, gpointer user_data) {
-    //     auto *navigateur = static_cast<Navigateur*>(user_data);
-    //     GestionnaireFavoris gestionnaireFavoris(navigateur->favoris, [navigateur]() {
-    //         navigateur->rafraichirBarreFavoris();
-    //     });
-    //     gestionnaireFavoris.afficherFenetre();
-    // }), this);
-
-    // gtk_box_pack_start(GTK_BOX(barreFavoris), boutonGestionFavoris, FALSE, FALSE, 0);
-
-    // // Chargement des favoris
-    // for (const auto& favori : favoris) {
-    //     if (favori.contains("name") && favori.contains("url")) {
-    //         GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], G_CALLBACK(&Navigateur::onCliqueFavoriWrapper),
-    //                                                             new std::pair<Navigateur*, std::string>(this, favori["url"]));
-    //         gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
-    //     }
-    // }
-
-    // gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 0);
-    // gtk_widget_show_all(conteneurPrincipal);
 }
 
 void Navigateur::afficherGestionnaireFavoris() {
     if (!gestionnaireFavoris) {
-        gestionnaireFavoris = new GestionnaireFavoris(favoris, [this]() { rafraichirBarreFavoris(); });
+        gestionnaireFavoris = std::make_unique<GestionnaireFavoris>(favoris, [this]() { rafraichirBarreFavoris(); });
     }
-    gestionnaireFavoris->afficherFenetre();
 }
 
 void Navigateur::rafraichirBarreFavoris() {
     gtk_widget_destroy(barreFavoris);
     initialiserBarreFavoris();
 }
-
-
-// void Navigateur::onCliqueFavoriWrapper(GtkButton *button, gpointer user_data) {
-//     auto *data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
-//     if (data) {
-//         data->first->chargerURL(data->second);
-//         delete data; // Libérez la mémoire
-//     }
-// }
 
 
 void Navigateur::initialiserBarreOnglets() {
@@ -357,34 +298,6 @@ void Navigateur::sauvegarderConfiguration() {
     GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminConfigJSON(), config);
 }
 
-// void Navigateur::chargerFavoris() {
-//     std::string chemin = GestionnaireFichiers::cheminFavorisJSON();
-//     favoris = GestionnaireFichiers::lireJSON(chemin);
-    
-//     if (favoris.is_null() || !favoris.is_array() || favoris.empty()) {
-//         std::cerr << "Fichier favoris.json introuvable, invalide ou vide. Initialisation avec un favori par défaut." << std::endl;
-
-//         // Ajouter un favori par défaut
-//         favoris = nlohmann::json::array({
-//             {{"name", "DuckDuckGo"}, {"url", "https://www.duckduckgo.com"}, {"tag", "Recherche"}}
-//         });
-
-//         GestionnaireFichiers::ecrireJSON(chemin, favoris); // Sauvegarde du fichier vide
-//     } else {
-//         std::cout << "Favoris chargés avec succès : " << favoris.dump(4) << std::endl;
-//     }
-
-//     // Éviter les doublons
-//     std::set<std::string> urls;
-//     favoris.erase(std::remove_if(favoris.begin(), favoris.end(), [&urls](const nlohmann::json& favori) {
-//         return !favori.contains("url") || !urls.insert(favori["url"]).second;
-//     }), favoris.end());
-// }
-
-// void Navigateur::sauvegarderFavoris() {
-//     GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminFavorisJSON(), favoris);
-// }
-
 
 void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
     // Vérifie si l'URL existe déjà
@@ -401,127 +314,6 @@ void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, c
     rafraichirBarreFavoris();
 }
 
-
-// void Navigateur::ajouterDossierFavoris(const std::string& nom) {
-//     favoris.push_back({{"name", nom}, {"type", "folder"}, {"children", nlohmann::json::array()}});
-//     sauvegarderFavoris();
-// }
-
-
-// void Navigateur::ajouterFavoriDansDossier(const std::string& dossier, const std::string& nom, const std::string& url, const std::string& tag) {
-//     for (auto& favori : favoris) {
-//         if (favori["name"] == dossier && favori["type"] == "folder") {
-//             favori["children"].push_back({{"name", nom}, {"url", url}, {"tag", tag}});
-//             sauvegarderFavoris();
-//             return;
-//         }
-//     }
-//     std::cerr << "Dossier introuvable : " << dossier << std::endl;
-// }
-
-// void Navigateur::creerMenuContextuelFavoris(GtkWidget* bouton, const nlohmann::json& favori) {
-//     GtkWidget *menu = gtk_menu_new();
-
-//     // Modifier le favori
-//     GtkWidget *modifierItem = gtk_menu_item_new_with_label("Modifier");
-//     g_signal_connect(modifierItem, "activate", G_CALLBACK(+[](GtkWidget*, Navigateur* navigateur, nlohmann::json favori) {
-//         navigateur->modifierFavori(favori);
-//     }), this);
-//     gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifierItem);
-
-//     // Supprimer le favori
-//     GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer");
-//     g_signal_connect(supprimerItem, "activate", G_CALLBACK(+[](GtkWidget*, Navigateur* navigateur, nlohmann::json favori) {
-//         navigateur->supprimerFavori(favori);
-//     }), this);
-//     gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
-
-//     gtk_widget_show_all(menu);
-//     gtk_menu_popup_at_widget(GTK_MENU(menu), bouton, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, nullptr);
-// }
-
-// void Navigateur::modifierFavori(const nlohmann::json& favori) {
-//     std::cout << "Modification du favori : " << favori.dump() << std::endl;
-// }
-
-// void Navigateur::supprimerFavori(const nlohmann::json& favori) {
-//     std::cout << "Suppression du favori : " << favori.dump() << std::endl;
-//     favoris.erase(std::remove(favoris.begin(), favoris.end(), favori), favoris.end());
-//     sauvegarderFavoris();
-//     rafraichirBarreFavoris(); 
-// }
-
-// void Navigateur::afficherFavoris(const nlohmann::json& favoris) {
-//     gtk_widget_destroy(barreFavoris); // Supprime la barre actuelle
-//     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-
-//     for (const auto& favori : favoris) {
-//         if (!favori.contains("name") || !favori.contains("url")) {
-//             continue;
-//         }
-
-//         GtkWidget *boutonFavori = moteurRendu->creerBouton(
-//             favori["name"].get<std::string>(),
-//             G_CALLBACK(&Navigateur::onCliqueFavoriWrapper),
-//             new std::pair<Navigateur*, std::string>(this, favori["url"].get<std::string>())
-//         );
-//         gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
-//     }
-
-//     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 0);
-//     gtk_widget_show_all(conteneurPrincipal);
-// }
-
-
-// void Navigateur::naviguerDansDossier(const std::string& dossier) {
-//     for (const auto& favori : favoris) {
-//         if (favori["name"] == dossier && favori["type"] == "folder") {
-//             afficherFavoris(favori["children"]);
-//             return;
-//         }
-//     }
-//     std::cerr << "Dossier introuvable : " << dossier << std::endl;
-// }
-
-// void Navigateur::creerDossierFavoris(const std::string& nom) {
-//     favoris.push_back({{"name", nom}, {"type", "folder"}, {"children", nlohmann::json::array()}});
-//     sauvegarderFavoris();
-//     rafraichirBarreFavoris();
-// }
-
-
-// void Navigateur::deplacerFavori(const std::string& nomFavori, const std::string& dossierDestination) {
-//     nlohmann::json* dossierCible = nullptr;
-//     nlohmann::json favoriADeplacer;
-
-//     // Trouver le dossier cible
-//     for (auto& favori : favoris) {
-//         if (favori["name"] == dossierDestination && favori["type"] == "folder") {
-//             dossierCible = &favori["children"];
-//             break;
-//         }
-//     }
-
-//     if (!dossierCible) {
-//         std::cerr << "Dossier introuvable : " << dossierDestination << std::endl;
-//         return;
-//     }
-
-//     // Trouver et retirer le favori de la liste principale
-//     auto it = std::find_if(favoris.begin(), favoris.end(), [&nomFavori](const auto& f) {
-//         return f["name"] == nomFavori;
-//     });
-
-//     if (it != favoris.end()) {
-//         favoriADeplacer = *it;
-//         favoris.erase(it);
-//         dossierCible->push_back(favoriADeplacer);
-//         sauvegarderFavoris();
-//         rafraichirBarreFavoris();
-//     } else {
-//         std::cerr << "Favori introuvable : " << nomFavori << std::endl;
-//     }
-// }
 
 void Navigateur::afficherParametres() {
     std::string cheminParametres = GestionnaireFichiers::cheminParametresHTML();
@@ -586,21 +378,10 @@ void Navigateur::onAllerAccueil(GtkButton *, Navigateur *n) {
     n->chargerURL(n->homepage);
 }
 
-// void Navigateur::onAjouterFavori(GtkButton *, Navigateur *n) {
-//     std::string url = n->moteurRendu->obtenirURLActuelle();
-//     if (!url.empty()) {
-//         n->gestionnaireFavoris->ajouterFavori("Favori", url, "");
-//         n->rafraichirBarreFavoris();
-//     }
-// }
 
 void Navigateur::onBarreURLActivate(GtkEntry *entry, Navigateur *n) {
     n->chargerURL(gtk_entry_get_text(entry));
 }
-
-// void Navigateur::onCliqueFavori(GtkButton *, Navigateur *n, const std::string& url) {
-//     n->chargerURL(url);
-// }
 
 void Navigateur::fermerApplication() {
     sauvegarderConfiguration();

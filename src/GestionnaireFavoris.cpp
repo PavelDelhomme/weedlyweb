@@ -67,7 +67,9 @@ void GestionnaireFavoris::creerInterface() {
     GtkWidget *boutonAjouterFavori = gtk_button_new_with_label("Ajouter Favori");
     g_signal_connect(boutonAjouterFavori, "clicked", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
         auto* gestionnaire = static_cast<GestionnaireFavoris*>(user_data);
-        gestionnaire->ajouterFavori("Nouveau Favori", "https::example.com", "Exemple");
+        if (gestionnaire) {
+            gestionnaire->ajouterFavori("Nouveau Favori", "https::example.com", "Exemple");
+        }
     }), this);
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), boutonAjouterFavori, FALSE, FALSE, 0);
 
@@ -148,30 +150,7 @@ void GestionnaireFavoris::modifierFavori(const std::string& nomFavori, const std
     std::cerr << "Favori non trouvé : " << nomFavori << std::endl;
 }
 
-// void GestionnaireFavoris::creerMenuContextuelFavori(GtkWidget* bouton, const std::string& nomFavori) {
-//     GtkWidget *menu = gtk_menu_new();
 
-//     // Modifier le favori
-//     GtkWidget *modifierItem = gtk_menu_item_new_with_label("Modifier");
-//     g_signal_connect(modifierItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer data) {
-//         auto *gf = static_cast<GestionnaireFavoris*>(data);
-//         std::string nomFavoriCapture = "nomFavori";
-//         gf->modifierFavori(nomFavoriCapture, "https://nouvelle-url.com");
-//     }), this);
-//     gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifierItem);
-
-//     // Supprimer le favori
-//     GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer");
-//     g_signal_connect(supprimerItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-//         auto* pair = static_cast<std::pair<GestionnaireFavoris*, std::string>*>(user_data);
-//         pair->first->supprimerFavori(pair->second);
-//     }), new std::pair<GestionnaireFavoris*, std::string>(this, nomFavori));
-
-//     gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
-
-//     gtk_widget_show_all(menu);
-//     gtk_menu_popup_at_widget(GTK_MENU(menu), bouton, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, nullptr);
-// }
 void GestionnaireFavoris::creerMenuContextuelFavori(GtkWidget* bouton, const std::string& nomFavori) {
     GtkWidget *menu = gtk_menu_new();
 

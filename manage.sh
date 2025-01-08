@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Chemins de base
-ROOT_DIR=$(pwd)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$SCRIPT_DIR"
 BUILD_DIR="$ROOT_DIR/build"
 EXECUTABLE="$BUILD_DIR/WeedlyWeb"
 INSTALL_DIR="/usr/local/bin"
@@ -9,69 +10,96 @@ INSTALL_DIR="/usr/local/bin"
 # Fonction de nettoyage
 clean_project() {
     echo "🧹 Nettoyage du répertoire de build et des fichiers racine CMake..."
-    
-    # Supprimer les fichiers générés par CMake dans le répertoire racine
     rm -rf "$BUILD_DIR" "$ROOT_DIR/CMakeCache.txt" "$ROOT_DIR/CMakeFiles" "$ROOT_DIR/Makefile" "$ROOT_DIR/cmake_install.cmake"
-    
     echo "✔️ Nettoyage terminé."
 }
 
 # Fonction de configuration et de build
 build_project() {
     echo "🔨 Construction du projet..."
-    
-    # Créer le répertoire de build s'il n'existe pas
     mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR" || exit 1
-    
     echo "⚙️ Génération des fichiers de build avec CMake..."
     if ! cmake ..; then
-        echo "❌ Erreur lors de la configuration CMake. Vérifiez votre CMakeLists.txt."
+        echo "❌ Erreur lors de la configuration CMake."
         exit 1
     fi
-    
     echo "⚒️ Compilation avec make..."
     if ! make -j$(nproc); then
         echo "❌ Erreur lors de la compilation."
         exit 1
     fi
-
     echo "✔️ Build terminé avec succès."
+    cd "$ROOT_DIR"
 }
 
-# Fonction d'exécution
+# Fonction d'exécution standard
 run_project() {
     build_project
-    echo "🚀 Lancement de l'application (mode Debug + Monitoring)..."
-
-    # Lancer le programme dans un terminal séparé pour monitoring
+    echo "🚀 Lancement de WeedlyWeb (Mode Debug)..."
     gnome-terminal -- bash -c "$EXECUTABLE; exec bash" &
-
-    # Surveillance des ressources dans une autre fenêtre
-    gnome-terminal -- bash -c "watch -n 2 'ps -p $(pgrep -f WeedlyWeb) -o pid,%cpu,%mem,cmd'; exec bash" &
+    echo "✅ WeedlyWeb lancé avec le PID : $!"
 }
 
-# Fonction de débogage
+# Fonction de débogage avec GDB
 debug_project() {
     build_project
-    echo "🐞 Lancement en mode debug avec gdb..."
-    gdb "$EXECUTABLE"
+    echo "🐞 Lancement en mode debug avec GDB..."
+    gnome-terminal -- bash -c "gdb $EXECUTABLE; exec bash" &
 }
 
-# Fonction de monitoring
+# Fonction de monitoring avec possibilité de recompiler
 monitor_project() {
-    PID=$(pgrep -f "WeedlyWeb")
-    if [ -z "$PID" ]; then
-        echo "❌ Aucun processus WeedlyWeb en cours d'exécution."
-        exit 1
-    fi
-    echo "📈 Surveillance de WeedlyWeb (PID: $PID)"
-    watch -n 2 "ps -p $PID -o pid,%cpu,%mem,cmd"
+    echo "📈 Surveillance active (appuyez sur 'r' pour recompiler et relancer)..."
+    while true; do
+        clear
+        #PID=$(pgrep -x WeedlyWeb)
+        PID=$(pgrep -f "$EXECUTABLE")
+        if [ -z "$PID" ]; then
+            echo "⚠️ Aucun processus détecté. En attente..."
+        else
+            echo "✅ Processus détecté : PID = $PID"
+            ps -p "$PID" -o pid,%cpu,%mem,cmd
+        fi
+
+        # Attente d'une touche pressée
+        read -t 2 -n 1 key
+        if [[ "$key" == "r" ]]; then
+            echo "🔄 Recompilation en cours..."
+            kill "$PID"
+            build_project
+            run_project
+        fi
+    done
 }
 
-# Fonction d'installation (production)
+
+# Fonction de monitoring avancé avec btop (optionnel)
+monitor_project_advanced() {
+    echo "📊 Lancement de btop pour un suivi détaillé..."
+    PID=$(pgrep -x WeedlyWeb)
+    if [ -z "$PID" ]; then
+        echo "⚠️ Aucun processus WeedlyWeb détecté. En attente..."
+    else
+        btop -C "$PID"
+    fi
+}
+
+# Fonction pour exécuter et surveiller dans deux terminaux séparés
+run_and_monitor() {
+    build_project
+    echo "🚀 Lancement de WeedlyWeb avec monitoring dans une autre fenêtre..."
+    
+    # Lancement de WeedlyWeb dans un terminal
+    gnome-terminal -- bash -c "$EXECUTABLE; exec bash" &
+    sleep 2  # Attente pour le démarrage correct du processus
+
+    # Lancement du monitoring dans un autre terminal
+    gnome-terminal -- bash -c "\"$SCRIPT_DIR/manage.sh\" monitor; exec bash" &
+}
+
+# Fonction d'installation
 install_project() {
-    echo "📦 Installation en cours..."
     build_project
     echo "📦 Installation de l'application..."
     sudo make install
@@ -83,18 +111,22 @@ show_help() {
     echo "🔧 Utilisation : $0 [OPTION]"
     echo ""
     echo "Options disponibles :"
-    echo "  clean         Nettoyage complet du projet"
-    echo "  build         Compilation complète"
-    echo "  run_project   Build, Run et Monitoring"
-    echo "  debug         Build et lancement avec GDB"
-    echo "  monitor       Surveillance des ressources"
-    echo "  install       Installer le projet"
-    echo "  help          Afficher ce message d'aide"
+    echo "  clean                 Nettoyage complet du projet"
+    echo "  build                 Compilation complète"
+    echo "  run_project           Build et exécution du projet"
+    echo "  debug                 Build et lancement avec GDB"
+    echo "  monitor               Surveillance basique du processus"
+    echo "  monitor_project_advanced Utiliser btop pour une surveillance avancée"
+    echo "  run_and_monitor       Compile, exécute et surveille le projet"
+    echo "  install               Installer l'application"
+    echo "  help                  Afficher ce message d'aide"
     echo ""
     echo "Exemples :"
     echo "  $0 clean build run_project"  
     echo "  $0 build debug"          
+    echo "  $0 run_and_monitor"
     echo "  $0 install"
+    echo "  $0 clean build run_and_monitor"
 }
 
 # Gestion des options
@@ -110,6 +142,8 @@ for arg in "$@"; do
         run_project) run_project ;;
         debug) debug_project ;;
         monitor) monitor_project ;;
+        monitor_project_advanced) monitor_project_advanced ;;
+        run_and_monitor) run_and_monitor ;;
         install) install_project ;;
         help) show_help ;;
         *) echo "❌ Option inconnue : $arg"; show_help; exit 1 ;;
