@@ -152,11 +152,13 @@ void MoteurRendu::connecterSignalURLChangee(std::function<void(const std::string
 
     auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
 
+    // Utilisation d'un std::shared_ptr sans `new`
     g_signal_connect_data(
         vueWeb,
         "notify::uri",
         G_CALLBACK(on_notify_uri),
-        new std::shared_ptr(data),
+        //new std::shared_ptr(data), // Ne donne pas trop d'erreur
+        new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(*data),
         [](gpointer user_data, GClosure *) {
             delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
         },
