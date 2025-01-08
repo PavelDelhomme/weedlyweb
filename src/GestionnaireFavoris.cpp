@@ -75,9 +75,7 @@ void GestionnaireFavoris::creerInterface() {
 
     // Bouton supprimer (Correction : déplacement ici dans le constructeur)
     GtkWidget *supprimerItem = gtk_button_new_with_label("Supprimer");
-    //g_signal_connect(supprimerItem, "clicked", G_CALLBACK(on_supprimer_favori), this);
-    g_signal_connect(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori), this);
-
+    g_signal_connect(supprimerItem, "clicked", G_CALLBACK(on_supprimer_favori), this);
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), supprimerItem, FALSE, FALSE, 0);
 
     afficherListeFavoris();

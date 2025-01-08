@@ -57,6 +57,7 @@ MoteurRendu::MoteurRendu() {
 }
 
 MoteurRendu::~MoteurRendu() {
+    nettoyerSignaux();
     if (vueWeb) {
         g_clear_object(&vueWeb);
     }
@@ -84,8 +85,8 @@ void MoteurRendu::afficherPage(const std::string& url) {
 
 
 std::string MoteurRendu::obtenirURLActuelle() const {
-    const gchar *url = webkit_web_view_get_uri(vueWeb);
-    return url ? std::string(url) : "";
+    const gchar* uri = webkit_web_view_get_uri(vueWeb);
+    return uri ? std::string(uri) : "";
 }
 
 
@@ -125,16 +126,49 @@ void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::strin
     auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
 
     // Connexion du signal avec gestion sécurisée
+    // Ancien code
+    // g_signal_connect_data(
+    //     vueWeb,
+    //     "notify::title",
+    //     G_CALLBACK([](WebKitWebView* web_view, GParamSpec*, gpointer user_data) {
+    //         auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+    //         const gchar* title = webkit_web_view_get_title(web_view);
+    //         if (title) {
+    //             data->second(std::string(title));
+    //         }
+    //     }),
+    //     //new std::shared_ptr(data),  // <- Corrigé ici, `data.get()` n'était pas utilisé correctement
+    //     new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(*data),
+    //     [](gpointer user_data, GClosure *) {
+    //         //delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
+    //         delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+    //     },
+    //     //static_cast<GConnectFlags>(0)
+    //     G_CONNECT_AFTER
+    // );
+    // Nouveau code :
     g_signal_connect_data(
         vueWeb,
         "notify::title",
         G_CALLBACK(on_notify_title),
-        new std::shared_ptr(data),  // <- Corrigé ici, `data.get()` n'était pas utilisé correctement
-        [](gpointer user_data, GClosure *) {
-            delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
-        },
-        static_cast<GConnectFlags>(0)
+        new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(*data),
+        [](gpointer user_data) { delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); },
+        G_CONNECT_AFTER
     );
+}
+
+// Mise a jour de la connexion du signal de favicon
+void MoteurRendu::connecterSignalFaviconChange(std::function<void(cairo_surface_t*)> callback) {
+    if (!vueWeb) return;
+
+    g_signal_connect(vueWeb, "notify::favicon", G_CALLBACK(+[](WebKitWebView* web_view, GParamSpec*, gpointer user_data) {
+        auto* callback = static_cast<std::function<void(cairo_surface_t*)>*>(user_data);
+        cairo_surface_t* icon = webkit_web_view_get_favicon(web_view);
+        if (icon) {
+            (*callback)(icon);
+        }
+    }), new std::function<void(cairo_surface_t*)>(callback),
+    [](gpointer data) { delete static_cast<std::function<void(cairo_surface_t*)>*>(data); });
 }
 
 
@@ -180,8 +214,11 @@ void MoteurRendu::onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer 
 
 
 void MoteurRendu::nettoyerSignaux() {
-    if (vueWeb) {
+    /*if (vueWeb) {
         g_signal_handlers_disconnect_by_func(vueWeb, (gpointer)on_notify_title_helper, nullptr);
         g_signal_handlers_disconnect_by_func(vueWeb, (gpointer)on_notify_uri, nullptr);
+    }*/
+    if (vueWeb) {
+        g_signal_handlers_disconnect_by_data(vueWeb, this);
     }
 }

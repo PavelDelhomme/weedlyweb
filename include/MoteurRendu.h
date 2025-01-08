@@ -19,8 +19,9 @@ public:
     void naviguerRetour();
     void naviguerSuivant();
     void nettoyerSignaux();
+    void connecterSignalFaviconChange(std::function<void(cairo_surface_t*)> callback);
     static void onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer user_data);
-
+    
     GtkWidget* creerBouton(const std::string& label, GCallback callback, gpointer data);
     GtkWidget* creerChampTexte(GCallback callback, gpointer data);
 

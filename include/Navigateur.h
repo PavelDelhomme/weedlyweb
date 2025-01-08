@@ -31,6 +31,7 @@ public:
 
     // Interface utilisateur
     void fermerApplication();
+    void sauvegarderConfiguration();
     void ajouterNouvelOnglet(const std::string &url = "");
     void changerOngletActif(GtkWidget* ongletWidget);
     void afficherMessage(const std::string& message);
@@ -57,13 +58,16 @@ public:
     static void onRafraichirPage(GtkButton *button, Navigateur *navigateur);
     static void onAllerAccueil(GtkButton *button, Navigateur *navigateur);
     static void onAjouterFavori(GtkButton*, Navigateur*);
+    static void onBoutonFavorisClicked(GtkButton* button, gpointer user_data);
+
 
 private:
     // Méthodes internes
     void construireInterface();
     void chargerConfiguration();
-    void sauvegarderConfiguration();
+    // void sauvegarderConfiguration();
     void initialiserBarreNavigation();
+    void creerMenuContextuel(GtkWidget* bouton);
     void initialiserBarreFavoris();
     void initialiserBarreOnglets();
     void mettreEnSurbrillance(GtkWidget* ongletWidget);

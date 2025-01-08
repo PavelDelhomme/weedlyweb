@@ -67,8 +67,16 @@ void Navigateur::construireInterface() {
         }
     });
 
-    g_signal_connect(fenetre, "destroy", G_CALLBACK(+[](GtkWidget *, gpointer data) {
-        static_cast<Navigateur *>(data)->fermerApplication();
+    //g_signal_connect(fenetre, "destroy", G_CALLBACK(+[](GtkWidget *, gpointer data) {
+    //    static_cast<Navigateur *>(data)->fermerApplication();
+    //}), this);
+
+    // Ajout de la sauvegarde automatique lors de la fermeture de la fenêtre principale
+    g_signal_connect(fenetre, "delete-event", G_CALLBACK(+[](GtkWidget*, GdkEvent*, gpointer user_data) -> gboolean {
+        auto* navigateur = static_cast<Navigateur*>(user_data);
+        navigateur->sauvegarderConfiguration();
+        gtk_main_quit();  // Quitter proprement l'application
+        return FALSE;  // Laisse GTK continuer la fermeture
     }), this);
 
     gtk_widget_show_all(fenetre);
@@ -99,7 +107,23 @@ void Navigateur::initialiserBarreNavigation() {
     barreURL = moteurRendu->creerChampTexte(G_CALLBACK(&Navigateur::onBarreURLActivate), this);
     gtk_box_pack_start(GTK_BOX(barreNavigation), barreURL, TRUE, TRUE, 0);
 
-    GtkWidget *boutonFavoris = moteurRendu->creerBouton("star", G_CALLBACK(on_bouton_favoris_clicked), this);
+    GtkWidget* boutonFavoris = moteurRendu->creerBouton("star", G_CALLBACK(Navigateur::onBoutonFavorisClicked), this);
+    // GtkWidget *boutonFavoris = moteurRendu->creerBouton("star", G_CALLBACK(on_bouton_favoris_clicked), this);
+    // g_signal_connect(boutonFavoris, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+    //     auto* navigateur = static_cast<Navigateur*>(user_data);
+    //     std::string urlActuelle = navigateur->getURLActuelle();
+    //     bool estDejaFavori = std::any_of(navigateur->getFavoris().begin(), navigateur->getFavoris().end(),
+    //                                     [&](const nlohmann::json& favori) { return favori["url"] == urlActuelle; });
+
+    //     if (!estDejaFavori) {
+    //         navigateur->ajouterFavori("Favori", urlActuelle, "Général");
+    //         gtk_button_set_label(GTK_BUTTON(boutonFavoris), "*"); 
+    //     } else {
+    //         std::cerr << "Déjà un favori" << std::endl;
+    //     }
+    // }), this);
+
+
 
     gtk_box_pack_start(GTK_BOX(barreNavigation), boutonFavoris, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
@@ -127,10 +151,11 @@ void Navigateur::initialiserBarreFavoris() {
             // Gestion du clic gauche (ouvre dans l'onglet actif)
             g_signal_connect(boutonFavori, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
                 auto* navigateur = static_cast<Navigateur*>(user_data);
-                std::string url = navigateur->getURLActuelle();
+                //std::string url = navigateur->getURLActuelle();
+                //navigateur->chargerURL(url);
+                std::string url = favori["url"]; // Copie locale du favori capturé
                 navigateur->chargerURL(url);
             }), this);
-            
             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
         }
     }
@@ -281,6 +306,17 @@ void Navigateur::chargerConfiguration() {
     std::string chemin = GestionnaireFichiers::cheminConfigJSON();
     nlohmann::json config = GestionnaireFichiers::lireJSON(chemin);
     
+    std::string cheminFavoris = GestionnaireFichiers::cheminFavorisJSON();
+    nlohmann::json favoris = GestionnaireFichiers::lireJSON(cheminFavoris);
+
+    if (favoris.is_null() || favoris.empty()) {
+        std::cerr << "Aucun favori trouvé, initialisation avec un favori par défaut." << std::endl;
+        favoris = nlohmann::json::array({
+            {{"name", "DuckDuckGo"}, {"url", "https://www.duckduckgo.com"}, {"tag", "Recherche"}}
+        });
+        GestionnaireFichiers::ecrireJSON(cheminFavoris, favoris);
+    }
+    
     if (config.is_null() || config.empty()) {
         std::cerr << "Fichier de configuration non trouvé ou vide. Création d'une configuration par défaut." << std::endl;
         config["homepage"] = "https://www.duckduckgo.com";
@@ -296,6 +332,11 @@ void Navigateur::sauvegarderConfiguration() {
     nlohmann::json config;
     config["homepage"] = homepage;
     GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminConfigJSON(), config);
+    
+    std::string cheminFavoris = GestionnaireFichiers::cheminFavorisJSON();
+    GestionnaireFichiers::ecrireJSON(cheminFavoris, favoris);
+    std::cout << "Favoris sauvegardés automatiquement !" << std::endl;
+    
 }
 
 
@@ -409,5 +450,59 @@ void Navigateur::onRafraichirPageWrapper(GtkButton *button, gpointer user_data) 
     auto *navigateur = static_cast<Navigateur*>(user_data);
     if (navigateur) {
         navigateur->onRafraichirPage(button, navigateur);
+    }
+}
+
+void Navigateur::creerMenuContextuel(GtkWidget* bouton) {
+    GtkWidget *menu = gtk_menu_new();
+
+    // Création des champs de saisie pour URL et nom
+    GtkWidget *entryNom = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entryNom), "Nom du favori");
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), entryNom);
+
+    GtkWidget *entryURL = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entryURL), "URL");
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), entryURL);
+
+    // Bouton d'ajout
+    GtkWidget *ajouterItem = gtk_menu_item_new_with_label("Ajouter Favori");
+    g_signal_connect(ajouterItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
+        auto* navigateur = static_cast<Navigateur*>(user_data);
+        const gchar* nom = gtk_entry_get_text(GTK_ENTRY(entryNom));
+        const gchar* url = gtk_entry_get_text(GTK_ENTRY(entryURL));
+        navigateur->ajouterFavori(nom, url, "Général");
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), ajouterItem);
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_widget(GTK_MENU(menu), bouton, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
+}
+
+
+void Navigateur::onBoutonFavorisClicked(GtkButton* button, gpointer user_data) {
+    auto* navigateur = static_cast<Navigateur*>(user_data);
+    if (!navigateur) return;
+
+    // Obtenir l'URL actuelle
+    std::string urlActuelle = navigateur->getURLActuelle();
+
+    // Vérifier si l'URL est déjà dans les favoris
+    bool estDejaFavori = std::any_of(
+        navigateur->getFavoris().begin(), 
+        navigateur->getFavoris().end(), 
+        [&urlActuelle](const nlohmann::json& favori) {
+            return favori.contains("url") && favori["url"] == urlActuelle;
+        }
+    );
+
+    if (!estDejaFavori) {
+        // Ajouter le favori
+        navigateur->ajouterFavori("Favori", urlActuelle, "Général");
+
+        // Mettre à jour l'étiquette du bouton
+        gtk_button_set_label(button, "*");
+    } else {
+        std::cerr << "URL déjà ajoutée aux favoris : " << urlActuelle << std::endl;
     }
 }
