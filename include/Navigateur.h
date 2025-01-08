@@ -23,15 +23,11 @@ public:
     void chargerURL(const std::string& url);
     nlohmann::json& getFavoris();
     
-    // Gestion des favoris
-    /*void ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag);
-    void creerDossierFavoris(const std::string& nom);
-    void ajouterFavoriDansDossier(const std::string& dossier, const std::string& nom, const std::string& url, const std::string& tag);
-    void deplacerFavori(const std::string& nomFavori, const std::string& dossierDestination);
-    void supprimerFavori(const nlohmann::json& favori);
-    void afficherFavoris(const nlohmann::json& favoris);
-    void naviguerDansDossier(const std::string& dossier);*/
+    // Gestion des favoris via GestionnaireFavoris
+    void afficherGestionnaireFavoris();
     void rafraichirBarreFavoris();
+
+    void ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag);
 
     // Interface utilisateur
     void fermerApplication();
@@ -41,6 +37,12 @@ public:
     void afficherParametres();
     void configurerRaccourcisClavier();
 
+
+    void onCliqueFavori(GtkButton*, Navigateur*, const std::string&);
+    void executerScriptDansOngletActif(const std::string& script);
+
+    std::string getURLActuelle() const;
+
     // Méthodes internes liés à GTK
     static void onNaviguerRetourWrapper(GtkButton *button, gpointer user_data);
     static void onNaviguerSuivantWrapper(GtkButton *button, gpointer user_data);
@@ -49,13 +51,12 @@ public:
     static void onCliqueFavoriWrapper(GtkButton *button, gpointer user_data);
 
     // Autres méthode publiques non indiquer par toi ChatGPT..
-    void supprimerOnglet(GtkWidget *ongletWidget);
+    //void supprimerOnglet(GtkWidget *ongletWidget);
     static void onNaviguerRetour(GtkButton *button, Navigateur *navigateur);
     static void onNaviguerSuivant(GtkButton *button, Navigateur *navigateur);
     static void onRafraichirPage(GtkButton *button, Navigateur *navigateur);
     static void onAllerAccueil(GtkButton *button, Navigateur *navigateur);
-    void onAjouterFavori(GtkButton*, Navigateur*);
-    void onCliqueFavori(GtkButton*, Navigateur*, const std::string&);
+    static void onAjouterFavori(GtkButton*, Navigateur*);
 
 private:
     // Méthodes internes
@@ -69,22 +70,24 @@ private:
     void chargerStyles();
     void ajouterBouton(GtkWidget* conteneur, const std::string& iconName, GCallback callback, gpointer data);
 
-    void creerMenuContextuelFavoris(GtkWidget* bouton, const nlohmann::json& favori);
-    void executerScriptDansOngletActif(const std::string& script);
+    // void creerMenuContextuelFavoris(GtkWidget* bouton, const nlohmann::json& favori);
+    // void executerScriptDansOngletActif(const std::string& script);
 
     // Gestion des favoris
-    void chargerFavoris();
-    void sauvegarderFavoris();
-    void modifierFavori(const nlohmann::json& favori);
+    // void chargerFavoris();
+    // void sauvegarderFavoris();
+    // void modifierFavori(const nlohmann::json& favori);
 
     // Gestion des onglets
     void supprimerOnglet(GtkWidget* ongletWidget);
 
     // Autres méthode privée non indiquer par toi ChatGPT...
-    void ajouterDossierFavoris(const std::string& nom);
-    void supprimerFavori(const nlohmann::json& favori);
-    void afficherGestionnaireFavoris();
+    // void ajouterDossierFavoris(const std::string& nom);
+    // void supprimerFavori(const nlohmann::json& favori);
+    // void afficherGestionnaireFavoris();
 
+    // Gestion des favoris via GestionnaireFavoris
+    GestionnaireFavoris* gestionnaireFavoris = nullptr;
 
     // Membres privés
     std::unique_ptr<MoteurRendu> moteurRendu;

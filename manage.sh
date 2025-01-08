@@ -11,11 +11,7 @@ clean_project() {
     echo "🧹 Nettoyage du répertoire de build et des fichiers racine CMake..."
     
     # Supprimer les fichiers générés par CMake dans le répertoire racine
-    rm -f "$ROOT_DIR/CMakeCache.txt" "$ROOT_DIR/Makefile"
-    rm -rf "$ROOT_DIR/CMakeFiles" "$ROOT_DIR/cmake_install.cmake"
-    
-    # Nettoyer le répertoire de build
-    rm -rf "$BUILD_DIR"
+    rm -rf "$BUILD_DIR" "$ROOT_DIR/CMakeCache.txt" "$ROOT_DIR/CMakeFiles" "$ROOT_DIR/Makefile" "$ROOT_DIR/cmake_install.cmake"
     
     echo "✔️ Nettoyage terminé."
 }
@@ -45,20 +41,19 @@ build_project() {
 
 # Fonction d'exécution
 run_project() {
-    if [ ! -f "$EXECUTABLE" ]; then
-        echo "❌ L'exécutable n'existe pas. Essayez de lancer le build d'abord."
-        exit 1
-    fi
-    echo "🚀 Lancement de l'application..."
-    "$EXECUTABLE"
+    build_project
+    echo "🚀 Lancement de l'application (mode Debug + Monitoring)..."
+
+    # Lancer le programme dans un terminal séparé pour monitoring
+    gnome-terminal -- bash -c "$EXECUTABLE; exec bash" &
+
+    # Surveillance des ressources dans une autre fenêtre
+    gnome-terminal -- bash -c "watch -n 2 'ps -p $(pgrep -f WeedlyWeb) -o pid,%cpu,%mem,cmd'; exec bash" &
 }
 
 # Fonction de débogage
 debug_project() {
-    if [ ! -f "$EXECUTABLE" ]; then
-        echo "❌ L'exécutable n'existe pas. Essayez de lancer le build d'abord."
-        exit 1
-    fi
+    build_project
     echo "🐞 Lancement en mode debug avec gdb..."
     gdb "$EXECUTABLE"
 }
@@ -77,13 +72,10 @@ monitor_project() {
 # Fonction d'installation (production)
 install_project() {
     echo "📦 Installation en cours..."
-    if [ ! -f "$EXECUTABLE" ]; then
-        echo "❌ L'exécutable n'existe pas. Essayez de lancer le build d'abord."
-        exit 1
-    fi
-    cd "$BUILD_DIR" || exit 1
+    build_project
+    echo "📦 Installation de l'application..."
     sudo make install
-    echo "✔️ Installation réussie. Vous pouvez maintenant lancer le programme avec 'WeedlyWeb'."
+    echo "✔️ Application installée avec succès."
 }
 
 # Fonction d'affichage de l'aide
@@ -91,18 +83,18 @@ show_help() {
     echo "🔧 Utilisation : $0 [OPTION]"
     echo ""
     echo "Options disponibles :"
-    echo "  clean         Nettoyer le répertoire de build"
-    echo "  build         Compiler le projet"
-    echo "  run           Lancer le projet en mode normal"
-    echo "  debug         Lancer le projet avec gdb pour le débogage"
-    echo "  monitor       Surveiller les ressources utilisées par le programme"
-    echo "  install       Installer le projet en mode production"
+    echo "  clean         Nettoyage complet du projet"
+    echo "  build         Compilation complète"
+    echo "  run_project   Build, Run et Monitoring"
+    echo "  debug         Build et lancement avec GDB"
+    echo "  monitor       Surveillance des ressources"
+    echo "  install       Installer le projet"
     echo "  help          Afficher ce message d'aide"
     echo ""
     echo "Exemples :"
-    echo "  $0 clean build debug  # Nettoie, compile et lance en mode débogage"
-    echo "  $0 build run          # Compile et lance en mode normal"
-    echo "  $0 install            # Compile et installe pour une utilisation en production"
+    echo "  $0 clean build run_project"  
+    echo "  $0 build debug"          
+    echo "  $0 install"
 }
 
 # Gestion des options
@@ -113,31 +105,13 @@ fi
 
 for arg in "$@"; do
     case $arg in
-        clean)
-            clean_project
-            ;;
-        build)
-            build_project
-            ;;
-        run)
-            run_project
-            ;;
-        debug)
-            debug_project
-            ;;
-        monitor)
-            monitor_project
-            ;;
-        install)
-            install_project
-            ;;
-        help)
-            show_help
-            ;;
-        *)
-            echo "❌ Option invalide : $arg"
-            show_help
-            exit 1
-            ;;
+        clean) clean_project ;;
+        build) build_project ;;
+        run_project) run_project ;;
+        debug) debug_project ;;
+        monitor) monitor_project ;;
+        install) install_project ;;
+        help) show_help ;;
+        *) echo "❌ Option inconnue : $arg"; show_help; exit 1 ;;
     esac
 done

@@ -46,10 +46,10 @@ set(HEADERS
 add_executable(WeedlyWeb ${SOURCES} ${HEADERS})
 
 # Inclure les répertoires nécessaires
-target_include_directories(WeedlyWeb PRIVATE ${WEBKIT2GTK_INCLUDE_DIRS})
+target_include_directories(WeedlyWeb PRIVATE ${WEBKIT2GTK_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include)
 
 # Lier les bibliothèques nécessaires
-target_link_libraries(WeedlyWeb PRIVATE ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES} nlohmann_json)
+target_link_libraries(WeedlyWeb PRIVATE ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES})
 
 # Ajouter des commandes post-build
 add_custom_command(TARGET WeedlyWeb POST_BUILD
