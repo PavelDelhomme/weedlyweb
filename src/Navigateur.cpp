@@ -16,14 +16,45 @@ static void on_bouton_favoris_clicked(GtkButton*, gpointer user_data) {
     if (navigateur) {
         std::string url = navigateur->getURLActuelle();
         if (!url.empty()) {
-            auto* gestionnaire = new GestionnaireFavoris(navigateur->getFavoris(), [navigateur]() {
-                navigateur->rafraichirBarreFavoris();
-            });
-            gestionnaire->ajouterFavori("Favori", url, "");
-            gestionnaire->afficherFenetre();
+            // Enlever car utilisation de l'objet gestionnaire existant
+            // auto* gestionnaire = new GestionnaireFavoris(navigateur->getFavoris(), [navigateur]() {
+            //     navigateur->rafraichirBarreFavoris();
+            // });
+            //gestionnaire->ajouterFavori("Favori", url, "");
+            //gestionnaire->afficherFenetre();
+            // Utilisation de l'objet gestionnanire existant
+            navigateur->ajouterFavori("Favori", url, "");
+            navigateur->rafraichirBarreFavoris();
         }
     }
 }
+
+static void on_favori_clicked(GtkButton* button, gpointer user_data) {
+    auto* data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
+    if (data && data->first) {
+        data->first->chargerURL(data->second);
+    }
+    delete data;  // Libérer la mémoire allouée
+}
+
+static void on_ajouter_groupe(GtkWidget* widget, gpointer data) {
+    auto* info = static_cast<std::pair<Navigateur*, GtkWidget*>*>(data);
+    if (info && info->first) {
+        const gchar* nomGroupe = gtk_entry_get_text(GTK_ENTRY(info->second));
+        info->first->getGestionnaireOnglets()->ajouterGroupe(nomGroupe);
+        info->first->changerGroupeOnglets(nomGroupe);
+        delete info;
+    }
+}
+
+static void on_changer_groupe(GtkWidget* item, gpointer data) {
+    auto* navigateur = static_cast<Navigateur*>(data);
+    if (navigateur) {
+        const char* nomGroupe = gtk_menu_item_get_label(GTK_MENU_ITEM(item));
+        navigateur->changerGroupeOnglets(nomGroupe);
+    }
+}
+
 
 Navigateur::Navigateur() 
     : moteurRendu(std::make_unique<MoteurRendu>()),
@@ -58,6 +89,7 @@ void Navigateur::construireInterface() {
     // Ajout de la barre d'onglets
     initialiserBarreOnglets();
     chargerURL(homepage);
+    ajouterNouvelOnglet(homepage);
     initialiserBarreNavigation();
     initialiserBarreFavoris();
     moteurRendu->initialiserRendu(conteneurPrincipal);
@@ -156,11 +188,13 @@ void Navigateur::initialiserBarreFavoris() {
             //     navigateur->chargerURL(urlCopie);
             // }), this);
             std::string urlCopie = favori["url"];
-            g_signal_connect(boutonFavori, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-                auto* data = static_cast<Navigateur*, std::string>*>(user_data);
-                data->first->chargerURL(data->second);
-                delete data; // Ne pas oublier de libérer la mémoire allouée dynamiquement
-            }), new std::pair<Navigateur*, std::string>(this, urlCopie));
+            //g_signal_connect(boutonFavori, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+            //     auto* data = static_cast<Navigateur*, std::string>*>(user_data);
+            //     data->first->chargerURL(data->second);
+            //     delete data; // Ne pas oublier de libérer la mémoire allouée dynamiquement
+            // }), new std::pair<Navigateur*, std::string>(this, urlCopie));
+            std::pair<Navigateur*, std::string>* data = new std::pair<Navigateur*, std::string>(this, urlCopie);
+            g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
 
             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
         }
@@ -204,33 +238,38 @@ void Navigateur::initialiserBarreOnglets() {
 
     // Ajouter un bouton pour créer un groupe
     GtkWidget* boutonAjouterGroupe = gtk_menu_item_new_with_label("Créer Groupe");
-    g_signal_connect(boutonAjouterGroupe, "activate", G_CALLBACK(+[](GtkWidget*, gpointer data) {
-        auto* info = static_cast<std::pair<Navigateur*, GtkWidget*>*>(data);
-        auto* navigateur = info->first;
-        //auto* navigateur = static_cast<Navigateur*>(data);
-        //const gchar* nomGroupe = gtk_entry_get_text(GTK_ENTRY(entryNouveauGroupe));
-        const gchar* nomGroupe = gtk_entry_get_text(GTK_ENTRY(info->second));
-        navigateur->gestionnaireOnglets->ajouterGroupe(nomGroupe);
-        navigateur->changerGroupeOnglets(nomGroupe);
-        delete info;
-    //}), this);
-    }), new std::pair<Navigateur*, GtkWidget*>(this, entryNouveauGroupe));
+    // g_signal_connect(boutonAjouterGroupe, "activate", G_CALLBACK(+[](GtkWidget*, gpointer data) {
+    //     auto* info = static_cast<std::pair<Navigateur*, GtkWidget*>*>(data);
+    //     auto* navigateur = info->first;
+    //     //auto* navigateur = static_cast<Navigateur*>(data);
+    //     //const gchar* nomGroupe = gtk_entry_get_text(GTK_ENTRY(entryNouveauGroupe));
+    //     const gchar* nomGroupe = gtk_entry_get_text(GTK_ENTRY(info->second));
+    //     navigateur->gestionnaireOnglets->ajouterGroupe(nomGroupe);
+    //     navigateur->changerGroupeOnglets(nomGroupe);
+    //     delete info;
+    // //}), this);
+    // }), new std::pair<Navigateur*, GtkWidget*>(this, entryNouveauGroupe));
+    auto* data = new std::pair<Navigateur*, GtkWidget*>(this, entryNouveauGroupe);
+    //g_signal_connect(boutonAjouterGroupe, "activate", G_CALLBACK(on_ajouter_groupe),
+    //                 new std::pair<Navigateur*, GtkWidget*>(this, entryNouveauGroupe));
+    g_signal_connect(boutonAjouterGroupe, "activate", G_CALLBACK(on_ajouter_groupe), data);
     gtk_menu_shell_append(GTK_MENU_SHELL(menuGroupes), boutonAjouterGroupe);
 
     // Lister les groupes existants dans le menu
     for (const auto& groupe : gestionnaireOnglets->getGroupes()) {
         GtkWidget* itemGroupe = gtk_menu_item_new_with_label(groupe.c_str());
-        g_signal_connect(itemGroupe, "activate", G_CALLBACK(+[](GtkWidget* item, gpointer data) {
-            auto* navigateur = static_cast<Navigateur*>(data);
-            const char* nomGroupe = gtk_menu_item_get_label(GTK_MENU_ITEM(item));
-            navigateur->changerGroupeOnglets(nomGroupe);
-        }), this);
+        // g_signal_connect(itemGroupe, "activate", G_CALLBACK(+[](GtkWidget* item, gpointer data) {
+        //     auto* navigateur = static_cast<Navigateur*>(data);
+        //     const char* nomGroupe = gtk_menu_item_get_label(GTK_MENU_ITEM(item));
+        //     navigateur->changerGroupeOnglets(nomGroupe);
+        // }), this);
+        g_signal_connect(itemGroupe, "activate", G_CALLBACK(on_changer_groupe), this);
         gtk_menu_shell_append(GTK_MENU_SHELL(menuGroupes), itemGroupe);
     }
 
     // Associer le menu contextuel au bouton
     g_signal_connect(boutonChangerGroupe, "clicked", G_CALLBACK(+[](GtkWidget* widget, gpointer data) {
-        gtk_menu_popup_at_widget(GTK_MENU(widget), widget, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr;
+        gtk_menu_popup_at_widget(GTK_MENU(data), widget, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
     }), menuGroupes);
 
     // Ajouter le bouton "+"
@@ -259,8 +298,9 @@ void Navigateur::ajouterNouvelOnglet(const std::string &url) {
     gestionnaireOnglets->ajouterOnglet(gestionnaireOnglets->getGroupeActif(), url);
 
     GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    GtkWidget *labelTitre = gtk_label_new("Nouvel Onglet");
-    gtk_box_pack_start(GTK_BOX(hboxOnglet), labelTitre, FALSE, FALSE, 0);
+    GtkWidget *boutonTitre = gtk_button_new_with_label("Nouvel Onglet");
+    gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonTitre, FALSE, FALSE, 0);
+
 
     GtkWidget *boutonFermer = moteurRendu->creerBouton("window-close", G_CALLBACK(+[](GtkButton *button, Navigateur *n) {
         GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(button));
@@ -277,7 +317,7 @@ void Navigateur::ajouterNouvelOnglet(const std::string &url) {
         if (n) {
             n->changerOngletActif(widget);
         }
-        return FALSE;
+        return TRUE; // Pour capturer l'évènement correctemnt on le passe à TRUE
     }), this);
 
 
@@ -304,7 +344,12 @@ void Navigateur::changerOngletActif(GtkWidget* ongletWidget) {
 void Navigateur::executerScriptDansOngletActif(const std::string& script) {
     if (!onglets.empty()) {
         GtkWidget* ongletActif = onglets.back().second;
-        WebKitWebView* vueWeb = WEBKIT_WEB_VIEW(gtk_bin_get_child(GTK_BIN(ongletActif)));
+        WebKitWebView* vueWeb = nullptr;
+        GList* children = gtk_container_get_children(GTK_CONTAINER(ongletActif));
+        if (children != nullptr) {
+            vueWeb = WEBKIT_WEB_VIEW(children->data);
+            g_list_free(children);
+        }        
         moteurScript->executerScript(vueWeb, script);
     }
 }
@@ -535,6 +580,8 @@ void Navigateur::creerMenuContextuel(GtkWidget* bouton) {
     GtkWidget *ajouterItem = gtk_menu_item_new_with_label("Ajouter Favori");
     g_signal_connect(ajouterItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
         auto* navigateur = static_cast<Navigateur*>(user_data);
+        GtkWidget* entryNom = gtk_entry_new();
+        GtkWidget* entryURL = gtk_entry_new();
         const gchar* nom = gtk_entry_get_text(GTK_ENTRY(entryNom));
         const gchar* url = gtk_entry_get_text(GTK_ENTRY(entryURL));
         navigateur->ajouterFavori(nom, url, "Général");

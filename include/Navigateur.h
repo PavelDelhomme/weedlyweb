@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <gtk/gtk.h>
+#include <glib-object.h>
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -23,7 +24,16 @@ public:
     void lancer();
     void chargerURL(const std::string& url);
     nlohmann::json& getFavoris();
-    
+
+    // Gestion des onglets
+    GestionnaireOnglets* getGestionnaireOnglets() {
+        return gestionnaireOnglets.get();
+    }
+    void changerGroupeOnglets(const std::string& nomGroupe);
+    void ajouterNouvelOnglet(const std::string &url = "");
+    void changerOngletActif(GtkWidget* ongletWidget);
+
+
     // Gestion des favoris via GestionnaireFavoris
     void afficherGestionnaireFavoris();
     void rafraichirBarreFavoris();
@@ -33,8 +43,6 @@ public:
     // Interface utilisateur
     void fermerApplication();
     void sauvegarderConfiguration();
-    void ajouterNouvelOnglet(const std::string &url = "");
-    void changerOngletActif(GtkWidget* ongletWidget);
     void afficherMessage(const std::string& message);
     void afficherParametres();
     void configurerRaccourcisClavier();

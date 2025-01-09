@@ -4,17 +4,25 @@
 
 // Fonction statique pour gérer "notify::title"
 static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer user_data) {
-    auto* data = static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
-    if (!data || !data->get()->first || !WEBKIT_IS_WEB_VIEW(data->get()->first)) {
+    //auto* data = static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
+    auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+
+    // if (!data || !data->get()->first || !WEBKIT_IS_WEB_VIEW(data->get()->first)) {
+    //     std::cerr << "Erreur : WebView invalide dans on_notify_title." << std::endl;
+    //     return;
+    // }
+    if (!data || !data->first || !WEBKIT_IS_WEB_VIEW(data->first)) {
         std::cerr << "Erreur : WebView invalide dans on_notify_title." << std::endl;
         return;
     }
 
-    WebKitWebView* vueWeb = data->get()->first;
-    const gchar* title = webkit_web_view_get_title(vueWeb);
+    // WebKitWebView* vueWeb = data->get()->first;
+    // const gchar* title = webkit_web_view_get_title(vueWeb);
+    const gchar* title = webkit_web_view_get_title(data->first);
     if (title) {
-        auto& callback = data->get()->second;
-        callback(std::string(title));
+        // auto& callback = data->get()->second;
+        // callback(std::string(title));
+        data->second(std::string(title));
     }
 }
 
@@ -120,38 +128,70 @@ GtkWidget* MoteurRendu::creerChampTexte(GCallback callback, gpointer data) {
 
 // Mise à jour de la connexion au signal
 void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::string&)> callback) {
-    if (!vueWeb || !callback) return;
+    if (!vueWeb || !callback) {
+        std::cerr << "Erreur : WebView non initialisé dans connecterSignalPageChargee." << std::endl;
+        return;
+    };
 
     // Utilisation de std::make_shared pour une gestion propre de la mémoire
-    auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
+    // auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
+    auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
 
     // Connexion du signal avec gestion sécurisée
-    // Ancien code
-    // g_signal_connect_data(
-    //     vueWeb,
-    //     "notify::title",
-    //     G_CALLBACK([](WebKitWebView* web_view, GParamSpec*, gpointer user_data) {
-    //         auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-    //         const gchar* title = webkit_web_view_get_title(web_view);
-    //         if (title) {
-    //             data->second(std::string(title));
-    //         }
-    //     }),
-    //     //new std::shared_ptr(data),  // <- Corrigé ici, `data.get()` n'était pas utilisé correctement
-    //     new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(*data),
-    //     [](gpointer user_data, GClosure *) {
-    //         //delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
-    //         delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-    //     },
-    //     //static_cast<GConnectFlags>(0)
-    //     G_CONNECT_AFTER
-    // );
+    /* Ancien code
+    g_signal_connect_data(
+        vueWeb,
+        "notify::title",
+        G_CALLBACK([](WebKitWebView* web_view, GParamSpec*, gpointer user_data) {
+            auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+            const gchar* title = webkit_web_view_get_title(web_view);
+            if (title) {
+                data->second(std::string(title));
+            }
+        }),
+        //new std::shared_ptr(data),  // <- Corrigé ici, `data.get()` n'était pas utilisé correctement
+        new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(*data),
+        [](gpointer user_data, GClosure *) {
+            //delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
+            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+        },
+        //static_cast<GConnectFlags>(0)
+        G_CONNECT_AFTER
+    );
+    */
     // Nouveau code :
     g_signal_connect_data(
         vueWeb,
         "notify::title",
         G_CALLBACK(on_notify_title),
-        new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(*data),
+        // new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(*data),
+        data,
+        [](gpointer user_data, GClosure*) { 
+            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); 
+        },
+        G_CONNECT_AFTER
+    );
+}
+
+
+void MoteurRendu::connecterSignalChargementComplet(std::function<void(const std::string&)> callback) {
+    if (!vueWeb) return;
+
+    auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
+
+    g_signal_connect_data(
+        vueWeb,
+        "load-changed",
+        G_CALLBACK([](WebKitWebView* web_view, WebKitLoadEvent load_event, gpointer user_data) {
+            if (load_event == WEBKIT_LOAD_FINISHED) {
+                const gchar* title = webkit_web_view_get_title(web_view);
+                auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+                if (title && data) {
+                    data->second(std::string(title));
+                }
+            }
+        }),
+        data,
         [](gpointer user_data, GClosure*) { 
             delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); 
         },

@@ -95,7 +95,7 @@ run_and_monitor() {
     sleep 2  # Attente pour le démarrage correct du processus
 
     # Lancement du monitoring dans un autre terminal
-    gnome-terminal -- bash -c "\"$SCRIPT_DIR/manage.sh\" monitor; exec bash" &
+    gnome-terminal -- bash -c "\"$SCRIPT_DIR/manage.sh\" monitor_project; exec bash" &
 }
 
 # Fonction d'installation
@@ -115,7 +115,7 @@ show_help() {
     echo "  build                 Compilation complète"
     echo "  run_project           Build et exécution du projet"
     echo "  debug                 Build et lancement avec GDB"
-    echo "  monitor               Surveillance basique du processus"
+    echo "  monitor project       Surveillance basique du processus"
     echo "  monitor_project_advanced Utiliser btop pour une surveillance avancée"
     echo "  run_and_monitor       Compile, exécute et surveille le projet"
     echo "  install               Installer l'application"
@@ -141,7 +141,7 @@ for arg in "$@"; do
         build) build_project ;;
         run_project) run_project ;;
         debug) debug_project ;;
-        monitor) monitor_project ;;
+        monitor_project) monitor_project ;;
         monitor_project_advanced) monitor_project_advanced ;;
         run_and_monitor) run_and_monitor ;;
         install) install_project ;;
