@@ -11,6 +11,7 @@
 #include "GestionnaireMemoire.h"
 #include "MoteurScript.h"
 #include "GestionnaireFavoris.h"
+#include "GestionnaireOnglets.h"
 #include <set>
 
 class Navigateur {
@@ -76,6 +77,7 @@ private:
 
     // Gestion des onglets
     void supprimerOnglet(GtkWidget* ongletWidget);
+    std::unique_ptr<GestionnaireOnglets> gestionnaireOnglets;
 
     // Gestion des favoris via GestionnaireFavoris
     std::unique_ptr<GestionnaireFavoris> gestionnaireFavoris;

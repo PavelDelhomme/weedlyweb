@@ -31,6 +31,7 @@ void GestionnaireMemoire::hibernerOnglet(WebKitWebView *onglet) {
         std::cout << "Mise en veille de l'onglet pour économiser des ressources." << std::endl;
         webkit_web_view_stop_loading(onglet); // Arrête les requêtes réseau
         webkit_web_view_set_settings(onglet, nullptr); // Libère les paramètres inutiles
+        gtk_widget_hide(GTK_WIDGET(onglet));
     }
 }
 
@@ -38,6 +39,7 @@ void GestionnaireMemoire::reactiverOnglet(WebKitWebView *onglet, const std::stri
     if (onglet && WEBKIT_IS_WEB_VIEW(onglet)) {
         std::cout << "Réactivation de l'onglet avec URL : " << url << std::endl;
         webkit_web_view_load_uri(onglet, url.c_str());
+        gtk_widget_show(GTK_WIDGET(onglet));
     }
 }
 

@@ -283,6 +283,30 @@ src/GestionnaireMemoire.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.s
 .PHONY : src/GestionnaireMemoire.cpp.s
 
+src/GestionnaireOnglets.o: src/GestionnaireOnglets.cpp.o
+.PHONY : src/GestionnaireOnglets.o
+
+# target to build an object file
+src/GestionnaireOnglets.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o
+.PHONY : src/GestionnaireOnglets.cpp.o
+
+src/GestionnaireOnglets.i: src/GestionnaireOnglets.cpp.i
+.PHONY : src/GestionnaireOnglets.i
+
+# target to preprocess a source file
+src/GestionnaireOnglets.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.i
+.PHONY : src/GestionnaireOnglets.cpp.i
+
+src/GestionnaireOnglets.s: src/GestionnaireOnglets.cpp.s
+.PHONY : src/GestionnaireOnglets.s
+
+# target to generate assembly for a file
+src/GestionnaireOnglets.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.s
+.PHONY : src/GestionnaireOnglets.cpp.s
+
 src/MoteurRendu.o: src/MoteurRendu.cpp.o
 .PHONY : src/MoteurRendu.o
 
@@ -405,6 +429,9 @@ help:
 	@echo "... src/GestionnaireMemoire.o"
 	@echo "... src/GestionnaireMemoire.i"
 	@echo "... src/GestionnaireMemoire.s"
+	@echo "... src/GestionnaireOnglets.o"
+	@echo "... src/GestionnaireOnglets.i"
+	@echo "... src/GestionnaireOnglets.s"
 	@echo "... src/MoteurRendu.o"
 	@echo "... src/MoteurRendu.i"
 	@echo "... src/MoteurRendu.s"

@@ -152,7 +152,9 @@ void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::strin
         "notify::title",
         G_CALLBACK(on_notify_title),
         new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(*data),
-        [](gpointer user_data) { delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); },
+        [](gpointer user_data, GClosure*) { 
+            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); 
+        },
         G_CONNECT_AFTER
     );
 }
@@ -167,8 +169,8 @@ void MoteurRendu::connecterSignalFaviconChange(std::function<void(cairo_surface_
         if (icon) {
             (*callback)(icon);
         }
-    }), new std::function<void(cairo_surface_t*)>(callback),
-    [](gpointer data) { delete static_cast<std::function<void(cairo_surface_t*)>*>(data); });
+    }), new std::function<void(cairo_surface_t*)>(callback));
+
 }
 
 

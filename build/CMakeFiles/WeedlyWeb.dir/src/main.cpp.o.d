@@ -1110,5 +1110,6 @@ CMakeFiles/WeedlyWeb.dir/src/main.cpp.o: \
  /home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/include/GestionnaireMemoire.h \
  /home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/include/MoteurScript.h \
  /home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/include/GestionnaireFavoris.h \
+ /home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/include/GestionnaireOnglets.h \
  /usr/include/c++/14/set /usr/include/c++/14/bits/stl_set.h \
  /usr/include/c++/14/bits/stl_multiset.h

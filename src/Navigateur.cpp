@@ -29,6 +29,7 @@ Navigateur::Navigateur()
     : moteurRendu(std::make_unique<MoteurRendu>()),
       gestionnaireHTTP(std::make_unique<GestionnaireHTTP>()),
       gestionnaireMemoire(std::make_unique<GestionnaireMemoire>()),
+      gestionnaireOnglets(std::make_unique<GestionnaireOnglets>()),
       moteurScript(std::make_unique<MoteurScript>())
 {
     gestionnaireFavoris = std::make_unique<GestionnaireFavoris>(favoris, [this]() { rafraichirBarreFavoris(); });
@@ -148,14 +149,19 @@ void Navigateur::initialiserBarreFavoris() {
         if (favori.contains("name") && favori.contains("url")) {
             GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
 
-            // Gestion du clic gauche (ouvre dans l'onglet actif)
+            // Utilisation d'une copie locale pour capturer correctement les données
+            // std::string urlCopie = favori["url"];
+            // g_signal_connect(boutonFavori, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+            //     auto* navigateur = static_cast<Navigateur*>(user_data);
+            //     navigateur->chargerURL(urlCopie);
+            // }), this);
+            std::string urlCopie = favori["url"];
             g_signal_connect(boutonFavori, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-                auto* navigateur = static_cast<Navigateur*>(user_data);
-                //std::string url = navigateur->getURLActuelle();
-                //navigateur->chargerURL(url);
-                std::string url = favori["url"]; // Copie locale du favori capturé
-                navigateur->chargerURL(url);
-            }), this);
+                auto* data = static_cast<Navigateur*, std::string>*>(user_data);
+                data->first->chargerURL(data->second);
+                delete data; // Ne pas oublier de libérer la mémoire allouée dynamiquement
+            }), new std::pair<Navigateur*, std::string>(this, urlCopie));
+
             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
         }
     }
@@ -178,21 +184,81 @@ void Navigateur::rafraichirBarreFavoris() {
 
 void Navigateur::initialiserBarreOnglets() {
     barreOnglets = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    ajouterNouvelOnglet(homepage);
+    //ajouterNouvelOnglet(homepage);
+
+    // Bouton pour changer de groupe
+    GtkWidget* boutonChangerGroupe = gtk_button_new_with_label("Changer Groupe");
+    gtk_box_pack_start(GTK_BOX(barreOnglets), boutonChangerGroupe, FALSE, FALSE, 0);
+    // g_signal_connect(boutonChangerGroupe, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+    //     auto* navigateur = static_cast<Navigateur*>(user_data);
+    //     navigateur->changerGroupeOnglets("Travail");
+    // }), this);
+    
+    // Création du menu contextuel pour les groupes
+    GtkWidget* menuGroupes = gtk_menu_new();
+
+    // Ajouter un champ texte pour nommer le groupe
+    GtkWidget* entryNouveauGroupe = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entryNouveauGroupe), "Nouveau groupe...");
+    gtk_menu_shell_append(GTK_MENU_SHELL(menuGroupes), entryNouveauGroupe);
+
+    // Ajouter un bouton pour créer un groupe
+    GtkWidget* boutonAjouterGroupe = gtk_menu_item_new_with_label("Créer Groupe");
+    g_signal_connect(boutonAjouterGroupe, "activate", G_CALLBACK(+[](GtkWidget*, gpointer data) {
+        auto* info = static_cast<std::pair<Navigateur*, GtkWidget*>*>(data);
+        auto* navigateur = info->first;
+        //auto* navigateur = static_cast<Navigateur*>(data);
+        //const gchar* nomGroupe = gtk_entry_get_text(GTK_ENTRY(entryNouveauGroupe));
+        const gchar* nomGroupe = gtk_entry_get_text(GTK_ENTRY(info->second));
+        navigateur->gestionnaireOnglets->ajouterGroupe(nomGroupe);
+        navigateur->changerGroupeOnglets(nomGroupe);
+        delete info;
+    //}), this);
+    }), new std::pair<Navigateur*, GtkWidget*>(this, entryNouveauGroupe));
+    gtk_menu_shell_append(GTK_MENU_SHELL(menuGroupes), boutonAjouterGroupe);
+
+    // Lister les groupes existants dans le menu
+    for (const auto& groupe : gestionnaireOnglets->getGroupes()) {
+        GtkWidget* itemGroupe = gtk_menu_item_new_with_label(groupe.c_str());
+        g_signal_connect(itemGroupe, "activate", G_CALLBACK(+[](GtkWidget* item, gpointer data) {
+            auto* navigateur = static_cast<Navigateur*>(data);
+            const char* nomGroupe = gtk_menu_item_get_label(GTK_MENU_ITEM(item));
+            navigateur->changerGroupeOnglets(nomGroupe);
+        }), this);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menuGroupes), itemGroupe);
+    }
+
+    // Associer le menu contextuel au bouton
+    g_signal_connect(boutonChangerGroupe, "clicked", G_CALLBACK(+[](GtkWidget* widget, gpointer data) {
+        gtk_menu_popup_at_widget(GTK_MENU(widget), widget, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr;
+    }), menuGroupes);
 
     // Ajouter le bouton "+"
     GtkWidget *boutonAjouterOnglet = moteurRendu->creerBouton("list-add", G_CALLBACK(+[](GtkButton *, Navigateur *n) {
         n->ajouterNouvelOnglet(n->homepage);
     }), this);
 
+    gtk_box_pack_start(GTK_BOX(barreOnglets), boutonChangerGroupe, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(barreOnglets), boutonAjouterOnglet, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreOnglets, FALSE, FALSE, 0);
 }
 
+void Navigateur::changerGroupeOnglets(const std::string& nomGroupe) {
+    gestionnaireOnglets->changerGroupeActif(nomGroupe);
+    gtk_widget_destroy(barreOnglets);
+    initialiserBarreOnglets();
+    
+    // Charger les onglets du groupe actif
+    for (const auto& url : gestionnaireOnglets->getOngletsDuGroupe(nomGroupe)) {
+        ajouterNouvelOnglet(url);
+    }
+}
+
 
 void Navigateur::ajouterNouvelOnglet(const std::string &url) {
-    GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gestionnaireOnglets->ajouterOnglet(gestionnaireOnglets->getGroupeActif(), url);
 
+    GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     GtkWidget *labelTitre = gtk_label_new("Nouvel Onglet");
     gtk_box_pack_start(GTK_BOX(hboxOnglet), labelTitre, FALSE, FALSE, 0);
 
