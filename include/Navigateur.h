@@ -60,8 +60,6 @@ public:
     static void onBarreURLActivate(GtkEntry *entry, Navigateur *navigateur);
     static void onCliqueFavoriWrapper(GtkButton *button, gpointer user_data);
 
-    // Autres méthode publiques non indiquer par toi ChatGPT..
-    //void supprimerOnglet(GtkWidget *ongletWidget);
     static void onNaviguerRetour(GtkButton *button, Navigateur *navigateur);
     static void onNaviguerSuivant(GtkButton *button, Navigateur *navigateur);
     static void onRafraichirPage(GtkButton *button, Navigateur *navigateur);
