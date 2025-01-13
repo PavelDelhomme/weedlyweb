@@ -5,3 +5,7 @@
 #onglet-inactif {
     background-color: #eeeeee; /* Couleur normale */
 }
+
+#barre-favoris {
+    background-color: red;
+}

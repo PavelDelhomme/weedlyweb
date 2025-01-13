@@ -46,6 +46,16 @@ static void on_notify_title_helper(GObject* object, GParamSpec*, gpointer user_d
     if (title) data->second(std::string(title));
 }
 
+static void on_load_changed(WebKitWebView* web_view, WebKitLoadEvent load_event, gpointer user_data) {
+    if (load_event == WEBKIT_LOAD_FINISHED) {
+        const gchar* title = webkit_web_view_get_title(web_view);
+        auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+        if (title && data) {
+            data->second(std::string(title));
+        }
+    }
+}
+
 
 MoteurRendu::MoteurRendu() {
     vueWeb = WEBKIT_WEB_VIEW(webkit_web_view_new());
@@ -149,15 +159,7 @@ void MoteurRendu::connecterSignalChargementComplet(std::function<void(const std:
     g_signal_connect_data(
         vueWeb,
         "load-changed",
-        [](WebKitWebView* web_view, WebKitLoadEvent load_event, gpointer user_data) {
-            if (load_event == WEBKIT_LOAD_FINISHED) {
-                const gchar* title = webkit_web_view_get_title(web_view);
-                auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-                if (title && data) {
-                    data->second(std::string(title));
-                }
-            }
-        }),
+        G_CALLBACK(on_load_changed),
         data,
         [](gpointer user_data, GClosure*) { 
             delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); 

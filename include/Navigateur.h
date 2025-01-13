@@ -25,6 +25,12 @@ public:
     void chargerURL(const std::string& url);
     nlohmann::json& getFavoris();
 
+    std::string getHomepage() const { return homepage; }
+    GtkWidget* getEntryURLFavori() const { return entryURLFavori; }
+    GtkWidget* getPopoverFavoris() const { return popoverFavoris; }
+    GtkWidget* getEntryNomFavori() const { return entryNomFavori; }
+
+
     // Gestion des onglets
     GestionnaireOnglets* getGestionnaireOnglets() {
         return gestionnaireOnglets.get();
@@ -46,6 +52,7 @@ public:
     void afficherMessage(const std::string& message);
     void afficherParametres();
     void configurerRaccourcisClavier();
+    void creerMenuContextuel(GtkWidget* bouton);
 
 
     void onCliqueFavori(GtkButton*, Navigateur*, const std::string&);
@@ -57,7 +64,8 @@ public:
     static void onNaviguerRetourWrapper(GtkButton *button, gpointer user_data);
     static void onNaviguerSuivantWrapper(GtkButton *button, gpointer user_data);
     static void onRafraichirPageWrapper(GtkButton *button, gpointer user_data);
-    static void onBarreURLActivate(GtkEntry *entry, Navigateur *navigateur);
+    static void onBarreURLActivate(GtkEntry *entry, gpointer user_data);
+
     static void onCliqueFavoriWrapper(GtkButton *button, gpointer user_data);
 
     static void onNaviguerRetour(GtkButton *button, Navigateur *navigateur);
@@ -74,12 +82,13 @@ private:
     void chargerConfiguration();
     // void sauvegarderConfiguration();
     void initialiserBarreNavigation();
-    void creerMenuContextuel(GtkWidget* bouton);
     void initialiserBarreFavoris();
     void initialiserBarreOnglets();
     void mettreEnSurbrillance(GtkWidget* ongletWidget);
     void chargerStyles();
     void ajouterBouton(GtkWidget* conteneur, const std::string& iconName, GCallback callback, gpointer data);
+
+    void initialiserPopoverFavoris();
 
     // Gestion des onglets
     void supprimerOnglet(GtkWidget* ongletWidget);
@@ -99,7 +108,12 @@ private:
     GtkWidget *barreURL = nullptr;
     GtkWidget *barreNavigation = nullptr;
     GtkWidget *barreOnglets = nullptr;
+
+    // Favoris
     GtkWidget *barreFavoris = nullptr;
+    GtkWidget* popoverFavoris;
+    GtkWidget* entryNomFavori;
+    GtkWidget* entryURLFavori;
 
     std::vector<std::pair<std::string, GtkWidget*>> onglets;
     std::vector<std::string> historique;
