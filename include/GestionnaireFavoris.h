@@ -23,6 +23,7 @@ public:
     void ajouterDossier(const std::string& nom);
     // void ajouterFavoriDansDossier(const std::string& dossier, const std::string& nom, const std::string& url);
     GtkWidget* getListeFavoris();  // Déclaration d'un accesseur
+    GtkWidget* getFenetre() const { return fenetre; }
     
 private:
     nlohmann::json& favoris;
