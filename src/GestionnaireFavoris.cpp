@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <gtk/gtk.h>
 
-GestionnaireFavoris::GestionnaireFavoris(nlohmann::json& favoris, std::function<void()> callbackRafraichir)
-    : favoris(favoris), callbackRafraichir(callbackRafraichir) {
+GestionnaireFavoris::GestionnaireFavoris(std::shared_ptr<nlohmann::json> favoris, std::function<void()> callbackRafraichir)
+    : favoris(std::move(favoris)), callbackRafraichir(callbackRafraichir) {
     creerInterface();
 }
 
@@ -108,8 +108,16 @@ void GestionnaireFavoris::afficherListeFavoris() {
     g_object_unref(store); // Libérer correctement la mémoire
 }
 
-void GestionnaireFavoris::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
-    favoris.push_back({{"name", nom}, {"url", url}, {"tag", tag}});
+void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
+    for (const auto& favori : *favoris) {
+        if (favori["url"] == url) {
+            std::cerr << "Favori déjà existant : " << url << std::endl;
+            return;
+        }
+    }
+    favoris->push_back({{"name", nom}, {"url", url}, {"tag", tag}});
+    gestionnaireFavoris->sauvegarderModifications();
+    rafraichirBarreFavoris();
     callbackRafraichir();
     rafraichirInterface();
 }

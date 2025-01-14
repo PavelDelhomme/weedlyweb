@@ -10,6 +10,92 @@
 std::string obtenirCheminAbsolu(const std::string& fichier) {
     return std::filesystem::current_path().string() + "/" + fichier;
 }
+static void delete_user_data(gpointer user_data, GClosure*) {
+    delete static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
+}
+static void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data);
+
+static void on_modifier_favori(GtkWidget*, gpointer user_data);
+
+static void on_supprimer_favori(GtkWidget*, gpointer user_data) {
+    auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
+    if (data && data->first) {
+        data->first->supprimerFavori(data->second);
+    }
+    delete data;
+}
+
+// static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
+//     auto* navigateur = static_cast<Navigateur*>(user_data);
+    
+//     if (event->type == GDK_KEY_PRESS) {
+//         GdkEventKey* key_event = (GdkEventKey*) event;
+        
+//         // Gestion du raccourci CTRL + D pour ajouter un favori
+//         if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_d) {
+//             std::string url = navigateur->getURLActuelle();
+//             std::string titre = navigateur->getTitreActuel();
+            
+//             // Pré-remplir les champs du formulaire
+//             gtk_entry_set_text(GTK_ENTRY(navigateur->entryNomFavori), titre.c_str());
+//             gtk_entry_set_text(GTK_ENTRY(navigateur->entryURLFavori), url.c_str());
+
+//             // Afficher le formulaire d'ajout de favori (popover)
+//             gtk_popover_popup(GTK_POPOVER(navigateur->popoverFavoris));
+//         }
+//     }
+//     return FALSE;
+// }
+
+
+static gboolean on_favori_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+    if (event->type == GDK_BUTTON_PRESS && event->button == GDK_BUTTON_SECONDARY) {  // Clic droit
+        auto* navigateur = static_cast<Navigateur*>(user_data);
+        if (!navigateur) return FALSE;
+
+        const gchar* url = gtk_button_get_label(GTK_BUTTON(widget));
+
+        GtkWidget *menu = gtk_menu_new();
+
+        // **Ouvrir dans un nouvel onglet**
+        GtkWidget *ouvrirNouvelOnglet = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
+        auto* data = new std::pair<Navigateur*, std::string>(navigateur, url);
+
+        g_signal_connect_data(ouvrirNouvelOnglet, "activate", G_CALLBACK(on_ouvrir_nouvel_onglet_safe),
+                            data, delete_user_data, G_CONNECT_AFTER);
+
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), ouvrirNouvelOnglet);
+
+        // **Modifier le favori**
+        GtkWidget *modifierItem = gtk_menu_item_new_with_label("Modifier le favori");
+        g_signal_connect(modifierItem, "activate", G_CALLBACK(on_modifier_favori), navigateur);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifierItem);
+
+        // **Supprimer le favori**
+        GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer le favori");
+        auto* data_supprimer = new std::pair<Navigateur*, GtkWidget*>(navigateur, widget);
+        g_signal_connect_data(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori),
+                         data_supprimer, delete_user_data, G_CONNECT_AFTER);
+
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
+
+        gtk_widget_show_all(menu);
+        gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent*)event);
+        return TRUE; 
+    }
+    return FALSE;
+}
+
+static void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data) {
+    auto* data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
+    if (!data) return;
+    if (data->first) {
+        data->first->ajouterNouvelOnglet(data->second);
+    }
+    delete data;
+}
+
+
 
 static void on_menu_item_activate(GtkWidget* widget, gpointer user_data) {
     auto* data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
@@ -64,12 +150,14 @@ static void on_modifier_favori(GtkWidget*, gpointer user_data) {
     auto* navigateur = static_cast<Navigateur*>(user_data);
     navigateur->afficherGestionnaireFavoris();
 }
-// Fonction statique pour gérer la suppression du favori
-static void on_supprimer_favori(GtkWidget*, gpointer user_data) {
-    auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
-    data->first->supprimerFavori(data->second);
-    delete data;
-}
+
+// static void on_supprimer_favori(GtkWidget*, gpointer user_data) {
+//     auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
+//     if (data && data->first) {
+//         data->first->supprimerFavori(data->second);
+//     }
+//     delete data;  // Libérer la mémoire
+// }
 
 static void on_ajouter_favori_menu(GtkWidget*, gpointer user_data) {
     auto* data = static_cast<std::pair<Navigateur*, std::pair<GtkWidget*, GtkWidget*>>*>(user_data);
@@ -103,12 +191,6 @@ static void on_favori_clicked(GtkButton* button, gpointer user_data) {
         delete data;  // Libérer la mémoire allouée
     }
 }
-
-static void on_supprimer_favori(GtkWidget* widget, gpointer user_data) {
-    auto* navigateur = static_cast<Navigateur*>(user_data);
-    navigateur->supprimerFavori(widget);
-}
-
 
 static void on_ajouter_groupe(GtkWidget* widget, gpointer data) {
     auto* info = static_cast<std::pair<Navigateur*, GtkWidget*>*>(data);
@@ -147,66 +229,6 @@ static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
     return FALSE;
 }
 
-// static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-//     if (event->type == GDK_BUTTON_PRESS && event->button == 3) { // Bouton droit
-//         auto *navigateur = static_cast<Navigateur *>(user_data);
-//         if (navigateur) {
-//             navigateur->creerMenuContextuel(widget);
-//             return TRUE;
-//         }
-//     }
-//     return FALSE;
-// }
-// static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-//     if (event->type == GDK_BUTTON_PRESS && event->button == GDK_BUTTON_SECONDARY) { // Clic droit détecté
-//         auto *navigateur = static_cast<Navigateur *>(user_data);
-//         if (navigateur) {
-//             navigateur->creerMenuContextuel(widget);
-//             return TRUE;  // Événement capturé
-//         }
-//     }
-//     return FALSE;  // Événement non capturé
-// // }
-// static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-//     if (event->type == GDK_BUTTON_PRESS && event->button == GDK_BUTTON_SECONDARY) {  // Clic droit détecté
-//         auto* navigateur = static_cast<Navigateur*>(user_data);
-//         if (!navigateur) return FALSE;
-
-//         // Créer un menu contextuel
-//         GtkWidget *menu = gtk_menu_new();
-
-//         // **Option 1 : Ouvrir dans un nouvel onglet**
-//         GtkWidget *ouvrirNouvelOnglet = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
-//         g_signal_connect(ouvrirNouvelOnglet, "activate", G_CALLBACK([](GtkWidget*, gpointer user_data) {
-//             auto* data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
-//             data->first->ajouterNouvelOnglet(data->second);
-//             delete data;
-//         }), new std::pair<Navigateur*, std::string>(navigateur, navigateur->getURLActuelle()));
-//         gtk_menu_shell_append(GTK_MENU_SHELL(menu), ouvrirNouvelOnglet);
-
-//         // **Option 2 : Modifier le favori**
-//         GtkWidget *modifierItem = gtk_menu_item_new_with_label("Modifier le favori");
-//         g_signal_connect(modifierItem, "activate", G_CALLBACK([](GtkWidget*, gpointer user_data) {
-//             auto* navigateur = static_cast<Navigateur*>(user_data);
-//             navigateur->afficherGestionnaireFavoris();
-//         }), navigateur);
-//         gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifierItem);
-
-//         // **Option 3 : Supprimer le favori**
-//         GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer le favori");
-//         g_signal_connect(supprimerItem, "activate", G_CALLBACK([](GtkWidget*, gpointer user_data) {
-//             auto* navigateur = static_cast<Navigateur*>(user_data);
-//             navigateur->supprimerFavori(widget);
-//         }), navigateur);
-//         gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
-
-//         // **Affichage du menu contextuel au clic droit**
-//         gtk_widget_show_all(menu);
-//         gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent*)event); 
-//         return TRUE;
-//     }
-//     return FALSE;
-// }
 
 // ✅ Gestion du clic droit (menu contextuel)
 static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
@@ -215,12 +237,25 @@ static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event
         if (!navigateur) return FALSE;
 
         // Créer un menu contextuel
-        GtkWidget *menu = gtk_menu_new();
-
+        if (!menuFavoris) {
+            GtkWidget *menu = gtk_menu_new();
+        }
         // **Option 1 : Ouvrir dans un nouvel onglet**
+        // auto* data = new std::pair<Navigateur*, std::string>(navigateur, navigateur->getURLActuelle());
+        auto data = std::make_unique<std::pair<Navigateur*, std::string>>(navigateur, navigateur->getURLActuelle());
         GtkWidget *ouvrirNouvelOnglet = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
-        g_signal_connect(ouvrirNouvelOnglet, "activate", G_CALLBACK(on_ouvrir_nouvel_onglet),
-                         new std::pair<Navigateur*, std::string>(navigateur, navigateur->getURLActuelle()));
+        g_signal_connect_data(
+            ouvrirNouvelOnglet, 
+            "activate", 
+            G_CALLBACK(on_ouvrir_nouvel_onglet_safe), 
+            data, 
+            (GClosureNotify)+[](gpointer user_data, GClosure*) { 
+                delete static_cast<std::pair<Navigateur*, std::string>*>(user_data); 
+            }, 
+            G_CONNECT_AFTER
+        );
+
+   
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), ouvrirNouvelOnglet);
 
         // **Option 2 : Modifier le favori**
@@ -230,8 +265,10 @@ static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event
 
         // **Option 3 : Supprimer le favori**
         GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer le favori");
-        g_signal_connect(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori),
-                         new std::pair<Navigateur*, GtkWidget*>(navigateur, widget));
+        g_signal_connect_data(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori),
+                         new std::pair<Navigateur*, GtkWidget*>(navigateur, widget),
+                        delete_user_data,
+                         G_CONNECT_AFTER);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
 
         // **Afficher le menu contextuel au clic droit**
@@ -269,12 +306,13 @@ Navigateur::Navigateur()
       gestionnaireHTTP(std::make_unique<GestionnaireHTTP>()),
       gestionnaireMemoire(std::make_unique<GestionnaireMemoire>()),
       gestionnaireOnglets(std::make_unique<GestionnaireOnglets>()),
-      moteurScript(std::make_unique<MoteurScript>())
+      moteurScript(std::make_unique<MoteurScript>()),
+      favoris(std::make_shared<nlohmann::json>())
 {
     gestionnaireFavoris = std::make_unique<GestionnaireFavoris>(favoris, [this]() { rafraichirBarreFavoris(); });
-    
     chargerConfiguration();
     construireInterface();
+    g_signal_connect(fenetre, "key-press-event", G_CALLBACK(on_key_press), this);
 }
 
 
@@ -285,7 +323,7 @@ Navigateur::~Navigateur() {
     }
 }
 
-nlohmann::json& Navigateur::getFavoris() {
+std::shared_ptr<nlohmann::json> Navigateur::getFavoris() {
     return favoris;
 }
 
@@ -319,15 +357,24 @@ void Navigateur::construireInterface() {
         }
     });
 
+    GtkWidget* boutonEtoile = moteurRendu->creerBouton("☆", G_CALLBACK(Navigateur::onBoutonFavorisClicked), this);
+    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonEtoile, FALSE, FALSE, 0);
+
     initialiserPopoverFavoris();
     gtk_widget_show_all(fenetre);
 }
+
 void Navigateur::ajouterBouton(GtkWidget* conteneur, const std::string& iconName, GCallback callback, gpointer data) {
     GtkWidget *bouton = moteurRendu->creerBouton(iconName, callback, data);
-    if (!gtk_widget_get_parent(bouton)) {  // Vérifie si le bouton est déjà ajouté
+    if (!gtk_widget_get_parent(bouton)) {  // Éviter les duplications
         gtk_box_pack_start(GTK_BOX(conteneur), bouton, FALSE, FALSE, 0);
     }
 }
+
+std::string Navigateur::getTitreActuel() const {
+    return moteurRendu->obtenirTitreActuel();
+}
+
 
 
 GtkWidget* obtenirDernierEnfant(GtkWidget* parent) {
@@ -363,28 +410,6 @@ std::string Navigateur::getURLActuelle() const {
     return moteurRendu->obtenirURLActuelle();
 }
 
-// void Navigateur::initialiserBarreFavoris() {
-//     if (barreFavoris) {
-//         gtk_widget_destroy(barreFavoris);
-//     }
-
-//     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    
-//     for (const auto& favori : favoris) {
-//         GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
-//         auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
-
-//         // Ajout du clic gauche pour ouvrir le favori
-//         g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
-
-//         // Ajout du signal clic droit pour afficher le menu contextuel
-//         g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(on_favoris_button_press), this);
-
-//         gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
-//     }
-//     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 5);
-//     gtk_widget_show_all(barreFavoris);
-// }
 
 void Navigateur::initialiserBarreFavoris() {
     if (barreFavoris) {
@@ -403,34 +428,6 @@ void Navigateur::initialiserBarreFavoris() {
         gtk_box_pack_start(GTK_BOX(barreFavoris), labelAucunFavori, FALSE, FALSE, 5);
     }
 
-    // for (const auto& favori : favoris) {
-    //     GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
-    //     auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
-    //     g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
-        
-    //     int largeurBouton = 50; // Largeur estimée de chaque bouton
-    //     if (largeurActuelle + largeurBouton > largeurDispo) {
-    //         // Ajouter un bouton pour afficher plus 
-    //         GtkWidget* boutonPlus = moteurRendu->creerBouton("...", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-    //             auto* navigateur = static_cast<Navigateur*>(user_data);
-    //             navigateur->afficherMenuFavoris();
-    //         }), this);
-    //         gtk_box_pack_start(GTK_BOX(barreFavoris), boutonPlus, FALSE, FALSE, 5);
-    //         break;
-    //     }
-
-    //     gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
-    //     largeurActuelle += largeurBouton;
-
-    //     // **Ajout du signal pour le menu contextuel (clic droit)**
-    //     g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(on_favoris_button_press), this);
-
-    //     // Ajout du signal de destruction pour libérer la mémoire en cas de suppression du bouton
-    //     g_signal_connect_data(boutonFavori, "destroy", G_CALLBACK(on_favori_destroy), data, nullptr, G_CONNECT_AFTER);
-
-    //     gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
-    // }
-
     for (const auto& favori : favoris) {
         GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
         auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
@@ -447,19 +444,12 @@ void Navigateur::initialiserBarreFavoris() {
         }
 
         if (!boutonAjoute) {
-            gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
+            if (gtk_widget_get_parent(boutonFavori) == nullptr) {
+                gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
+            }
             largeurActuelle += largeurBouton;
         }
     }
-
-    // // Ajout du bouton pour gérer les favoris
-    // GtkWidget *boutonGererFavoris = moteurRendu->creerBouton("list-add", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-    //     auto* navigateur = static_cast<Navigateur*>(user_data);
-    //     navigateur->afficherGestionnaireFavoris();
-    // }), this);
-
-    // gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 5);
-    // gtk_widget_show_all(barreFavoris);
 
     GtkWidget *boutonGererFavoris = moteurRendu->creerBouton("list-add", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
         auto* navigateur = static_cast<Navigateur*>(user_data);
@@ -472,7 +462,7 @@ void Navigateur::initialiserBarreFavoris() {
 
 void Navigateur::afficherMenuFavoris() {
     GtkWidget* menu = gtk_menu_new();
-    
+
     int largeurDispo = gtk_widget_get_allocated_width(conteneurPrincipal);
     int largeurActuelle = 0;
 
@@ -502,13 +492,52 @@ void Navigateur::afficherGestionnaireFavoris() {
 }
 
 
+// void Navigateur::rafraichirBarreFavoris() {
+//     gtk_widget_destroy(barreFavoris);
+//     initialiserBarreFavoris();
+// }
 void Navigateur::rafraichirBarreFavoris() {
-    gtk_widget_destroy(barreFavoris);
-    initialiserBarreFavoris();
+    if (GTK_IS_WIDGET(barreFavoris)) {
+        gtk_widget_destroy(barreFavoris);
+    }
+
+    barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+
+    if (favoris.empty()) {
+        GtkWidget *labelAucunFavori = gtk_label_new("Aucun favori");
+        gtk_box_pack_start(GTK_BOX(barreFavoris), labelAucunFavori, FALSE, FALSE, 5);
+    }
+
+    for (const auto& favori : favoris) {
+        GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
+        auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
+        g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
+        if (gtk_widget_get_parent(boutonFavori) == nullptr) {
+            gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
+        }
+    }
+
+    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 5);
+    gtk_widget_show_all(barreFavoris);
 }
 
+
+void Navigateur::mettreAJourBoutonEtoile() {
+    std::string urlActuelle = getURLActuelle();
+    bool estDejaFavori = std::any_of(
+        favoris.begin(), favoris.end(),
+        [&urlActuelle](const nlohmann::json& favori) { return favori["url"] == urlActuelle; }
+    );
+
+
+    const char* symbole = estDejaFavori ? "★" : "☆";
+    gtk_button_set_label(GTK_BUTTON(boutonEtoile), symbole);
+}
+
+
 void Navigateur::initialiserPopoverFavoris() {
-    popoverFavoris = gtk_popover_new(barreFavoris); // Attaché à la barre de favoris
+    //popoverFavoris = gtk_popover_new(barreFavoris); // Attaché à la barre de favoris
+    popoverFavoris = gtk_popover_new(barreNavigation); // Attaché à la barre
     GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
 
     // Champs de saisie
@@ -529,7 +558,7 @@ void Navigateur::initialiserPopoverFavoris() {
     
     // Ajouter le contenu au popover
     gtk_container_add(GTK_CONTAINER(popoverFavoris), box);
-
+    gtk_widget_show_all(popoverFavoris);
 }
 
 
@@ -665,8 +694,6 @@ void Navigateur::supprimerOnglet(GtkWidget *ongletWidget) {
     if (it != onglets.end()) {
         GtkWidget *hboxOnglet = it->second;
 
-        // Conversion explicite vers WebKitWebView*
-        // WebKitWebView *vueWeb = WEBKIT_WEB_VIEW(gtk_bin_get_child(GTK_BIN(hboxOnglet)));
         WebKitWebView* vueWeb = nullptr;  // Déclaration ici
 
         GList* enfants = gtk_container_get_children(GTK_CONTAINER(hboxOnglet));
@@ -713,28 +740,6 @@ void Navigateur::chargerURL(const std::string& url) {
     }
 
     // Mettre à jour le titre de l'onglet actif
-    // moteurRendu->connecterSignalPageChargee([this](const std::string &titre) {
-    //     if (!onglets.empty()) {
-    //         GtkWidget *hboxOnglet = onglets.back().second;
-    //         GtkWidget* labelTitre = obtenirPremierEnfant(hboxOnglet);
-    //         WebKitWebView* vueWeb = nullptr;  // Déclaration ici
-
-    //         GList* enfants = gtk_container_get_children(GTK_CONTAINER(hboxOnglet));
-    //         for (GList* iter = enfants; iter != nullptr; iter = iter->next) {
-    //             if (GTK_IS_LABEL(iter->data)) {
-    //                 gtk_label_set_text(GTK_LABEL(iter->data), titre.c_str());
-    //             }
-    //         }
-    //         g_list_free(enfants);
-
-    //         // if (GTK_IS_LABEL(labelTitre)) {
-    //         //     gtk_label_set_text(GTK_LABEL(labelTitre), titre.c_str());
-    //         // } else {
-    //         //     std::cerr << "Erreur : widget attendu est un GtkLabel, mais ce n'est pas le cas." << std::endl;
-    //         // }
-    //     }
-    // });
-        // Mettre à jour le titre de l'onglet actif
     moteurRendu->connecterSignalTitreChange([this](const std::string& titre) {
         if (!onglets.empty()) {
             GtkWidget* hboxOnglet = onglets.back().second;
@@ -793,7 +798,7 @@ void Navigateur::sauvegarderConfiguration() {
 }
 
 
-void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
+void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag = "tag") {
     // Vérifie si l'URL existe déjà
     for (const auto& favori : favoris) {
         if (favori["url"] == url) {
@@ -807,9 +812,26 @@ void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, c
     gestionnaireFavoris->sauvegarderModifications();
     rafraichirBarreFavoris();
 }
+
 void Navigateur::supprimerFavori(GtkWidget* widget) {
-    std::cerr << "Favori supprimé !" << std::endl;
-    // Implémente ta logique de suppression ici
+    if (!GTK_IS_WIDGET(widget)) {
+        std::cerr << "Erreur : Tentative de suppression d'un widget invalide." << std::endl;
+        return;
+    }
+
+    const gchar* nomFavori = gtk_button_get_label(GTK_BUTTON(widget));
+    for (auto it = favoris.begin(); it != favoris.end(); ++it) {
+        if ((*it)["name"] == nomFavori) {
+            favoris.erase(it);
+            std::cerr << "Favori supprimé : " << nomFavori << std::endl;
+            break;
+        }
+    }
+
+    if (GTK_IS_WIDGET(widget)) { // Protection supplémentaire
+        gtk_widget_destroy(widget);
+    }
+    rafraichirBarreFavoris();
 }
 
 
@@ -920,7 +942,9 @@ void Navigateur::onRafraichirPageWrapper(GtkButton *button, gpointer user_data) 
     static_cast<Navigateur*>(user_data)->onRafraichirPage(button, static_cast<Navigateur*>(user_data));
 }
 void Navigateur::creerMenuContextuel(GtkWidget* bouton) {
-    GtkWidget *menu = gtk_menu_new();
+    if (!favori) {
+        menuFavoris = gtk_menu_new();
+    }
 
     // Option "Ajouter aux Favoris"
     GtkWidget *ajouterItem = gtk_menu_item_new_with_label("Ajouter aux Favori");
@@ -932,9 +956,17 @@ void Navigateur::creerMenuContextuel(GtkWidget* bouton) {
     g_signal_connect(nouvelOngletItem, "activate", G_CALLBACK(on_ajouter_onglet), this);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), nouvelOngletItem);
 
+    auto* data = new std::pair<Navigateur*, GtkWidget*>(this, bouton);
     // Option "Supprimer le favori" (Ajout si applicable)
     GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer le favori");
-    g_signal_connect(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori), this);
+    // g_signal_connect(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori), this);
+    // g_signal_connect_data(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori),
+    //                   new std::pair<Navigateur*, GtkWidget*>(navigateur, widget),
+    //                   [](gpointer user_data) { delete static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data); },
+    //                   G_CONNECT_AFTER);
+    g_signal_connect_data(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori),
+                      data, delete_user_data, G_CONNECT_AFTER);
+
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
 
     gtk_widget_show_all(menu);  // Ajout avant l'ouverture du menu
@@ -954,17 +986,28 @@ void Navigateur::onBoutonFavorisClicked(GtkButton* button, gpointer user_data) {
     bool estDejaFavori = std::any_of(
         navigateur->getFavoris().begin(),
         navigateur->getFavoris().end(),
-        [&urlActuelle](const nlohmann::json& favori) {
-            return favori.contains("url") && favori["url"] == urlActuelle;
-        }
+        // [&urlActuelle](const nlohmann::json& favori) {
+        //     return favori.contains("url") && favori["url"] == urlActuelle;
+        // }
+        [&urlActuelle](const nlohmann::json& favori) { return favori["url"] == urlActuelle; }
     );
 
     // Si l'URL est déjà un favori, afficher un message et ne pas ouvrir le popover
     if (estDejaFavori) {
         std::cerr << "URL déjà ajoutée aux favoris : " << urlActuelle << std::endl;
         gtk_button_set_label(button, "*"); // Marquer l'URL comme déjà en favoris
+        navigateur->afficherGestionnaireFavoris(); // Permet la modification
     } else {
         // Sinon, ouvrir le popover pour permettre l'ajout
+        gtk_button_set_label(button, "☆");  // Étoile vide
         gtk_popover_popup(GTK_POPOVER(navigateur->popoverFavoris));
     }
+}
+
+void Navigateur::on_supprimer_favori(GtkWidget* widget, gpointer user_data) {
+    auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
+    if (data && data->first) {
+        data->first->supprimerFavori(data->second);
+    }
+    delete data;
 }

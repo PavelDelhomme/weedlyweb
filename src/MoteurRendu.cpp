@@ -5,18 +5,21 @@
 // Fonction statique pour gérer "notify::title"
 static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer user_data) {
     auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+    if (vueWeb && WEBKIT_IS_WEB_VIEW(vueWeb)) {
+        if (!data || !data->first || !WEBKIT_IS_WEB_VIEW(data->first)) {
+            std::cerr << "Erreur : WebView invalide dans on_notify_title." << std::endl;
+            return;
+        }
 
-    if (!data || !data->first || !WEBKIT_IS_WEB_VIEW(data->first)) {
-        std::cerr << "Erreur : WebView invalide dans on_notify_title." << std::endl;
-        return;
+        const gchar* title = webkit_web_view_get_title(data->first);
+        if (title) {
+            data->second(std::string(title));
+        }
+        // Libération de la mémoire si le signal est unique
+        delete data;
+    } else {
+        std::cerr << "Erreur : WebVeiw non initialisé." << std::endl;
     }
-
-    const gchar* title = webkit_web_view_get_title(data->first);
-    if (title) {
-        data->second(std::string(title));
-    }
-    // Libération de la mémoire si le signal est unique
-    delete data;
 }
 
 
@@ -98,6 +101,11 @@ void MoteurRendu::afficherPage(const std::string& url) {
 std::string MoteurRendu::obtenirURLActuelle() const {
     const gchar* uri = webkit_web_view_get_uri(vueWeb);
     return uri ? std::string(uri) : "";
+}
+
+std::string MoteurRendu::obtenirTitreActuel() const {
+    const gchar* title = webkit_web_view_get_title(vueWeb);
+    return title ? std::string(title) : "Titre inconnu";
 }
 
 
@@ -227,7 +235,7 @@ void MoteurRendu::nettoyerSignaux() {
     if (vueWeb) {
         g_signal_handlers_disconnect_by_data(vueWeb, this);
         // Libération manuelle des données utilisées dans les signaux
-        delete &callbackTitreChange;
+        callbackTitreChange = nullptr;
     }
 }
 

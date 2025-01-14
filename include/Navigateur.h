@@ -59,6 +59,11 @@ public:
     void onCliqueFavori(GtkButton*, Navigateur*, const std::string&);
     void executerScriptDansOngletActif(const std::string& script);
 
+    void mettreAJourBoutonEtoile();
+
+    static void on_supprimer_favori(GtkWidget*, gpointer user_data);
+
+
     std::string getURLActuelle() const;
 
     // Méthodes internes liés à GTK
@@ -76,6 +81,8 @@ public:
     static void onAjouterFavori(GtkButton*, Navigateur*);
     static void onBoutonFavorisClicked(GtkButton* button, gpointer user_data);
 
+    static void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data);
+    static void on_modifier_favori(GtkWidget*, gpointer user_data);
 
 private:
     // Méthodes internes
@@ -109,6 +116,8 @@ private:
     GtkWidget *barreURL = nullptr;
     GtkWidget *barreNavigation = nullptr;
     GtkWidget *barreOnglets = nullptr;
+    GtkWidget* boutonEtoile = nullptr;
+
 
     // Favoris
     GtkWidget *barreFavoris = nullptr;
@@ -120,7 +129,8 @@ private:
     std::vector<std::string> historique;
 
     std::string homepage;
-    nlohmann::json favoris; // Favoris stockés sous forme de JSON
+    // nlohmann::json favoris; // Favoris stockés sous forme de JSON
+    std::shared_ptr<nlohmann::json> favoris = std::make_shared<nlohmann::json>();
 };
 
 #endif
