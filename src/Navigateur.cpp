@@ -55,7 +55,10 @@ static gboolean on_favori_button_press(GtkWidget *widget, GdkEventButton *event,
 
         const gchar* url = gtk_button_get_label(GTK_BUTTON(widget));
 
-        GtkWidget *menu = gtk_menu_new();
+        // GtkWidget *menu = gtk_menu_new();
+        if (!menuFavoris) {
+            menuFavoris = gtk_menu_new();
+        }
 
         // **Ouvrir dans un nouvel onglet**
         GtkWidget *ouvrirNouvelOnglet = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
@@ -222,8 +225,23 @@ static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
     
     if (event->type == GDK_KEY_PRESS) {
         GdkEventKey* key_event = (GdkEventKey*) event;
+
+        // Gestion du raccourci CTRL + T pour ouvrir un nouvel onglet
         if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_t) {
             navigateur->ajouterNouvelOnglet(navigateur->getHomepage());
+        }
+
+        // Gestion du raccourci CTRL + D pour ajouter un favori
+        if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_d) {
+            std::string url = navigateur->getURLActuelle();
+            std::string titre = navigateur->getTitreActuel();
+            
+            // Pré-remplir les champs du formulaire
+            gtk_entry_set_text(GTK_ENTRY(navigateur->entryNomFavori), titre.c_str());
+            gtk_entry_set_text(GTK_ENTRY(navigateur->entryURLFavori), url.c_str());
+
+            // Afficher le formulaire d'ajout de favori (popover)
+            gtk_popover_popup(GTK_POPOVER(navigateur->popoverFavoris));
         }
     }
     return FALSE;
@@ -241,19 +259,19 @@ static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event
             GtkWidget *menu = gtk_menu_new();
         }
         // **Option 1 : Ouvrir dans un nouvel onglet**
-        // auto* data = new std::pair<Navigateur*, std::string>(navigateur, navigateur->getURLActuelle());
         auto data = std::make_unique<std::pair<Navigateur*, std::string>>(navigateur, navigateur->getURLActuelle());
         GtkWidget *ouvrirNouvelOnglet = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
-        g_signal_connect_data(
-            ouvrirNouvelOnglet, 
-            "activate", 
-            G_CALLBACK(on_ouvrir_nouvel_onglet_safe), 
-            data, 
-            (GClosureNotify)+[](gpointer user_data, GClosure*) { 
-                delete static_cast<std::pair<Navigateur*, std::string>*>(user_data); 
-            }, 
-            G_CONNECT_AFTER
-        );
+        g_signal_connect_data(ouvrirNouvelOnglet, "activate", G_CALLBACK(on_ouvrir_nouvel_onglet_safe), data.release(), delete_user_data, G_CONNECT_AFTER);
+        // g_signal_connect_data(
+        //     ouvrirNouvelOnglet, 
+        //     "activate", 
+        //     G_CALLBACK(on_ouvrir_nouvel_onglet_safe), 
+        //     data, 
+        //     (GClosureNotify)+[](gpointer user_data, GClosure*) { 
+        //         delete static_cast<std::pair<Navigateur*, std::string>*>(user_data); 
+        //     }, 
+        //     G_CONNECT_AFTER
+        // );
 
    
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), ouvrirNouvelOnglet);
@@ -429,6 +447,15 @@ void Navigateur::initialiserBarreFavoris() {
     }
 
     for (const auto& favori : favoris) {
+        if (favori["url"] == url) {
+            std::cerr << "Favori déjà existant : " << url << std::endl;
+            return;
+        }
+        if (!favoris) {
+            std::cerr << "Erreur : Liste de favoris non initialisée." << std::endl;
+            return;
+        }
+
         GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
         auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
         g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);

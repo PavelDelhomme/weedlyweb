@@ -4,22 +4,32 @@
 
 // Fonction statique pour gérer "notify::title"
 static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer user_data) {
+    //auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
+    //auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
     auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-    if (vueWeb && WEBKIT_IS_WEB_VIEW(vueWeb)) {
-        if (!data || !data->first || !WEBKIT_IS_WEB_VIEW(data->first)) {
-            std::cerr << "Erreur : WebView invalide dans on_notify_title." << std::endl;
-            return;
-        }
-
-        const gchar* title = webkit_web_view_get_title(data->first);
+    if (data.first && WEBKIT_IS_WEB_VIEW(data.first)) {
+        const gchar* title = webkit_web_view_get_title(data.first);
         if (title) {
-            data->second(std::string(title));
+            data.second(std::string(title));
         }
-        // Libération de la mémoire si le signal est unique
-        delete data;
-    } else {
-        std::cerr << "Erreur : WebVeiw non initialisé." << std::endl;
     }
+    // if (vueWeb && WEBKIT_IS_WEB_VIEW(vueWeb)) {
+    //     if (!data || !data->first || !WEBKIT_IS_WEB_VIEW(data->first)) {
+    //         std::cerr << "Erreur : WebView invalide dans on_notify_title." << std::endl;
+    //         return;
+    //     }
+
+    //     const gchar* title = webkit_web_view_get_title(data->first);
+    //     if (title) {
+    //         data->second(std::string(title));
+    //     }
+    //     g_signal_connect(vueWeb, "notify::title", G_CALLBACK(on_notify_title), data.get());
+
+    //     // Libération de la mémoire si le signal est unique
+    //     //delete data;
+    // } else {
+    //     std::cerr << "Erreur : WebVeiw non initialisé." << std::endl;
+    // }
 }
 
 
@@ -164,18 +174,29 @@ void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::strin
 void MoteurRendu::connecterSignalChargementComplet(std::function<void(const std::string&)> callback) {
     if (!vueWeb) return;
 
-    auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
+    // auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
 
+    // g_signal_connect_data(
+    //     vueWeb,
+    //     "load-changed",
+    //     G_CALLBACK(on_load_changed),
+    //     data,
+    //     [](gpointer user_data, GClosure*) { 
+    //         delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); 
+    //     },
+    //     G_CONNECT_AFTER
+    // );
+    auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
     g_signal_connect_data(
-        vueWeb,
-        "load-changed",
-        G_CALLBACK(on_load_changed),
-        data,
+        vueWeb, "notify::title",
+        G_CALLBACK(on_notify_title),
+        data.get(),
         [](gpointer user_data, GClosure*) { 
-            delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); 
+            delete static_cast<std::shared_ptr<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>*>(user_data);
         },
         G_CONNECT_AFTER
     );
+
 }
 
 // Mise a jour de la connexion du signal de favicon
