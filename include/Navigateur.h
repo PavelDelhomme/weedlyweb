@@ -54,7 +54,8 @@ public:
     void configurerRaccourcisClavier();
     void creerMenuContextuel(GtkWidget* bouton);
 
-
+    void afficherMenuFavoris();
+    void supprimerFavori(GtkWidget* widget);
     void onCliqueFavori(GtkButton*, Navigateur*, const std::string&);
     void executerScriptDansOngletActif(const std::string& script);
 

@@ -13,14 +13,15 @@ public:
 
     void connecterSignalURLChangee(std::function<void(const std::string&)> callback);
     void connecterSignalPageChargee(std::function<void(const std::string&)> callback);
+    void connecterSignalFaviconChange(std::function<void(cairo_surface_t*)> callback);
+    void connecterSignalChargementComplet(std::function<void(const std::string&)> callback);
+    void connecterSignalTitreChange(std::function<void(const std::string&)> callback);
     void initialiserRendu(GtkWidget *conteneurPrincipal);
     void afficherPage(const std::string& url);
     void rafraichirPage();
     void naviguerRetour();
     void naviguerSuivant();
     void nettoyerSignaux();
-    void connecterSignalFaviconChange(std::function<void(cairo_surface_t*)> callback);
-    void connecterSignalChargementComplet(std::function<void(const std::string&)> callback);
     static void onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer user_data);
     
     GtkWidget* creerBouton(const std::string& label, GCallback callback, gpointer data);
@@ -30,6 +31,7 @@ public:
     
 private:
     WebKitWebView *vueWeb;
+    std::function<void(const std::string&)> callbackTitreChange;
 };
 
 #endif

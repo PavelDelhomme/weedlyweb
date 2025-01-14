@@ -15,6 +15,8 @@ static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer us
     if (title) {
         data->second(std::string(title));
     }
+    // Libération de la mémoire si le signal est unique
+    delete data;
 }
 
 
@@ -224,5 +226,18 @@ void MoteurRendu::onNotifyUri(GObject *object, GParamSpec *param_spec, gpointer 
 void MoteurRendu::nettoyerSignaux() {
     if (vueWeb) {
         g_signal_handlers_disconnect_by_data(vueWeb, this);
+        // Libération manuelle des données utilisées dans les signaux
+        delete &callbackTitreChange;
     }
+}
+
+
+void MoteurRendu::connecterSignalTitreChange(std::function<void(const std::string&)> callback) {
+    callbackTitreChange = callback;
+
+    // Créer un pointeur persistant pour stocker les données
+    auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callbackTitreChange);
+    
+    // Utilisation correcte de `g_signal_connect`
+    g_signal_connect(vueWeb, "notify::title", G_CALLBACK(on_notify_title), data);
 }
