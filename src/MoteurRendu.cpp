@@ -4,13 +4,12 @@
 
 // Fonction statique pour gérer "notify::title"
 static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer user_data) {
-    //auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-    //auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
     auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
     if (data->first && WEBKIT_IS_WEB_VIEW(data->first)) {
-    const gchar* title = webkit_web_view_get_title(data->first);
-    if (title) {
-        data->second(std::string(title));
+        const gchar* title = webkit_web_view_get_title(data->first);
+        if (title) {
+            data->second(std::string(title));
+        }
     }
 }
 

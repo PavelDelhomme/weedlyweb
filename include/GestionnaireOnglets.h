@@ -6,6 +6,11 @@
 #include <unordered_map>
 #include <gtk/gtk.h>
 
+struct Onglet {
+    std::string url;
+    std::string etat; // "actif" ou "hiberné"
+};
+
 class GestionnaireOnglets {
 public:
     GestionnaireOnglets();

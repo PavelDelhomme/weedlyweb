@@ -28,7 +28,8 @@ public:
     GtkWidget* creerChampTexte(GCallback callback, gpointer data);
 
     std::string obtenirURLActuelle() const;
-    
+    std::string obtenirTitreActuel() const;
+
 private:
     WebKitWebView *vueWeb;
     std::function<void(const std::string&)> callbackTitreChange;
