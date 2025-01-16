@@ -401,60 +401,95 @@ std::string Navigateur::getURLActuelle() const {
 }
 
 
+// void Navigateur::initialiserBarreFavoris() {
+//     if (barreFavoris) {
+//         gtk_widget_destroy(barreFavoris); // Supprimer l'ancienne barre pour éviter les doublons
+//     }
+
+//     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+
+//     int largeurDispo = gtk_widget_get_allocated_width(conteneurPrincipal);
+//     int largeurActuelle = 0;
+//     bool boutonAjoute = false;
+
+//     // Toujours afficher la barre, même si elle est vide
+//     if (favoris.empty()) {
+//         GtkWidget *labelAucunFavori = gtk_label_new("Aucun favori");
+//         gtk_box_pack_start(GTK_BOX(barreFavoris), labelAucunFavori, FALSE, FALSE, 5);
+//     }
+
+//     for (const auto& favori : *favoris) {
+//         if (favori["url"] == url) {
+//             std::cerr << "Favori déjà existant : " << url << std::endl;
+//             return;
+//         }
+//         if (!favoris) {
+//             std::cerr << "Erreur : Liste de favoris non initialisée." << std::endl;
+//             return;
+//         }
+
+//         GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
+//         auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
+//         g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
+
+//         int largeurBouton = 80;  // Ajuster dynamiquement en fonction de la taille réelle
+//         if (largeurActuelle + largeurBouton > largeurDispo && !boutonAjoute) {
+//             GtkWidget* boutonPlus = moteurRendu->creerBouton("...", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+//                 auto* navigateur = static_cast<Navigateur*>(user_data);
+//                 navigateur->afficherMenuFavoris();
+//             }), this);
+//             gtk_box_pack_start(GTK_BOX(barreFavoris), boutonPlus, FALSE, FALSE, 5);
+//             boutonAjoute = true;
+//         }
+
+//         if (!boutonAjoute) {
+//             if (gtk_widget_get_parent(boutonFavori) == nullptr) {
+//                 gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
+//             }
+//             largeurActuelle += largeurBouton;
+//         }
+//     }
+
+//     GtkWidget *boutonGererFavoris = moteurRendu->creerBouton("list-add", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+//         auto* navigateur = static_cast<Navigateur*>(user_data);
+//         navigateur->afficherGestionnaireFavoris();
+//     }), this);
+//     gtk_box_pack_start(GTK_BOX(barreFavoris), boutonGererFavoris, FALSE, FALSE, 5);
+//     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 5);
+//     gtk_widget_show_all(barreFavoris);
+// }
 void Navigateur::initialiserBarreFavoris() {
     if (barreFavoris) {
-        gtk_widget_destroy(barreFavoris); // Supprimer l'ancienne barre pour éviter les doublons
+        gtk_widget_destroy(barreFavoris); // Nettoyage de l'ancienne barre
     }
 
     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-
     int largeurDispo = gtk_widget_get_allocated_width(conteneurPrincipal);
     int largeurActuelle = 0;
     bool boutonAjoute = false;
 
-    // Toujours afficher la barre, même si elle est vide
-    if (favoris.empty()) {
-        GtkWidget *labelAucunFavori = gtk_label_new("Aucun favori");
-        gtk_box_pack_start(GTK_BOX(barreFavoris), labelAucunFavori, FALSE, FALSE, 5);
-    }
-
     for (const auto& favori : *favoris) {
-        if (favori["url"] == url) {
-            std::cerr << "Favori déjà existant : " << url << std::endl;
-            return;
-        }
-        if (!favoris) {
-            std::cerr << "Erreur : Liste de favoris non initialisée." << std::endl;
-            return;
-        }
-
-        GtkWidget *boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
+        GtkWidget* boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
         auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
         g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
 
-        int largeurBouton = 80;  // Ajuster dynamiquement en fonction de la taille réelle
-        if (largeurActuelle + largeurBouton > largeurDispo && !boutonAjoute) {
-            GtkWidget* boutonPlus = moteurRendu->creerBouton("...", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-                auto* navigateur = static_cast<Navigateur*>(user_data);
-                navigateur->afficherMenuFavoris();
-            }), this);
-            gtk_box_pack_start(GTK_BOX(barreFavoris), boutonPlus, FALSE, FALSE, 5);
-            boutonAjoute = true;
-        }
-
-        if (!boutonAjoute) {
-            if (gtk_widget_get_parent(boutonFavori) == nullptr) {
-                gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
+        int largeurBouton = 80; // Largeur estimée d'un bouton
+        if (largeurActuelle + largeurBouton > largeurDispo) {
+            // Ajouter le bouton ">>" pour les favoris restants
+            if (!boutonAjoute) {
+                GtkWidget* boutonPlus = moteurRendu->creerBouton(">>", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+                    auto* navigateur = static_cast<Navigateur*>(user_data);
+                    navigateur->afficherMenuFavorisRestants();
+                }), this);
+                gtk_box_pack_start(GTK_BOX(barreFavoris), boutonPlus, FALSE, FALSE, 5);
+                boutonAjoute = true;
             }
+        } else {
+            gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
             largeurActuelle += largeurBouton;
         }
     }
 
-    GtkWidget *boutonGererFavoris = moteurRendu->creerBouton("list-add", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-        auto* navigateur = static_cast<Navigateur*>(user_data);
-        navigateur->afficherGestionnaireFavoris();
-    }), this);
-    gtk_box_pack_start(GTK_BOX(barreFavoris), boutonGererFavoris, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 5);
     gtk_widget_show_all(barreFavoris);
 }
@@ -468,6 +503,26 @@ void Navigateur::afficherMenuFavoris() {
 
     for (const auto& favori : *favoris) {
         int largeurBouton = 80; // Estimation
+        if (largeurActuelle + largeurBouton > largeurDispo) {
+            GtkWidget* item = gtk_menu_item_new_with_label(favori["name"].get<std::string>().c_str());
+            auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
+            g_signal_connect(item, "activate", G_CALLBACK(on_menu_item_activate), data);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+        }
+        largeurActuelle += largeurBouton;
+    }
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_widget(GTK_MENU(menu), barreFavoris, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
+}
+
+void Navigateur::afficherMenuFavorisRestants() {
+    GtkWidget* menu = gtk_menu_new();
+    int largeurDispo = gtk_widget_get_allocated_width(conteneurPrincipal);
+    int largeurActuelle = 0;
+
+    for (const auto& favori : *favoris) {
+        int largeurBouton = 80; // Estimation de la largeur d'un bouton
         if (largeurActuelle + largeurBouton > largeurDispo) {
             GtkWidget* item = gtk_menu_item_new_with_label(favori["name"].get<std::string>().c_str());
             auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
