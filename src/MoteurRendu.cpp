@@ -7,29 +7,11 @@ static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer us
     //auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
     //auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
     auto* data = static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data);
-    if (data.first && WEBKIT_IS_WEB_VIEW(data.first)) {
-        const gchar* title = webkit_web_view_get_title(data.first);
-        if (title) {
-            data.second(std::string(title));
-        }
+    if (data->first && WEBKIT_IS_WEB_VIEW(data->first)) {
+    const gchar* title = webkit_web_view_get_title(data->first);
+    if (title) {
+        data->second(std::string(title));
     }
-    // if (vueWeb && WEBKIT_IS_WEB_VIEW(vueWeb)) {
-    //     if (!data || !data->first || !WEBKIT_IS_WEB_VIEW(data->first)) {
-    //         std::cerr << "Erreur : WebView invalide dans on_notify_title." << std::endl;
-    //         return;
-    //     }
-
-    //     const gchar* title = webkit_web_view_get_title(data->first);
-    //     if (title) {
-    //         data->second(std::string(title));
-    //     }
-    //     g_signal_connect(vueWeb, "notify::title", G_CALLBACK(on_notify_title), data.get());
-
-    //     // Libération de la mémoire si le signal est unique
-    //     //delete data;
-    // } else {
-    //     std::cerr << "Erreur : WebVeiw non initialisé." << std::endl;
-    // }
 }
 
 
@@ -72,13 +54,13 @@ static void on_load_changed(WebKitWebView* web_view, WebKitLoadEvent load_event,
 }
 
 
-MoteurRendu::MoteurRendu() {
-    vueWeb = WEBKIT_WEB_VIEW(webkit_web_view_new());
-    if (!vueWeb) {    
+MoteurRendu::MoteurRendu()
+    : vueWeb(WEBKIT_WEB_VIEW(webkit_web_view_new())) {
+    if (!vueWeb) {
         std::cerr << "Erreur : WebView non initialisé." << std::endl;
-        return;
     }
 }
+
 
 MoteurRendu::~MoteurRendu() {
     nettoyerSignaux();
@@ -174,18 +156,6 @@ void MoteurRendu::connecterSignalPageChargee(std::function<void(const std::strin
 void MoteurRendu::connecterSignalChargementComplet(std::function<void(const std::string&)> callback) {
     if (!vueWeb) return;
 
-    // auto* data = new std::pair<WebKitWebView*, std::function<void(const std::string&)>>(vueWeb, callback);
-
-    // g_signal_connect_data(
-    //     vueWeb,
-    //     "load-changed",
-    //     G_CALLBACK(on_load_changed),
-    //     data,
-    //     [](gpointer user_data, GClosure*) { 
-    //         delete static_cast<std::pair<WebKitWebView*, std::function<void(const std::string&)>>*>(user_data); 
-    //     },
-    //     G_CONNECT_AFTER
-    // );
     auto data = std::make_shared<std::pair<WebKitWebView*, std::function<void(const std::string&)>>>(vueWeb, callback);
     g_signal_connect_data(
         vueWeb, "notify::title",

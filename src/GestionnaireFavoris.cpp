@@ -1,4 +1,5 @@
 #include "GestionnaireFavoris.h"
+#include "Utils.h"  // Ajout de l'import
 #include "GestionnaireFichiers.h"
 #include <iostream>
 #include <algorithm>
@@ -108,19 +109,33 @@ void GestionnaireFavoris::afficherListeFavoris() {
     g_object_unref(store); // Libérer correctement la mémoire
 }
 
-void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
-    for (const auto& favori : *favoris) {
-        if (favori["url"] == url) {
-            std::cerr << "Favori déjà existant : " << url << std::endl;
-            return;
-        }
-    }
-    favoris->push_back({{"name", nom}, {"url", url}, {"tag", tag}});
-    gestionnaireFavoris->sauvegarderModifications();
-    rafraichirBarreFavoris();
-    callbackRafraichir();
-    rafraichirInterface();
-}
+// void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
+//     for (const auto& favori : *favoris) {
+//         if (favori["url"] == url) {
+//             std::cerr << "Favori déjà existant : " << url << std::endl;
+//             return;
+//         }
+//     }
+//     favoris->push_back({{"name", nom}, {"url", url}, {"tag", tag}});
+//     gestionnaireFavoris->sauvegarderModifications();
+//     rafraichirBarreFavoris();
+//     callbackRafraichir();
+//     rafraichirInterface();
+// }
+
+
+// void GestionnaireFavoris::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
+//     if (verifierDoublonFavori(favoris, url)) {
+//         afficherMessageConsole("Impossible d'ajouter, le favori existe déjà.");
+//         return;
+//     }
+
+//     favoris->push_back({{"name", nom}, {"url", url}, {"tag", tag}});
+//     gestionnaireFavoris->sauvegarderModifications();
+//     callbackRafraichir();
+//     rafraichirInterface();
+// }
+// Ajout d'un favori (évite les duplications)
 
 void GestionnaireFavoris::ajouterDossier(const std::string& nom) {
     favoris.push_back({{"name", nom}, {"type", "folder"}, {"children", nlohmann::json::array()}});
@@ -128,18 +143,51 @@ void GestionnaireFavoris::ajouterDossier(const std::string& nom) {
     rafraichirInterface();
 }
 
-void GestionnaireFavoris::supprimerFavori(const std::string& nomFavori) {
-    auto it = std::remove_if(favoris.begin(), favoris.end(), [&](const nlohmann::json& favori) {
-        return favori.contains("name") && favori["name"] == nomFavori;
-    });
+// void GestionnaireFavoris::supprimerFavori(const std::string& nomFavori) {
+//     auto it = std::remove_if(favoris.begin(), favoris.end(), [&](const nlohmann::json& favori) {
+//         return favori.contains("name") && favori["name"] == nomFavori;
+//     });
 
-    if (it != favoris.end()) {
-        favoris.erase(it, favoris.end());
-        callbackRafraichir();
+//     if (it != favoris.end()) {
+//         favoris.erase(it, favoris.end());
+//         callbackRafraichir();
+//         sauvegarderModifications();
+//         rafraichirInterface();
+//     } else {
+//         std::cerr << "Favori introuvable : " << nomFavori << std::endl;
+//     }
+// }
+void GestionnaireFavoris::ajouterFavori(const std::string& nom, const std::string& tag) {
+    if (verifierDoublonFavori(favoris, url)) {
+        afficherMessageConsole("Le favori existe déjà"),
+            // favoris->push_back({{"name", nom}, {"url", url}, {"tag", tag}});
+        return
+    }
+    favoris->push_back({{"name", nom}, {"url", url}, {"tag", tag}});
+    sauvegarderModifications();
+    callbackRafraichir();
+    rafraichirInterface();
+}
+
+// void GestionnaireFavoris::supprimerFavori(const std::string& nomFavori) {
+//     auto it = std::remove_if(favoris.begin(), favoris.end(), [&](const nlohmann::json& favori) {
+//         return favori.contains("name") && favori["name"] == nomFavori;
+//     });
+
+//     if (it != favoris.end()) {
+//         favoris.erase(it, favoris.end());
+//         sauvegarderModifications();
+//         rafraichirInterface();
+//     }
+// }
+
+
+void GestionnaireFavoris::supprimerFavori(const std::string& nomFavori) {
+    if (supprimerFavoriDeListe(favoris, nomFavori)) {
         sauvegarderModifications();
         rafraichirInterface();
     } else {
-        std::cerr << "Favori introuvable : " << nomFavori << std::endl;
+        afficherMessageConsole("Favori non trouvé.");
     }
 }
 

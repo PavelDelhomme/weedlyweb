@@ -29,6 +29,10 @@ public:
     GtkWidget* getEntryURLFavori() const { return entryURLFavori; }
     GtkWidget* getPopoverFavoris() const { return popoverFavoris; }
     GtkWidget* getEntryNomFavori() const { return entryNomFavori; }
+    GtkWidget* getEntryNomFavori() { return entryNomFavori; }
+    GtkWidget* getEntryURLFavori() { return entryURLFavori; }
+    GtkWidget* getPopoverFavoris() { return popoverFavoris; }
+
 
 
     // Gestion des onglets

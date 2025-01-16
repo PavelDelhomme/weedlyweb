@@ -33,6 +33,7 @@ set(SOURCES
     src/GestionnaireFichiers.cpp
     src/GestionnaireFavoris.cpp
     src/GestionnaireOnglets.cpp
+    src/Utils.cpp
 )
 
 set(HEADERS
@@ -44,6 +45,7 @@ set(HEADERS
     include/GestionnaireFichiers.h
     include/MoteurScript.h
     include/GestionnaireOnglets.h
+    include/Utils.h
 )
 
 # Créer l'exécutable

@@ -8,7 +8,8 @@
 
 class GestionnaireFavoris {
 public:
-    GestionnaireFavoris(nlohmann::json& favoris, std::function<void()> callbackRafraichir);
+    // GestionnaireFavoris(nlohmann::json& favoris, std::function<void()> callbackRafraichir);
+    GestionnaireFavoris(std::shared_ptr<nlohmann::json> favoris, std::function<void()> callbackRafraichir);
     ~GestionnaireFavoris();
     void creerInterface();
     void afficherListeFavoris();
@@ -26,7 +27,8 @@ public:
     GtkWidget* getFenetre() const { return fenetre; }
     
 private:
-    nlohmann::json& favoris;
+    // nlohmann::json& favoris;
+    std::shared_ptr<nlohmann::json> favoris;
     std::function<void()> callbackRafraichir;
     GtkWidget* fenetre;
     GtkWidget* listeFavoris;
