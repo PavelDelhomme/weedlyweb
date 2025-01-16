@@ -27,6 +27,10 @@ public:
     void chargerStyles();
 
     // Gestion des onglets
+    GestionnaireOnglets* getGestionnaireOnglets() {
+       return gestionnaireOnglets.get();
+    }
+    void changerGroupeOnglets(const std::string& nomGroupe);
     void ajouterNouvelOnglet(const std::string &url = "");
     void supprimerOnglet(GtkWidget* ongletWidget);
     void changerOngletActif(GtkWidget* ongletWidget);
@@ -44,12 +48,24 @@ public:
     void chargerURL(const std::string& url);
     std::string getURLActuelle() const;
     std::string getTitreActuel() const;
-
     
+    // Méthodes internes liés à GTK
+    static void onNaviguerRetourWrapper(GtkButton *button, gpointer user_data);
+    static void onNaviguerSuivantWrapper(GtkButton *button, gpointer user_data);
+    static void onRafraichirPageWrapper(GtkButton *button, gpointer user_data);
+    static void onBarreURLActivate(GtkEntry *entry, gpointer user_data);
+    void onNaviguerRetour(GtkButton *button, Navigateur* navigateur);
+    void onNaviguerSuivant(GtkButton *button, Navigateur* navigateur);
+    void onRafraichirPage(GtkButton * button, Navigateur* navigateur)
+    void onAllerAccueil(GtkButton * button, Navigateur* navigateur)
+
     // Getters/Setters
     std::shared_ptr<nlohmann::json> getFavoris();
     std::string getHomepage() const { return homepage; }
     GtkWidget* getEntryNomFavori() const { return entryNomFavori; }
+
+    // Interface utilisateur
+    void fermerApplication();
 
 
 private:
@@ -70,6 +86,7 @@ private:
     std::unique_ptr<GestionnaireOnglets> gestionnaireOnglets;
 
     // Données
+    std::vector<std::string> historique;
     std::vector<std::pair<std::string, GtkWidget*>> onglets;
     std::shared_ptr<nlohmann::json> favoris;
     std::string homepage;

@@ -15,6 +15,7 @@ public:
     void afficherListeFavoris();
     void ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag);
     void supprimerFavori(const std::string& nomFavori);
+    bool supprimerFavoriDeListe(const std::string& nomFavori);
     void modifierFavori(const std::string& nomFavori, const std::string& nouvelURL);
     void creerMenuContextuelFavori(GtkWidget* bouton, const std::string& nomFavori);
     void sauvegarderModifications();

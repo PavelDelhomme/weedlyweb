@@ -1,5 +1,6 @@
 #include "Navigateur.h"
 #include "GestionnaireFichiers.h"
+#include "GestionnaireMemoire.h"
 #include "GestionnaireFavoris.h"
 #include <iostream>
 #include <filesystem>
