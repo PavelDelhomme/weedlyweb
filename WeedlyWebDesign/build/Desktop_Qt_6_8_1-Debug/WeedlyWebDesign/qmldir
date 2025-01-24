@@ -1,0 +1,5 @@
+module WeedlyWebDesign
+typeinfo appWeedlyWebDesign.qmltypes
+prefer :/qt/qml/WeedlyWebDesign/
+Main 1.0 Main.qml
+

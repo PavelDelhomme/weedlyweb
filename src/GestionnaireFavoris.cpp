@@ -118,17 +118,6 @@ void GestionnaireFavoris::ajouterDossier(const std::string& nom) {
     rafraichirInterface();
 }
 
-// void GestionnaireFavoris::ajouterFavori(const std::string& nom, const std::string& tag) {
-//     if (verifierDoublonFavori(favoris, url)) {
-//         afficherMessageConsole("Le favori existe déjà"),
-//             // favoris->push_back({{"name", nom}, {"url", url}, {"tag", tag}});
-//         return
-//     }
-//     favoris->push_back({{"name", nom}, {"url", url}, {"tag", tag}});
-//     sauvegarderModifications();
-//     callbackRafraichir();
-//     rafraichirInterface();
-// }
 void GestionnaireFavoris::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
     // Vérifie si un favori avec le même nom ou la même URL existe déjà
     auto doublon = std::find_if(favoris->begin(), favoris->end(), [&nom, &url](const nlohmann::json& favori) {
@@ -151,13 +140,17 @@ void GestionnaireFavoris::ajouterFavori(const std::string& nom, const std::strin
 }
 
 void GestionnaireFavoris::supprimerFavori(const std::string& nomFavori) {
-    if (supprimerFavoriDeListe(favoris, nomFavori)) {
+    if (Utils::supprimerFavoriDeListe(favoris, nomFavori)) {
         sauvegarderModifications();
+        afficherMessageConsole("Favori supprimé avec succès : " + nomFavori);
+        callbackRafraichir();  // Rafraîchir l'interface pour refléter les changements
         rafraichirInterface();
     } else {
-        afficherMessageConsole("Favori non trouvé.");
+        afficherMessageConsole("Erreur : Impossible de trouver le favori : " + nomFavori);
     }
 }
+
+
 
 bool GestionnaireFavoris::supprimerFavoriDeListe(const std::string& nomFavori) {
     auto it = std::remove_if(favoris->begin(), favoris->end(), [&nomFavori](const nlohmann::json& favori) {
@@ -172,73 +165,21 @@ bool GestionnaireFavoris::supprimerFavoriDeListe(const std::string& nomFavori) {
 }
 
 void GestionnaireFavoris::modifierFavori(const std::string& nomFavori, const std::string& nouvelURL) {
-    bool trouve = false;
+    auto it = std::find_if(favoris->begin(), favoris->end(), [&nomFavori](const nlohmann::json& favori) {
+        return favori.contains("name") && favori["name"] == nomFavori;
+    });
 
-    for (auto& favori : *favoris) {
-        if (favori.contains("name") && favori["name"] == nomFavori) {
-            favori["url"] = nouvelURL;
-            trouve = true;
-            break;
-        }
-    }
-
-    if (trouve) {
+    if (it != favoris->end()) {
+        (*it)["url"] = nouvelURL;
         sauvegarderModifications();
-        callbackRafraichir();
+        afficherMessageConsole("Favori modifié : " + nomFavori + " -> " + nouvelURL);
+        callbackRafraichir();  // Rafraîchir pour afficher les modifications
         rafraichirInterface();
     } else {
-        std::cerr << "Favori non trouvé pour modification : " << nomFavori << std::endl;
+        afficherMessageConsole("Erreur : Favori non trouvé pour modification : " + nomFavori);
     }
 }
 
-
-
-// void GestionnaireFavoris::creerMenuContextuelFavori(GtkWidget* bouton, const std::string& nomFavori) {
-//     GtkWidget *menu = gtk_menu_new();
-
-//     // Ouvrir dans un nouvel onglet
-//     GtkWidget *ouvrirNouvelOngletItem = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
-//     g_signal_connect(ouvrirNouvelOngletItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-//     auto* gestionnaire = static_cast<GestionnaireFavoris*>(user_data);
-//     gestionnaire->callbackRafraichir();
-//     }), this);
-
-//     gtk_menu_shell_append(GTK_MENU_SHELL(menu), ouvrirNouvelOngletItem);
-
-//     // Modifier le favori
-//     GtkWidget *modifierItem = gtk_menu_item_new_with_label("Modifier");
-//     g_signal_connect(modifierItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-//         auto* gestionnaire = static_cast<GestionnaireFavoris*>(user_data);
-//         std::string nom = static_cast<const char*>(g_object_get_data(G_OBJECT(user_data), "favori_nom"));
-//         gestionnaire->modifierFavori(nom, "https://example.com");
-//     }), this);
-
-    
-//     gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifierItem);
-
-//     // Supprimer le favori
-//     GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer");
-//     g_object_set_data(G_OBJECT(supprimerItem), "nomFavori", (gpointer)new std::string(nomFavori));
-
-//     g_signal_connect(supprimerItem, "activate", G_CALLBACK(+[](GtkWidget* widget, gpointer user_data) {
-//         auto* gestionnaire = static_cast<GestionnaireFavoris*>(user_data);
-//         std::string* nomFavori = static_cast<std::string*>(g_object_get_data(G_OBJECT(widget), "nomFavori"));
-//         gestionnaire->supprimerFavori(*nomFavori);
-//         delete nomFavori;  // Libération de la mémoire allouée
-//     }), this);
-//     gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
-
-//     // Gérer les favoris (ouvre la fenêtre complète)
-//     GtkWidget *gererFavorisItem = gtk_menu_item_new_with_label("Gérer les Favoris");
-//     g_signal_connect(gererFavorisItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-//         auto* gestionnaire = static_cast<GestionnaireFavoris*>(user_data);
-//         gestionnaire->afficherFenetre();
-//     }), this);
-//     gtk_menu_shell_append(GTK_MENU_SHELL(menu), gererFavorisItem);
-
-//     gtk_widget_show_all(menu);
-//     gtk_menu_popup_at_widget(GTK_MENU(menu), bouton, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, nullptr);
-// }
 void GestionnaireFavoris::creerMenuContextuelFavori(GtkWidget* bouton, const std::string& nomFavori) {
     GtkWidget* menu = gtk_menu_new();
 
@@ -277,13 +218,6 @@ void GestionnaireFavoris::sauvegarderModifications() {
     GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminFavorisJSON(), favoris);
 }
 
-// void GestionnaireFavoris::rafraichirInterface() {
-//     if (listeFavoris) {
-//         gtk_widget_destroy(listeFavoris);
-//     }
-//     listeFavoris = gtk_tree_view_new();  // Réinitialisation complète de la liste
-//     afficherListeFavoris();  // Recharge les favoris actualisés
-// }
 void GestionnaireFavoris::rafraichirInterface() {
     if (listeFavoris) {
         gtk_widget_destroy(listeFavoris);

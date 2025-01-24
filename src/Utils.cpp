@@ -2,6 +2,10 @@
 #include "Navigateur.h"
 #include <iostream>
 
+void connecterSignal(GtkWidget* widget, const char* signal, GCallback callback, gpointer data) {
+    g_signal_connect(widget, signal, callback, data);
+}
+
 static void delete_user_data(gpointer user_data, GClosure*) {
     delete static_cast<std::pair<Navigateur*, std::string>*>(user_data);
 }
@@ -11,13 +15,23 @@ void afficherMessageConsole(const std::string& message) {
     std::cout << "[INFO] " << message << std::endl;
 }
 
+void chargerFavoris(const std::string& chemin, std::shared_ptr<nlohmann::json>& favoris) {
+    nlohmann::json data = GestionnaireFichiers::lireJSON(chemin);
+    if (!data.is_null() && !data.empty()) {
+        *favoris = data;
+    }
+}
+void sauvegarderFavoris(const std::string& chemin, const std::shared_ptr<nlohmann::json>& favoris) {
+    GestionnaireFichiers::ecrireJSON(chemin, *favoris);
+}
 
 // Vérification de doublon d'un favori
 bool verifierDoublonFavori(const std::shared_ptr<nlohmann::json>& favoris, const std::string& url) {
     return std::any_of(favoris->begin(), favoris->end(), [&](const nlohmann::json& favori) {
-        return favori["url"] == url;
+        return favori.contains("url") && favori["url"] == url;
     });
 }
+
 
 
 // Supprimer un favori de la liste
@@ -59,6 +73,12 @@ GtkWidget* creerMenuContextuelFavoris(Navigateur* navigateur, GtkWidget* widget)
     auto* dataSupprimer = new std::pair<Navigateur*, GtkWidget*>(navigateur, widget);
     g_signal_connect_data(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori), dataSupprimer, delete_user_data, G_CONNECT_AFTER);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
+
+    // Modifier le favori
+    GtkWidget* modifierItem = gtk_menu_item_new_with_label("Modifier");
+    auto* dataModifier = new std::pair<Navigateur*, GtkWidget*>(navigateur, widget);
+    g_signal_connect_data(modifierItem, "activate", G_CALLBACK(on_modifier_favori), dataModifier, delete_user_data, G_CONNECT_AFTER);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifierItem);
 
     gtk_widget_show_all(menu);
     return menu;

@@ -48,6 +48,12 @@ static void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data) {
 }
 
 
+static void onBoutonFavorisClicked(GtkButton* button, gpointer user_data) {
+    auto* navigateur = static_cast<Navigateur*>(user_data);
+    if (navigateur) {
+        navigateur->ajouterFavori("Favori", navigateur->getURLActuelle(), "");
+    }
+}
 
 static void on_menu_item_activate(GtkWidget* widget, gpointer user_data) {
     auto* data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
@@ -99,8 +105,10 @@ static void on_ouvrir_nouvel_onglet(GtkWidget*, gpointer user_data) {
 }
 // Fonction statique pour gérer la modification du favori
 static void on_modifier_favori(GtkWidget*, gpointer user_data) {
-    auto* navigateur = static_cast<Navigateur*>(user_data);
-    navigateur->afficherGestionnaireFavoris();
+    auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
+    const gchar* nomFavori = gtk_button_get_label(GTK_BUTTON(data->second));
+    const gchar* nouvelURL = "https://nouveau-lien.com"; // Exemple - récupéré via une boîte de dialogue
+    data->first->gestionnaireFavoris->modifierFavori(nomFavori, nouvelURL);
 }
 
 
@@ -567,11 +575,6 @@ void Navigateur::changerGroupeOnglets(const std::string& nomGroupe) {
     gestionnaireOnglets->changerGroupeActif(nomGroupe);
     gtk_widget_destroy(barreOnglets);
     initialiserBarreOnglets();
-    
-    // Charger les onglets du groupe actif
-    for (const auto& url : gestionnaireOnglets->getOngletsDuGroupe(nomGroupe)) {
-        ajouterNouvelOnglet(url);
-    }
 }
 
 
@@ -636,6 +639,13 @@ void Navigateur::executerScriptDansOngletActif(const std::string& script) {
         moteurScript->executerScript(vueWeb, script);
     }
 }
+
+void Navigateur::supprimerFavori(GtkWidget* widget) {
+    const gchar* nomFavori = gtk_button_get_label(GTK_BUTTON(widget));
+    gestionnaireFavoris->supprimerFavori(nomFavori);
+    rafraichirBarreFavoris();  // Mise à jour visuelle
+}
+
 
 void Navigateur::supprimerOnglet(GtkWidget *ongletWidget) {
     // Trouver l'onglet à supprimer
@@ -760,50 +770,11 @@ void Navigateur::sauvegarderConfiguration() {
     config["onglets"] = ongletsJson;
 }
 
-
-void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag = "tag") {
-    // Vérifie si l'URL existe déjà
-    for (const auto& favori : *favoris) {
-        if (favori["url"] == url) {
-            std::cerr << "Favori déjà existant : " << url << std::endl;
-            return;
-        }
-    }
-
-    // Sépare les tags par des virgules
-    std::vector<std::string> tagsList;
-    std::stringstream ss(tags);
-    std::string tag;
-    while (std::getline(ss, tag, ',')) {
-        tagsList.push_back(tag);
-    }
-
-    // Ajoute le nouveau favori
-    favoris.push_back({{"name", nom}, {"url", url}, {"tags", tagsList}});
-    gestionnaireFavoris->sauvegarderModifications();
+void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag) {
+    gestionnaireFavoris->ajouterFavori(nom, url, tag);
     rafraichirBarreFavoris();
 }
 
-void Navigateur::supprimerFavori(GtkWidget* widget) {
-    if (!GTK_IS_WIDGET(widget)) {
-        std::cerr << "Erreur : Tentative de suppression d'un widget invalide." << std::endl;
-        return;
-    }
-
-    const gchar* nomFavori = gtk_button_get_label(GTK_BUTTON(widget));
-    for (auto it = favoris.begin(); it != favoris.end(); ++it) {
-        if ((*it)["name"] == nomFavori) {
-            favoris.erase(it);
-            std::cerr << "Favori supprimé : " << nomFavori << std::endl;
-            break;
-        }
-    }
-
-    if (GTK_IS_WIDGET(widget)) { // Protection supplémentaire
-        gtk_widget_destroy(widget);
-    }
-    rafraichirBarreFavoris();
-}
 
 
 void Navigateur::afficherParametres() {
@@ -830,6 +801,12 @@ void Navigateur::configurerRaccourcisClavier() {
                 if (!url.empty()) {
                     navigateur->gestionnaireFavoris->ajouterFavori("Favori", url, "");
                     navigateur->rafraichirBarreFavoris();
+                }
+            } else if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_e) {
+                // Focus sur la barre d'URL
+                if (navigateur->barreURL) {
+                    gtk_widget_grab_focus(navigateur->barreURL);
+                    gtk_editable_set_position(GTK_EDITABLE(navigateur->barreURL), -1); // Place le curseur a la fin
                 }
             }
         }

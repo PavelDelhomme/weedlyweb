@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/WeedlyWebDesign">/home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/WeedlyWebDesign/build/Desktop_Qt_6_8_1-Debug/WeedlyWebDesign</file>
+
+  </qresource>
+</RCC>

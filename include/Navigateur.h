@@ -56,13 +56,16 @@ public:
     static void onBarreURLActivate(GtkEntry *entry, gpointer user_data);
     void onNaviguerRetour(GtkButton *button, Navigateur* navigateur);
     void onNaviguerSuivant(GtkButton *button, Navigateur* navigateur);
-    void onRafraichirPage(GtkButton * button, Navigateur* navigateur)
-    void onAllerAccueil(GtkButton * button, Navigateur* navigateur)
+    void onRafraichirPage(GtkButton * button, Navigateur* navigateur);
+    void onAllerAccueil(GtkButton * button, Navigateur* navigateur);
 
     // Getters/Setters
     std::shared_ptr<nlohmann::json> getFavoris();
     std::string getHomepage() const { return homepage; }
-    GtkWidget* getEntryNomFavori() const { return entryNomFavori; }
+    
+    GtkWidget* getEntryNomFavori() { return entryNomFavori; }
+    GtkWidget* getEntryURLFavori() { return entryURLFavori; }
+    GtkWidget* getPopoverFavoris() { return popoverFavoris; }
 
     // Interface utilisateur
     void fermerApplication();

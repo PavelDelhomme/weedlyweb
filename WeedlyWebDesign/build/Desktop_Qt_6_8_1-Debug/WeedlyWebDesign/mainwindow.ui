@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1312</width>
+    <height>817</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="gridLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>1311</width>
+      <height>781</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="centralGridLayout">
+     <item row="0" column="0">
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="tab_1_widget">
+        <attribute name="title">
+         <string>Tab 1</string>
+        </attribute>
+        <widget class="QWidget" name="gridLayoutWidget_2">
+         <property name="geometry">
+          <rect>
+           <x>-1</x>
+           <y>-1</y>
+           <width>1301</width>
+           <height>751</height>
+          </rect>
+         </property>
+         <layout class="QGridLayout" name="tab1GridLayout">
+          <item row="0" column="1">
+           <widget class="QFrame" name="frametab1">
+            <property name="frameShape">
+             <enum>QFrame::Shape::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Raised</enum>
+            </property>
+            <widget class="QWidget" name="barre_url_widget" native="true">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>1291</width>
+               <height>32</height>
+              </rect>
+             </property>
+             <widget class="QListView" name="liste_view_barre_url_widget">
+              <property name="geometry">
+               <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>1301</width>
+                <height>32</height>
+               </rect>
+              </property>
+             </widget>
+             <widget class="QPushButton" name="go_back_button">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>0</y>
+                <width>32</width>
+                <height>32</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>&lt;</string>
+              </property>
+             </widget>
+             <widget class="QPushButton" name="go_next_button">
+              <property name="geometry">
+               <rect>
+                <x>50</x>
+                <y>0</y>
+                <width>32</width>
+                <height>32</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>&gt;</string>
+              </property>
+             </widget>
+             <widget class="QPushButton" name="reload_button">
+              <property name="geometry">
+               <rect>
+                <x>90</x>
+                <y>0</y>
+                <width>32</width>
+                <height>32</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>R</string>
+              </property>
+             </widget>
+             <widget class="QTextEdit" name="barre_url_text_edit">
+              <property name="geometry">
+               <rect>
+                <x>130</x>
+                <y>0</y>
+                <width>1041</width>
+                <height>32</height>
+               </rect>
+              </property>
+              <property name="html">
+               <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Cantarell'; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;https://duckduckgo.com&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+             <widget class="QPushButton" name="add_favori_btn">
+              <property name="geometry">
+               <rect>
+                <x>1170</x>
+                <y>0</y>
+                <width>32</width>
+                <height>32</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>F</string>
+              </property>
+             </widget>
+             <widget class="QPushButton" name="other_settings_btn">
+              <property name="geometry">
+               <rect>
+                <x>1200</x>
+                <y>0</y>
+                <width>32</width>
+                <height>32</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>P</string>
+              </property>
+             </widget>
+             <widget class="QToolButton" name="more_settings_btn">
+              <property name="geometry">
+               <rect>
+                <x>1230</x>
+                <y>0</y>
+                <width>64</width>
+                <height>32</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>...</string>
+              </property>
+             </widget>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+       <widget class="QWidget" name="tab_8">
+        <attribute name="title">
+         <string>Tab 2</string>
+        </attribute>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1312</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

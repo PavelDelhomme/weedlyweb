@@ -1,0 +1,187 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-d144e6153cb59a7fef49.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "WeedlyWebDesign",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "all_aotstats::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_aotstats-Debug-9ac1b70bc4a1c73da982.json",
+					"name" : "all_aotstats",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint-Debug-defd8223d489b7e16bc9.json",
+					"name" : "all_qmllint",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint_json-Debug-683ab595995837624f36.json",
+					"name" : "all_qmllint_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint_module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint_module-Debug-16ff98202749668cb9fd.json",
+					"name" : "all_qmllint_module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmltyperegistrations::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmltyperegistrations-Debug-c4ba20e3ee3c9c5c635f.json",
+					"name" : "all_qmltyperegistrations",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign-Debug-acb234e292b4f9724645.json",
+					"name" : "appWeedlyWebDesign",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign_autogen-Debug-ef3a9b5f56a939778737.json",
+					"name" : "appWeedlyWebDesign_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign_autogen_timestamp_deps-Debug-ae22cf8b890ab78c66b5.json",
+					"name" : "appWeedlyWebDesign_autogen_timestamp_deps",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign_qmlimportscan::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign_qmlimportscan-Debug-637a9ecc52026d70c2ee.json",
+					"name" : "appWeedlyWebDesign_qmlimportscan",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign_qmllint::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign_qmllint-Debug-6ae9ba5a48c1115c5655.json",
+					"name" : "appWeedlyWebDesign_qmllint",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign_qmllint_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign_qmllint_json-Debug-6d590bb70b2387c31088.json",
+					"name" : "appWeedlyWebDesign_qmllint_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign_qmllint_module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign_qmllint_module-Debug-1e9e5476d095996f64de.json",
+					"name" : "appWeedlyWebDesign_qmllint_module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign_qmltyperegistration::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign_qmltyperegistration-Debug-19a6a808d3f6663a0dd8.json",
+					"name" : "appWeedlyWebDesign_qmltyperegistration",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "appWeedlyWebDesign_tooling::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-appWeedlyWebDesign_tooling-Debug-10c39f6ac7293b357009.json",
+					"name" : "appWeedlyWebDesign_tooling",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "module_appWeedlyWebDesign_aotstats_target::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-module_appWeedlyWebDesign_aotstats_target-Debug-3986fc341085bcc4bc73.json",
+					"name" : "module_appWeedlyWebDesign_aotstats_target",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/WeedlyWebDesign/build/Desktop_Qt_6_8_1-Debug",
+		"source" : "/home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/WeedlyWebDesign"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

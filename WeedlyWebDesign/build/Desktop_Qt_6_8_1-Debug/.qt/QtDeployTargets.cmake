@@ -1,0 +1,2 @@
+set(__QT_DEPLOY_TARGET_appWeedlyWebDesign_FILE /home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/WeedlyWebDesign/build/Desktop_Qt_6_8_1-Debug/appWeedlyWebDesign)
+set(__QT_DEPLOY_TARGET_appWeedlyWebDesign_TYPE EXECUTABLE)

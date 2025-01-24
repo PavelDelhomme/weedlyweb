@@ -1,0 +1,10 @@
+--bare
+-I
+/home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/WeedlyWebDesign/build/Desktop_Qt_6_8_1-Debug
+-I
+/home/pactivisme/Qt/6.8.1/gcc_64/qml
+--resource
+/home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/WeedlyWebDesign/build/Desktop_Qt_6_8_1-Debug/.qt/rcc/qmake_WeedlyWebDesign.qrc
+--resource
+/home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/WeedlyWebDesign/build/Desktop_Qt_6_8_1-Debug/.qt/rcc/appWeedlyWebDesign_raw_qml_0.qrc
+/home/pactivisme/Documents/Projects/Perso/CPP/weedlyweb/weedlyweb/WeedlyWebDesign/Main.qml
