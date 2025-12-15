@@ -43,24 +43,39 @@
 git clone https://github.com/PavelDelhomme/weedlyweb.git
 cd weedlyweb
 
-# 2. Installer les dépendances
-./scripts/install-deps.sh
+# 2. Configuration complète (installe les dépendances + compile)
+make setup
 
-# 3. Compiler et lancer
+# 3. Lancer l'application
 make run
+```
+
+**Ou étape par étape :**
+```bash
+make install-deps  # Installe les dépendances
+make build         # Compile le projet
+make run           # Lance l'application
 ```
 
 ## 📦 Installation
 
 ### Installation automatique (Recommandé)
 
+Tout peut être fait via le Makefile :
+
 ```bash
 # Cloner le projet
 git clone https://github.com/PavelDelhomme/weedlyweb.git
 cd weedlyweb
 
-# Installer les dépendances (détection automatique de la distribution)
-./scripts/install-deps.sh
+# Configuration complète (installe les dépendances + compile)
+make setup
+```
+
+**Ou séparément :**
+```bash
+make install-deps  # Installe les dépendances (détection automatique de la distribution)
+make build         # Compile le projet
 ```
 
 ### Installation manuelle
@@ -88,15 +103,23 @@ make run          # Compiler et lancer
 make dev          # Surveille les fichiers et recompile automatiquement
 ```
 
-### Autres commandes
+### Toutes les commandes disponibles
 
 ```bash
-make help         # Afficher toutes les commandes
+make help         # Afficher toutes les commandes disponibles
+make setup        # Configuration complète (deps + build)
+make install-deps # Installe les dépendances
+make build        # Compile le projet
 make clean        # Nettoyer le répertoire de build
+make run          # Compile et lance l'application
 make run-debug    # Lancer en mode debug
 make debug        # Lancer avec GDB
+make dev          # Mode développement (recompilation automatique)
 make install      # Installer l'application
+make check-deps   # Vérifier les dépendances installées
 ```
+
+> 💡 **Tout peut être fait via le Makefile !** Utilisez `make help` pour voir toutes les commandes disponibles.
 
 ## 💻 Utilisation
 
