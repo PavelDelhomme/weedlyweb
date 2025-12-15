@@ -22,6 +22,9 @@ endif()
 # Rechercher la bibliothèque cURL
 find_package(CURL REQUIRED)
 
+# Rechercher SQLite3
+pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+
 # Ajouter les fichiers sources
 set(SOURCES
     src/main.cpp
@@ -34,6 +37,11 @@ set(SOURCES
     src/GestionnaireFavoris.cpp
     src/GestionnaireOnglets.cpp
     src/Utils.cpp
+    # Nouveaux modules
+    src/database/Database.cpp
+    src/utils/CVEAnalyzer.cpp
+    src/utils/CommandPalette.cpp
+    src/utils/RequestInterceptor.cpp
 )
 
 set(HEADERS
@@ -46,6 +54,11 @@ set(HEADERS
     include/MoteurScript.h
     include/GestionnaireOnglets.h
     include/Utils.h
+    # Nouveaux modules
+    include/database/Database.h
+    include/utils/CVEAnalyzer.h
+    include/utils/CommandPalette.h
+    include/utils/RequestInterceptor.h
 )
 
 # Créer l'exécutable
@@ -55,7 +68,12 @@ add_executable(WeedlyWeb ${SOURCES} ${HEADERS})
 target_include_directories(WeedlyWeb PRIVATE ${WEBKIT2GTK_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include)
 
 # Lier les bibliothèques nécessaires
-target_link_libraries(WeedlyWeb PRIVATE ${WEBKIT2GTK_LIBRARIES} gtk-3 ${CURL_LIBRARIES})
+target_link_libraries(WeedlyWeb PRIVATE 
+    ${WEBKIT2GTK_LIBRARIES} 
+    gtk-3 
+    ${CURL_LIBRARIES}
+    ${SQLITE3_LIBRARIES}
+)
 
 # Ajouter des commandes post-build
 add_custom_command(TARGET WeedlyWeb POST_BUILD

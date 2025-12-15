@@ -11,6 +11,9 @@
 #include "GestionnaireHTTP.h"
 #include "GestionnaireFavoris.h"
 #include "GestionnaireOnglets.h"
+#include "utils/CommandPalette.h"
+#include "utils/RequestInterceptor.h"
+#include "database/Database.h"
 
 class Navigateur {
 public:
@@ -43,6 +46,7 @@ public:
     void afficherMenuFavorisRestants();
     void ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag);
     void supprimerFavori(GtkWidget* widget);
+    void afficherPaletteCommandes();
 
     // Méthodes utilitaires
     void chargerURL(const std::string& url);
@@ -87,6 +91,9 @@ private:
     std::unique_ptr<GestionnaireHTTP> gestionnaireHTTP;
     std::unique_ptr<GestionnaireFavoris> gestionnaireFavoris;
     std::unique_ptr<GestionnaireOnglets> gestionnaireOnglets;
+    std::unique_ptr<CommandPalette> commandPalette;
+    std::unique_ptr<RequestInterceptor> requestInterceptor;
+    std::unique_ptr<Database> database;
 
     // Données
     std::vector<std::string> historique;

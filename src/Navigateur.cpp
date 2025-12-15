@@ -2,6 +2,9 @@
 #include "GestionnaireFichiers.h"
 #include "GestionnaireMemoire.h"
 #include "GestionnaireFavoris.h"
+#include "utils/CommandPalette.h"
+#include "utils/RequestInterceptor.h"
+#include "database/Database.h"
 #include <iostream>
 #include <filesystem>
 #include <string>
@@ -179,6 +182,7 @@ static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
         // Gestion du raccourci CTRL + T pour ouvrir un nouvel onglet
         if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_t) {
             navigateur->ajouterNouvelOnglet(navigateur->getHomepage());
+            return TRUE;
         }
 
         // Gestion du raccourci CTRL + D pour ajouter un favori
@@ -192,6 +196,24 @@ static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
 
             // Afficher le formulaire d'ajout de favori (popover)
             gtk_popover_popup(GTK_POPOVER(navigateur->popoverFavoris));
+            return TRUE;
+        }
+        
+        // Gestion du raccourci CTRL + ALT + C pour la palette de commandes
+        if ((key_event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK)) && 
+            key_event->keyval == GDK_KEY_c) {
+            navigateur->afficherPaletteCommandes();
+            return TRUE;
+        }
+        
+        // Gestion du raccourci CTRL + SHIFT + D pour dupliquer l'onglet actuel
+        if ((key_event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) && 
+            key_event->keyval == GDK_KEY_d) {
+            std::string url = navigateur->getURLActuelle();
+            if (!url.empty()) {
+                navigateur->ajouterNouvelOnglet(url);
+            }
+            return TRUE;
         }
     }
     return FALSE;
@@ -205,15 +227,13 @@ static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event
         if (!navigateur) return FALSE;
 
         // Créer un menu contextuel
-        if (!menuFavoris) {
-            GtkWidget *menu = gtk_menu_new();
-        }
+        GtkWidget *menu = gtk_menu_new();
+        
         // **Option 1 : Ouvrir dans un nouvel onglet**
         auto data = std::make_unique<std::pair<Navigateur*, std::string>>(navigateur, navigateur->getURLActuelle());
         GtkWidget *ouvrirNouvelOnglet = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
         g_signal_connect_data(ouvrirNouvelOnglet, "activate", G_CALLBACK(on_ouvrir_nouvel_onglet_safe), data.release(), delete_user_data, G_CONNECT_AFTER);
 
-   
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), ouvrirNouvelOnglet);
 
         // **Option 2 : Modifier le favori**
@@ -267,6 +287,20 @@ Navigateur::Navigateur()
       moteurScript(std::make_unique<MoteurScript>()),
       favoris(std::make_shared<nlohmann::json>())
 {
+    // Initialiser la base de données
+    database = std::make_unique<Database>();
+    if (!database->initDatabase()) {
+        std::cerr << "Erreur lors de l'initialisation de la base de données" << std::endl;
+    }
+    
+    // Initialiser l'intercepteur de requêtes
+    requestInterceptor = std::make_unique<RequestInterceptor>();
+    requestInterceptor->enable();
+    
+    // Initialiser la palette de commandes
+    commandPalette = std::make_unique<CommandPalette>();
+    commandPalette->setRequestInterceptor(requestInterceptor.get());
+    
     gestionnaireFavoris = std::make_unique<GestionnaireFavoris>(favoris, [this]() { rafraichirBarreFavoris(); });
     chargerConfiguration();
     construireInterface();
@@ -890,9 +924,7 @@ void Navigateur::onRafraichirPageWrapper(GtkButton *button, gpointer user_data) 
     static_cast<Navigateur*>(user_data)->onRafraichirPage(button, static_cast<Navigateur*>(user_data));
 }
 void Navigateur::creerMenuContextuel(GtkWidget* bouton) {
-    if (!favori) {
-        menuFavoris = gtk_menu_new();
-    }
+    GtkWidget *menu = gtk_menu_new();
 
     // Option "Ajouter aux Favoris"
     GtkWidget *ajouterItem = gtk_menu_item_new_with_label("Ajouter aux Favori");
@@ -950,6 +982,13 @@ void Navigateur::on_supprimer_favori(GtkWidget* widget, gpointer user_data) {
         data->first->supprimerFavori(data->second);
     }
     delete data;
+}
+
+void Navigateur::afficherPaletteCommandes() {
+    if (commandPalette && fenetre) {
+        commandPalette->setCurrentWebView(moteurRendu.get());
+        commandPalette->showPalette(GTK_WINDOW(fenetre));
+    }
 }
 
 void Navigateur::hibernerOnglet(const std::string& url) {
