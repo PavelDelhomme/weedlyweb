@@ -10,13 +10,16 @@
 ## 📋 Table des matières
 
 - [Fonctionnalités](#-fonctionnalités)
-- [Prérequis](#-prérequis)
+- [Démarrage rapide](#-démarrage-rapide)
 - [Installation](#-installation)
 - [Compilation](#-compilation)
 - [Utilisation](#-utilisation)
-- [Structure du projet](#-structure-du-projet)
-- [Documentation](#-documentation)
 - [Développement](#-développement)
+- [Architecture](#-architecture)
+- [Structure du code](#-structure-du-code)
+- [Standards de code](#-standards-de-code)
+- [Workflow de développement](#-workflow-de-développement)
+- [Documentation](#-documentation)
 - [Contribution](#-contribution)
 
 ## ✨ Fonctionnalités
@@ -31,62 +34,38 @@
 - 📊 **Base de données SQLite** pour l'historique et les favoris
 - 🎯 **Palette de commandes** (CTRL+ALT+C)
 
-## 📦 Prérequis
+## 🚀 Démarrage rapide
 
-### Système d'exploitation
+> 💡 **Nouveau développeur ?** Consultez le [Guide de démarrage rapide](docs/QUICKSTART.md) pour une installation en 3 étapes !
 
-- **Linux** (testé sur Manjaro/Arch Linux, Ubuntu/Debian, Fedora)
-- **GTK3** et **WebKit2GTK 4.1** doivent être installés
+```bash
+# 1. Cloner le projet
+git clone https://github.com/PavelDelhomme/weedlyweb.git
+cd weedlyweb
 
-### Dépendances requises
+# 2. Installer les dépendances
+./scripts/install-deps.sh
 
-- `cmake` (>= 3.16)
-- `make` ou `ninja`
-- `g++` (support C++17)
-- `pkg-config`
-- `webkit2gtk` (>= 4.1)
-- `gtk3`
-- `sqlite3`
-- `curl`
-- `gdk-pixbuf2`
+# 3. Compiler et lancer
+make run
+```
 
-## 🚀 Installation
-
-> 💡 **Démarrage rapide ?** Consultez le [Guide de démarrage rapide](docs/QUICKSTART.md) pour une installation en 3 étapes !
+## 📦 Installation
 
 ### Installation automatique (Recommandé)
-
-Un script d'installation automatique est disponible :
 
 ```bash
 # Cloner le projet
 git clone https://github.com/PavelDelhomme/weedlyweb.git
 cd weedlyweb
 
-# Installer les dépendances
+# Installer les dépendances (détection automatique de la distribution)
 ./scripts/install-deps.sh
 ```
 
 ### Installation manuelle
 
-#### Sur Arch Linux / Manjaro
-
-```bash
-sudo pacman -S cmake webkit2gtk gtk3 sqlite curl base-devel pkg-config gdk-pixbuf2
-```
-
-#### Sur Ubuntu / Debian
-
-```bash
-sudo apt-get update
-sudo apt-get install cmake libwebkit2gtk-4.1-dev libgtk-3-dev libsqlite3-dev libcurl4-openssl-dev build-essential pkg-config libgdk-pixbuf2.0-dev
-```
-
-#### Sur Fedora
-
-```bash
-sudo dnf install cmake webkit2gtk-devel gtk3-devel sqlite-devel libcurl-devel gcc-c++ pkg-config gdk-pixbuf2-devel
-```
+Voir [docs/INSTALL_DEPENDENCIES.md](docs/INSTALL_DEPENDENCIES.md) pour les instructions détaillées par distribution.
 
 ### Vérification des dépendances
 
@@ -99,46 +78,33 @@ make check-deps
 ### Compilation standard
 
 ```bash
-# Compiler le projet
-make build
-
-# Ou simplement
-make
+make build        # Compiler le projet
+make run          # Compiler et lancer
 ```
 
-### Compilation et lancement
+### Mode développement
 
 ```bash
-# Compiler et lancer l'application
-make run
+make dev          # Surveille les fichiers et recompile automatiquement
 ```
 
-### Mode développement (recompilation automatique)
+### Autres commandes
 
 ```bash
-# Surveille les fichiers et recompile automatiquement
-make dev
-```
-
-### Autres commandes utiles
-
-```bash
-make help          # Afficher toutes les commandes disponibles
-make clean          # Nettoyer le répertoire de build
-make run-debug      # Lancer en mode debug
-make debug          # Lancer avec GDB
-make install        # Installer l'application
+make help         # Afficher toutes les commandes
+make clean        # Nettoyer le répertoire de build
+make run-debug    # Lancer en mode debug
+make debug        # Lancer avec GDB
+make install      # Installer l'application
 ```
 
 ## 💻 Utilisation
 
-### Lancement de l'application
+### Lancement
 
 ```bash
-# Après compilation
 ./build/WeedlyWeb
-
-# Ou via make
+# ou
 make run
 ```
 
@@ -154,59 +120,20 @@ make run
 | `CTRL + R` | Actualiser la page |
 | `CTRL + H` | Aller à la page d'accueil |
 
-### Fonctionnalités principales
-
-1. **Navigation** : Tapez une URL dans la barre d'adresse et appuyez sur Entrée
-2. **Favoris** : Cliquez sur l'étoile (☆) pour ajouter la page actuelle aux favoris
-3. **Onglets** : Cliquez sur le bouton "+" pour créer un nouvel onglet
-4. **Menu** : Cliquez sur l'icône hamburger (☰) pour accéder aux options
-
-## 📁 Structure du projet
-
-```
-weedlyweb/
-├── assets/              # Ressources (icônes, styles, données)
-│   ├── datas/          # Fichiers JSON (favoris, config)
-│   ├── icons/          # Icônes de l'application
-│   ├── settings/       # Pages de paramètres
-│   └── styles/         # Fichiers CSS
-├── build/              # Répertoire de compilation (généré)
-├── docs/               # Documentation
-├── include/            # Fichiers d'en-tête
-│   ├── browser/       # Classes principales du navigateur
-│   ├── managers/      # Gestionnaires (favoris, onglets, etc.)
-│   ├── rendering/     # Moteur de rendu WebKit
-│   ├── utils/         # Utilitaires
-│   └── ...
-├── scripts/            # Scripts d'aide
-├── src/                # Code source
-│   ├── browser/       # Implémentation du navigateur
-│   ├── managers/      # Implémentations des gestionnaires
-│   ├── rendering/     # Implémentation du moteur de rendu
-│   └── ...
-├── CMakeLists.txt      # Configuration CMake
-├── Makefile           # Makefile principal
-└── README.md          # Ce fichier
-```
-
-## 📚 Documentation
-
-Toute la documentation est disponible dans le dossier `docs/` :
-
-- **[INSTALL_DEPENDENCIES.md](docs/INSTALL_DEPENDENCIES.md)** - Guide d'installation des dépendances
-- **[GUIDE_DEBUG.md](docs/GUIDE_DEBUG.md)** - Guide de débogage
-- **[ARCHITECTURE_MONOREPO.md](docs/ARCHITECTURE_MONOREPO.md)** - Architecture du projet
-- **[STATUS.md](docs/STATUS.md)** - État actuel du projet
-
 ## 🛠️ Développement
 
-### Configuration de l'environnement de développement
+### Configuration de l'environnement
 
 ```bash
 # Installer les outils de développement
-sudo pacman -S gdb valgrind strace inotify-tools  # Arch/Manjaro
-# ou
-sudo apt-get install gdb valgrind strace inotify-tools  # Ubuntu/Debian
+./scripts/install-deps.sh  # Inclut les outils de debug si demandé
+
+# Ou manuellement :
+# Arch/Manjaro:
+sudo pacman -S gdb valgrind strace inotify-tools
+
+# Ubuntu/Debian:
+sudo apt-get install gdb valgrind strace inotify-tools
 ```
 
 ### Mode développement
@@ -220,39 +147,214 @@ make dev
 ### Débogage
 
 ```bash
-# Lancer avec GDB
-make debug
-
-# Lancer avec Valgrind (détection de fuites mémoire)
-make valgrind
+make debug        # Lancer avec GDB (interactif)
+make debug-auto   # Lancer avec GDB (automatique)
+make valgrind     # Détection de fuites mémoire
 ```
+
+Voir [docs/GUIDE_DEBUG.md](docs/GUIDE_DEBUG.md) pour plus de détails.
 
 ### Tests
 
 ```bash
-# Vérifier les dépendances
-make check-deps
-
-# Compiler en mode debug
-make build-debug
+make check-deps   # Vérifier les dépendances
+make build-debug  # Compiler en mode debug
 ```
+
+## 🏗️ Architecture
+
+Le projet est organisé en modules indépendants :
+
+```
+weedlyweb/
+├── src/
+│   ├── browser/         # Classe principale Browser
+│   ├── rendering/        # Moteur de rendu WebKit (RenderingEngine)
+│   ├── managers/         # Gestionnaires (Favorites, Tabs, HTTP, Memory, File)
+│   ├── engine/           # Moteur de scripts (ScriptEngine)
+│   ├── database/         # Gestion base de données SQLite
+│   └── utils/           # Utilitaires (CommandPalette, RequestInterceptor, etc.)
+├── include/              # Fichiers d'en-tête (même structure)
+└── assets/               # Ressources (icônes, styles, données)
+```
+
+### Composants principaux
+
+- **`Browser`** : Classe principale, orchestre tous les composants
+- **`RenderingEngine`** : Gère WebKitWebView et le rendu des pages
+- **`FavoritesManager`** : Gestion des favoris (ajout, suppression, organisation)
+- **`TabsManager`** : Gestion des onglets et groupes d'onglets
+- **`HTTPManager`** : Requêtes HTTP (cURL)
+- **`MemoryManager`** : Gestion mémoire et nettoyage
+- **`FileManager`** : Gestion fichiers et JSON
+- **`Database`** : Accès SQLite3
+- **`CommandPalette`** : Palette de commandes (CTRL+ALT+C)
+- **`RequestInterceptor`** : Interception et filtrage des requêtes
+
+## 📁 Structure du code
+
+### Organisation des fichiers
+
+- **Headers** : `include/<module>/<Class>.h`
+- **Sources** : `src/<module>/<Class>.cpp`
+- **Noms en anglais** : Tous les noms de classes, fonctions et variables sont en anglais
+
+### Exemple de structure
+
+```
+include/
+├── browser/
+│   └── Browser.h
+├── rendering/
+│   └── RenderingEngine.h
+└── managers/
+    ├── FavoritesManager.h
+    ├── TabsManager.h
+    └── ...
+
+src/
+├── browser/
+│   └── Browser.cpp
+├── rendering/
+│   └── RenderingEngine.cpp
+└── managers/
+    ├── FavoritesManager.cpp
+    ├── TabsManager.cpp
+    └── ...
+```
+
+## 📝 Standards de code
+
+### Conventions de nommage
+
+- **Classes** : `PascalCase` (ex: `Browser`, `RenderingEngine`)
+- **Fonctions** : `camelCase` (ex: `addNewTab`, `loadURL`)
+- **Variables** : `camelCase` (ex: `webView`, `favoritesBar`)
+- **Constantes** : `UPPER_SNAKE_CASE` (ex: `MAX_TABS`)
+- **Fichiers** : Même nom que la classe principale
+
+### Langage
+
+- **Code** : Anglais (noms, commentaires)
+- **Documentation** : Français (README, docs)
+- **Messages utilisateur** : Peuvent être en français
+
+### Style de code
+
+- **Indentation** : 4 espaces
+- **Longueur de ligne** : 100 caractères max
+- **Commentaires** : Expliquer le "pourquoi", pas le "comment"
+- **Headers** : Include guards (`#ifndef CLASS_H`)
+
+### Exemple
+
+```cpp
+// include/browser/Browser.h
+#ifndef BROWSER_H
+#define BROWSER_H
+
+class Browser {
+public:
+    void addNewTab(const std::string& url = "");
+    void loadURL(const std::string& url);
+    
+private:
+    std::unique_ptr<RenderingEngine> renderingEngine;
+};
+
+#endif
+```
+
+## 🔄 Workflow de développement
+
+### 1. Créer une branche
+
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b feat/ma-fonctionnalite
+```
+
+### 2. Développer
+
+```bash
+# Mode développement (recompilation automatique)
+make dev
+
+# Ou compilation manuelle
+make build
+make run
+```
+
+### 3. Tester
+
+```bash
+# Vérifier que ça compile
+make build
+
+# Tester l'application
+make run
+
+# Déboguer si nécessaire
+make debug
+```
+
+### 4. Commit
+
+```bash
+git add .
+git commit -m "feat: Description de la fonctionnalité"
+```
+
+### 5. Push et Pull Request
+
+```bash
+git push origin feat/ma-fonctionnalite
+```
+
+Puis créer une Pull Request sur GitHub de `feat/ma-fonctionnalite` vers `dev`.
+
+### Format des commits
+
+Utiliser le format [Conventional Commits](https://www.conventionalcommits.org/) :
+
+- `feat:` Nouvelle fonctionnalité
+- `fix:` Correction de bug
+- `docs:` Documentation
+- `refactor:` Refactorisation
+- `test:` Tests
+- `chore:` Maintenance
+
+## 📚 Documentation
+
+Toute la documentation est dans `docs/` :
+
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - Guide de démarrage rapide
+- **[INSTALL_DEPENDENCIES.md](docs/INSTALL_DEPENDENCIES.md)** - Installation détaillée
+- **[GUIDE_DEBUG.md](docs/GUIDE_DEBUG.md)** - Guide de débogage
+- **[ARCHITECTURE_MONOREPO.md](docs/ARCHITECTURE_MONOREPO.md)** - Architecture du projet
+- **[STATUS.md](docs/STATUS.md)** - État actuel du projet
 
 ## 🤝 Contribution
 
 Les contributions sont les bienvenues ! Voici comment contribuer :
 
 1. **Fork** le projet
-2. Créer une branche pour votre fonctionnalité (`git checkout -b feat/ma-fonctionnalite`)
-3. **Commit** vos changements (`git commit -m 'Ajout d'une fonctionnalité'`)
-4. **Push** vers la branche (`git push origin feat/ma-fonctionnalite`)
-5. Ouvrir une **Pull Request**
+2. Créer une branche (`git checkout -b feat/ma-fonctionnalite`)
+3. **Développer** en suivant les standards de code
+4. **Tester** votre code
+5. **Commit** avec un message clair
+6. **Push** vers votre fork
+7. Ouvrir une **Pull Request** vers `dev`
 
-### Standards de code
+### Checklist avant PR
 
-- Code en **anglais** (noms de variables, fonctions, commentaires)
-- Suivre la structure existante du projet
-- Ajouter des commentaires pour les parties complexes
-- Tester avant de soumettre une PR
+- [ ] Code compile sans erreurs
+- [ ] Code suit les conventions de nommage
+- [ ] Commentaires ajoutés pour les parties complexes
+- [ ] Testé manuellement
+- [ ] Pas de fuites mémoire (vérifié avec Valgrind si possible)
+- [ ] Message de commit suit le format Conventional Commits
 
 ## 📝 Licence
 
@@ -275,11 +377,10 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
 Si vous rencontrez des problèmes :
 
-1. Vérifiez la [documentation](docs/)
-2. Consultez les [issues existantes](https://github.com/PavelDelhomme/weedlyweb/issues)
+1. Consultez la [documentation](docs/)
+2. Vérifiez les [issues existantes](https://github.com/PavelDelhomme/weedlyweb/issues)
 3. Créez une nouvelle issue avec les détails du problème
 
 ---
 
 **Fait avec ❤️ pour la communauté open source**
-
