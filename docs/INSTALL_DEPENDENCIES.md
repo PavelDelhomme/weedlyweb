@@ -1,23 +1,41 @@
-# 📦 Dependencies Installation for WeedlyWeb
+# 📦 Installation des dépendances pour WeedlyWeb
 
-## System: Manjaro Linux (Arch Linux)
+## Systèmes supportés
 
-### Automatic Installation (Recommended)
+- **Arch Linux / Manjaro**
+- **Ubuntu / Debian**
+- **Fedora**
+- Autres distributions Linux avec GTK3 et WebKit2GTK
 
-An automatic installation script is available:
+### Installation automatique (Recommandé)
+
+Un script d'installation automatique est disponible :
 
 ```bash
-./install-deps.sh
+./scripts/install-deps.sh
 ```
 
-This script will guide you through the installation and offer to install debugging tools.
+Ce script détecte automatiquement votre distribution (Arch/Manjaro, Ubuntu/Debian, Fedora) et vous guide à travers l'installation. Il propose également d'installer les outils de débogage et de surveillance.
 
-### Full Installation in One Command
+### Installation complète en une commande
 
-To install all required dependencies (compilation + debugging):
+#### Arch Linux / Manjaro
 
 ```bash
-sudo pacman -S cmake webkit2gtk gtk3 sqlite curl base-devel pkg-config gdb valgrind strace
+sudo pacman -S cmake webkit2gtk gtk3 sqlite curl base-devel pkg-config gdk-pixbuf2 gdb valgrind strace inotify-tools
+```
+
+#### Ubuntu / Debian
+
+```bash
+sudo apt-get update
+sudo apt-get install cmake libwebkit2gtk-4.1-dev libgtk-3-dev libsqlite3-dev libcurl4-openssl-dev build-essential pkg-config libgdk-pixbuf2.0-dev gdb valgrind strace inotify-tools
+```
+
+#### Fedora
+
+```bash
+sudo dnf install cmake webkit2gtk4-devel gtk3-devel sqlite-devel libcurl-devel gcc-c++ pkg-config gdk-pixbuf2-devel gdb valgrind strace inotify-tools
 ```
 
 ### Dependencies by Category
