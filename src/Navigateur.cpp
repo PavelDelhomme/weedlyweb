@@ -101,6 +101,11 @@ static void on_naviguer_suivant(GtkButton* button, gpointer user_data) {
     navigateur->onNaviguerSuivant(button, navigateur);
 }
 
+static void on_aller_accueil(GtkButton* button, gpointer user_data) {
+    auto* navigateur = static_cast<Navigateur*>(user_data);
+    navigateur->onAllerAccueil(button, navigateur);
+}
+
 static void on_rafraichir_page(GtkButton* button, gpointer user_data) {
     auto* navigateur = static_cast<Navigateur*>(user_data);
     navigateur->onRafraichirPage(button, navigateur);
@@ -288,7 +293,17 @@ Navigateur::Navigateur()
       gestionnaireMemoire(std::make_unique<GestionnaireMemoire>()),
       gestionnaireOnglets(std::make_unique<GestionnaireOnglets>()),
       moteurScript(std::make_unique<MoteurScript>()),
-      favoris(std::make_shared<nlohmann::json>())
+      favoris(std::make_shared<nlohmann::json>()),
+      fenetre(nullptr),
+      conteneurPrincipal(nullptr),
+      barreNavigation(nullptr),
+      barreFavoris(nullptr),
+      barreOnglets(nullptr),
+      barreURL(nullptr),
+      boutonEtoile(nullptr),
+      entryNomFavori(nullptr),
+      entryURLFavori(nullptr),
+      popoverFavoris(nullptr)
 {
     // Initialiser la base de données
     database = std::make_unique<Database>();
@@ -298,7 +313,8 @@ Navigateur::Navigateur()
     
     // Initialiser l'intercepteur de requêtes
     requestInterceptor = std::make_unique<RequestInterceptor>();
-    requestInterceptor->enable();
+    // Temporairement désactivé pour déboguer le crash
+    // requestInterceptor->enable();
     
     // Initialiser la palette de commandes
     commandPalette = std::make_unique<CommandPalette>();
@@ -312,10 +328,34 @@ Navigateur::Navigateur()
 
 
 Navigateur::~Navigateur() {
-    if (GTK_IS_WIDGET(fenetre)) {
+    // Sauvegarder la configuration avant de fermer
+    sauvegarderConfiguration();
+    
+    // Nettoyer les signaux avant de détruire les widgets
+    if (fenetre && GTK_IS_WIDGET(fenetre)) {
+        // Déconnecter tous les signaux de la fenêtre
+        g_signal_handlers_disconnect_matched(fenetre, G_SIGNAL_MATCH_DATA, 0, 0, nullptr, nullptr, this);
+        
+        // Nettoyer le moteur de rendu (qui nettoie ses propres signaux)
+        if (moteurRendu) {
+            moteurRendu.reset();
+        }
+        
+        // Détruire la fenêtre (cela détruira automatiquement tous les enfants)
         gtk_widget_destroy(fenetre);
         fenetre = nullptr;
     }
+    
+    // Réinitialiser les pointeurs pour éviter les accès après destruction
+    conteneurPrincipal = nullptr;
+    barreNavigation = nullptr;
+    barreFavoris = nullptr;
+    barreOnglets = nullptr;
+    barreURL = nullptr;
+    boutonEtoile = nullptr;
+    entryNomFavori = nullptr;
+    entryURLFavori = nullptr;
+    popoverFavoris = nullptr;
 }
 
 std::shared_ptr<nlohmann::json> Navigateur::getFavoris() {
@@ -323,9 +363,28 @@ std::shared_ptr<nlohmann::json> Navigateur::getFavoris() {
 }
 
 void Navigateur::construireInterface() {
+    std::cerr << "[DEBUG] Début de construireInterface()" << std::endl;
     fenetre = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    std::cerr << "[DEBUG] Fenêtre créée" << std::endl;
     gtk_window_set_title(GTK_WINDOW(fenetre), "WeedlyWeb");
     gtk_window_set_default_size(GTK_WINDOW(fenetre), 1024, 768);
+    
+    // Configuration pour que la fenêtre apparaisse dans la barre des tâches
+    // Définir le nom de classe X11 pour l'identification par le gestionnaire de fenêtres
+    gtk_widget_set_name(fenetre, "weedlyweb");
+    
+    // Définir le rôle de la fenêtre (pour le gestionnaire de fenêtres)
+    gtk_window_set_role(GTK_WINDOW(fenetre), "weedlyweb-browser");
+    
+    // S'assurer que la fenêtre n'est pas ignorée par le gestionnaire de fenêtres
+    // (par défaut, GTK_WINDOW_TOPLEVEL devrait déjà être visible, mais on s'en assure)
+    gtk_window_set_skip_taskbar_hint(GTK_WINDOW(fenetre), FALSE);
+    gtk_window_set_skip_pager_hint(GTK_WINDOW(fenetre), FALSE);
+    
+    // Définir le type de fenêtre (normal, pas un splash ou un popup)
+    gtk_window_set_type_hint(GTK_WINDOW(fenetre), GDK_WINDOW_TYPE_HINT_NORMAL);
+    
+    std::cerr << "[DEBUG] Fenêtre configurée" << std::endl;
 
     // Connexion sécurisée du signal de fermeture avec lambda sécurisée
     g_signal_connect(fenetre, "delete-event", G_CALLBACK(+[](GtkWidget*, GdkEvent*, gpointer user_data) -> gboolean {
@@ -336,15 +395,54 @@ void Navigateur::construireInterface() {
     }), this);
 
     // Conteneur principal
+    std::cerr << "[DEBUG] Création du conteneur principal" << std::endl;
     conteneurPrincipal = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(fenetre), conteneurPrincipal);
+    std::cerr << "[DEBUG] Conteneur principal ajouté à la fenêtre" << std::endl;
 
-    // Ajout de la barre d'onglets
+    // ORDRE CORRECT : Barres en haut, zone web en bas (expandable)
+    // 1. Barre d'onglets (en haut)
+    std::cerr << "[DEBUG] Initialisation de la barre d'onglets..." << std::endl;
     initialiserBarreOnglets();
-    ajouterNouvelOnglet(homepage);
+    std::cerr << "[DEBUG] Barre d'onglets initialisée" << std::endl;
+    
+    // 2. Barre de navigation avec URL (sous les onglets)
+    std::cerr << "[DEBUG] Initialisation de la barre de navigation..." << std::endl;
     initialiserBarreNavigation();
+    std::cerr << "[DEBUG] Barre de navigation initialisée" << std::endl;
+    
+    // 3. Barre de favoris (optionnelle, sous la navigation)
+    std::cerr << "[DEBUG] Initialisation de la barre de favoris..." << std::endl;
     initialiserBarreFavoris();
+    std::cerr << "[DEBUG] Barre de favoris initialisée" << std::endl;
+    
+    // 4. Zone de rendu web (en bas, expandable)
+    std::cerr << "[DEBUG] Initialisation du moteur de rendu..." << std::endl;
     moteurRendu->initialiserRendu(conteneurPrincipal);
+    std::cerr << "[DEBUG] Moteur de rendu initialisé" << std::endl;
+    
+    // Afficher la fenêtre
+    std::cerr << "[DEBUG] Affichage de la fenêtre..." << std::endl;
+    gtk_widget_show_all(fenetre);
+    
+    // Présenter la fenêtre au gestionnaire de fenêtres (pour qu'elle apparaisse dans la barre des tâches)
+    gtk_window_present(GTK_WINDOW(fenetre));
+    
+    std::cerr << "[DEBUG] Fenêtre affichée" << std::endl;
+    
+    // Ajouter le premier onglet et charger la page d'accueil
+    std::cerr << "[DEBUG] Ajout du premier onglet..." << std::endl;
+    std::string homepageUrl = homepage.empty() ? "https://www.duckduckgo.com" : homepage;
+    ajouterNouvelOnglet(homepageUrl);
+    std::cerr << "[DEBUG] Premier onglet ajouté avec URL: " << homepageUrl << std::endl;
+    
+    // Rafraîchir la barre de favoris pour qu'elle s'affiche
+    rafraichirBarreFavoris();
+    
+    // Charger les styles CSS pour un design minimaliste
+    chargerStyles();
+    
+    std::cerr << "[DEBUG] Fin de construireInterface()" << std::endl;
 
     moteurRendu->connecterSignalURLChangee([this](const std::string& url) {
         if (barreURL) {
@@ -356,7 +454,7 @@ void Navigateur::construireInterface() {
     gtk_box_pack_start(GTK_BOX(barreNavigation), boutonEtoile, FALSE, FALSE, 0);
 
     initialiserPopoverFavoris();
-    gtk_widget_show_all(fenetre);
+    // gtk_widget_show_all sera appelé après l'ajout de l'onglet
 }
 
 void Navigateur::ajouterBouton(GtkWidget* conteneur, const std::string& iconName, GCallback callback, gpointer data) {
@@ -383,21 +481,38 @@ GtkWidget* obtenirPremierEnfant(GtkWidget* parent) {
 }
 
 void Navigateur::initialiserBarreNavigation() {
-    barreNavigation = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    barreNavigation = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_widget_set_margin_start(barreNavigation, 5);
+    gtk_widget_set_margin_end(barreNavigation, 5);
+    gtk_widget_set_margin_top(barreNavigation, 5);
+    gtk_widget_set_margin_bottom(barreNavigation, 5);
+    gtk_widget_set_name(barreNavigation, "barre-navigation");
 
-
-    // Ajout des boutons de navigation et d'accès à la page d'accueil
+    // Boutons de navigation (retour, suivant, rafraîchir, accueil)
     ajouterBouton(barreNavigation, "go-previous", G_CALLBACK(on_naviguer_retour), this);
     ajouterBouton(barreNavigation, "go-next", G_CALLBACK(on_naviguer_suivant), this);
     ajouterBouton(barreNavigation, "view-refresh", G_CALLBACK(on_rafraichir_page), this);
-    ajouterBouton(barreNavigation, "go-home", G_CALLBACK(&Navigateur::onAllerAccueil), this);
+    ajouterBouton(barreNavigation, "go-home", G_CALLBACK(on_aller_accueil), this);
+    
+    // Barre d'URL (expandable)
     barreURL = moteurRendu->creerChampTexte(G_CALLBACK(&Navigateur::onBarreURLActivate), this);
     gtk_box_pack_start(GTK_BOX(barreNavigation), barreURL, TRUE, TRUE, 0);
 
-    GtkWidget* boutonFavoris = moteurRendu->creerBouton("star", G_CALLBACK(on_bouton_favoris_clicked), this);
-    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonFavoris, FALSE, FALSE, 0);
+    // Bouton favoris (étoile)
+    boutonEtoile = moteurRendu->creerBouton("☆", G_CALLBACK(on_bouton_favoris_clicked), this);
+    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonEtoile, FALSE, FALSE, 0);
 
-    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
+    // Menu hamburger (trois barres horizontales) pour les options
+    GtkWidget* boutonMenu = moteurRendu->creerBouton("open-menu", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+        auto* navigateur = static_cast<Navigateur*>(user_data);
+        navigateur->afficherMenuOptions();
+    }), this);
+    gtk_box_pack_start(GTK_BOX(barreNavigation), boutonMenu, FALSE, FALSE, 0);
+
+    // Ajouter la barre de navigation au conteneur principal
+    if (conteneurPrincipal && !gtk_widget_get_parent(barreNavigation)) {
+        gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
+    }
 }
 
 
@@ -408,37 +523,76 @@ std::string Navigateur::getURLActuelle() const {
 
 void Navigateur::initialiserBarreFavoris() {
     if (barreFavoris) {
-        gtk_widget_destroy(barreFavoris); // Nettoyage de l'ancienne barre
+        // Retirer du conteneur avant de détruire
+        if (gtk_widget_get_parent(barreFavoris)) {
+            gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(barreFavoris)), barreFavoris);
+        }
+        gtk_widget_destroy(barreFavoris);
+        barreFavoris = nullptr;
     }
 
-    barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    int largeurDispo = gtk_widget_get_allocated_width(conteneurPrincipal);
-    int largeurActuelle = 0;
-    bool boutonAjoute = false;
+    // Créer une barre de favoris minimaliste et élégante
+    barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+    gtk_widget_set_margin_start(barreFavoris, 5);
+    gtk_widget_set_margin_end(barreFavoris, 5);
+    gtk_widget_set_margin_top(barreFavoris, 2);
+    gtk_widget_set_margin_bottom(barreFavoris, 2);
+    
+    // Style minimaliste pour la barre de favoris
+    gtk_widget_set_name(barreFavoris, "barre-favoris");
+
+    // Afficher les favoris (maximum 10 visibles, le reste dans un menu)
+    int maxFavorisVisibles = 10;
+    int compteur = 0;
 
     for (const auto& favori : *favoris) {
-        GtkWidget* boutonFavori = moteurRendu->creerBouton(favori["name"], nullptr, nullptr);
+        if (compteur >= maxFavorisVisibles) {
+            // Bouton "..." pour afficher les favoris restants
+            GtkWidget* boutonPlus = gtk_button_new_with_label("⋯");
+            gtk_widget_set_tooltip_text(boutonPlus, "Plus de favoris");
+            gtk_widget_set_margin_start(boutonPlus, 2);
+            gtk_widget_set_margin_end(boutonPlus, 2);
+            g_signal_connect(boutonPlus, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+                auto* navigateur = static_cast<Navigateur*>(user_data);
+                navigateur->afficherMenuFavorisRestants();
+            }), this);
+            gtk_box_pack_start(GTK_BOX(barreFavoris), boutonPlus, FALSE, FALSE, 0);
+            break;
+        }
+
+        // Créer un bouton de favori avec un style minimaliste
+        std::string nomFavori = favori.value("name", "Favori");
+        // Limiter la longueur du nom pour un design propre
+        if (nomFavori.length() > 15) {
+            nomFavori = nomFavori.substr(0, 12) + "...";
+        }
+        
+        GtkWidget* boutonFavori = gtk_button_new_with_label(nomFavori.c_str());
+        gtk_widget_set_tooltip_text(boutonFavori, favori.value("url", "").c_str());
+        gtk_widget_set_margin_start(boutonFavori, 2);
+        gtk_widget_set_margin_end(boutonFavori, 2);
+        
         auto* data = new std::pair<Navigateur*, std::string>(this, favori["url"]);
         g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
-
-        int largeurBouton = 80; // Largeur estimée d'un bouton
-        if (largeurActuelle + largeurBouton > largeurDispo) {
-            // Ajouter le bouton ">>" pour les favoris restants
-            if (!boutonAjoute) {
-                GtkWidget* boutonPlus = moteurRendu->creerBouton(">>", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-                    auto* navigateur = static_cast<Navigateur*>(user_data);
-                    navigateur->afficherMenuFavorisRestants();
-                }), this);
-                gtk_box_pack_start(GTK_BOX(barreFavoris), boutonPlus, FALSE, FALSE, 5);
-                boutonAjoute = true;
-            }
-        } else {
-            gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 5);
-            largeurActuelle += largeurBouton;
-        }
+        
+        // Style minimaliste pour les boutons de favoris
+        gtk_widget_set_name(boutonFavori, "bouton-favori");
+        
+        gtk_box_pack_start(GTK_BOX(barreFavoris), boutonFavori, FALSE, FALSE, 0);
+        compteur++;
     }
 
-    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 5);
+    // Si aucun favori, afficher un message discret
+    if (favoris->empty()) {
+        GtkWidget* labelVide = gtk_label_new("");
+        gtk_widget_set_opacity(labelVide, 0.0); // Invisible mais prend de l'espace
+        gtk_box_pack_start(GTK_BOX(barreFavoris), labelVide, FALSE, FALSE, 0);
+    }
+
+    // Ajouter la barre de favoris au conteneur principal
+    if (conteneurPrincipal && !gtk_widget_get_parent(barreFavoris)) {
+        gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 0);
+    }
     gtk_widget_show_all(barreFavoris);
 }
 
@@ -488,15 +642,19 @@ void Navigateur::afficherMenuFavorisRestants() {
 void Navigateur::afficherGestionnaireFavoris() {
     if (!gestionnaireFavoris) {
         gestionnaireFavoris = std::make_unique<GestionnaireFavoris>(favoris, [this]() { rafraichirBarreFavoris(); });
-    } else {
-        gtk_widget_show_all(gestionnaireFavoris->getFenetre()); 
     }
+    gestionnaireFavoris->afficherFenetre();
 }
 
 
 void Navigateur::rafraichirBarreFavoris() {
     if (GTK_IS_WIDGET(barreFavoris)) {
+        // Retirer du conteneur avant de détruire
+        if (gtk_widget_get_parent(barreFavoris)) {
+            gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(barreFavoris)), barreFavoris);
+        }
         gtk_widget_destroy(barreFavoris);
+        barreFavoris = nullptr;
     }
 
     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
@@ -515,7 +673,10 @@ void Navigateur::rafraichirBarreFavoris() {
         }
     }
 
-    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 5);
+    // Vérifier que barreFavoris n'est pas déjà dans le conteneur
+    if (conteneurPrincipal && !gtk_widget_get_parent(barreFavoris)) {
+        gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreFavoris, FALSE, FALSE, 5);
+    }
     gtk_widget_show_all(barreFavoris);
 }
 
@@ -556,97 +717,122 @@ void Navigateur::initialiserPopoverFavoris() {
     
     // Ajouter le contenu au popover
     gtk_container_add(GTK_CONTAINER(popoverFavoris), box);
-    gtk_widget_show_all(popoverFavoris);
+    // Ne pas afficher le popover automatiquement - il sera affiché uniquement quand l'utilisateur le demande
+    // gtk_widget_show_all(popoverFavoris); // Retiré pour éviter l'affichage au démarrage
 }
 
 
 void Navigateur::initialiserBarreOnglets() {
-    barreOnglets = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-
-    // Bouton pour changer de groupe
-    GtkWidget* boutonChangerGroupe = gtk_button_new_with_label("Changer Groupe");
-    gtk_box_pack_start(GTK_BOX(barreOnglets), boutonChangerGroupe, FALSE, FALSE, 0);
-
-    // Création du menu contextuel pour les groupes
-    GtkWidget* menuGroupes = gtk_menu_new();
-
-    // Ajouter un champ texte pour nommer le groupe
-    GtkWidget* entryNouveauGroupeItem = gtk_menu_item_new();  // Créer un item vide
-    GtkWidget* entryNouveauGroupe = gtk_entry_new();  // Utilisation correcte d'un GtkEntry pour la saisie
-    gtk_entry_set_placeholder_text(GTK_ENTRY(entryNouveauGroupe), "Nouveau groupe...");
-
-    gtk_container_add(GTK_CONTAINER(entryNouveauGroupeItem), entryNouveauGroupe);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menuGroupes), entryNouveauGroupeItem);
-    gtk_widget_show_all(entryNouveauGroupeItem);
-
-    // Ajouter un bouton pour créer un groupe
-    GtkWidget* boutonAjouterGroupe = gtk_menu_item_new_with_label("Créer Groupe");
-    
-    auto* data = new std::pair<Navigateur*, GtkWidget*>(this, entryNouveauGroupe);
-    
-    g_signal_connect(boutonAjouterGroupe, "activate", G_CALLBACK(on_ajouter_groupe), data);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menuGroupes), boutonAjouterGroupe);
-
-    // Lister les groupes existants dans le menu
-    for (const auto& groupe : gestionnaireOnglets->getGroupes()) {
-        GtkWidget* itemGroupe = gtk_menu_item_new_with_label(groupe.c_str());
-        g_signal_connect(itemGroupe, "activate", G_CALLBACK(on_changer_groupe), this);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menuGroupes), itemGroupe);
+    // Nettoyer l'ancienne barre d'onglets si elle existe
+    if (barreOnglets && GTK_IS_WIDGET(barreOnglets)) {
+        GtkWidget* parent = gtk_widget_get_parent(barreOnglets);
+        if (parent && GTK_IS_CONTAINER(parent)) {
+            gtk_container_remove(GTK_CONTAINER(parent), barreOnglets);
+        }
+        gtk_widget_destroy(barreOnglets);
+        barreOnglets = nullptr;
     }
 
-    // Associer le menu contextuel au bouton
-    g_signal_connect(boutonChangerGroupe, "clicked", G_CALLBACK(+[](GtkWidget* widget, gpointer data) {
-        gtk_menu_popup_at_widget(GTK_MENU(data), widget, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
-    }), menuGroupes);
-
-    // Ajouter le bouton "+"
-    GtkWidget* boutonAjouterOnglet = moteurRendu->creerBouton("list-add", G_CALLBACK(on_ajouter_onglet), this);
-
-
-    gtk_box_pack_start(GTK_BOX(barreOnglets), boutonChangerGroupe, FALSE, FALSE, 0);
+    // Créer une nouvelle barre d'onglets simple et propre
+    barreOnglets = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_widget_set_margin_start(barreOnglets, 5);
+    gtk_widget_set_margin_end(barreOnglets, 5);
+    gtk_widget_set_margin_top(barreOnglets, 5);
+    gtk_widget_set_name(barreOnglets, "barre-onglets");
+    
+    // Bouton simple "+" pour ajouter un nouvel onglet (icône plus simple)
+    GtkWidget* boutonAjouterOnglet = gtk_button_new_with_label("+");
+    gtk_widget_set_tooltip_text(boutonAjouterOnglet, "Nouvel onglet");
+    g_signal_connect(boutonAjouterOnglet, "clicked", G_CALLBACK(on_ajouter_onglet), this);
     gtk_box_pack_start(GTK_BOX(barreOnglets), boutonAjouterOnglet, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreOnglets, FALSE, FALSE, 0);
+    
+    // Ajouter la barre d'onglets au conteneur principal (en haut)
+    if (conteneurPrincipal && !gtk_widget_get_parent(barreOnglets)) {
+        gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreOnglets, FALSE, FALSE, 0);
+    }
 }
 
 void Navigateur::changerGroupeOnglets(const std::string& nomGroupe) {
     gestionnaireOnglets->changerGroupeActif(nomGroupe);
-    gtk_widget_destroy(barreOnglets);
+    // Retirer du conteneur avant de détruire
+    if (barreOnglets && gtk_widget_get_parent(barreOnglets)) {
+        gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(barreOnglets)), barreOnglets);
+    }
+    if (barreOnglets) {
+        gtk_widget_destroy(barreOnglets);
+        barreOnglets = nullptr;
+    }
     initialiserBarreOnglets();
 }
 
 
 void Navigateur::ajouterNouvelOnglet(const std::string &url) {
+    std::cerr << "[DEBUG] Début de ajouterNouvelOnglet(" << url << ")" << std::endl;
     gestionnaireOnglets->ajouterOnglet(gestionnaireOnglets->getGroupeActif(), url);
+    std::cerr << "[DEBUG] Onglet ajouté au gestionnaire" << std::endl;
 
-    GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    GtkWidget *boutonTitre = gtk_button_new_with_label("Nouvel Onglet");
-    gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonTitre, FALSE, FALSE, 0);
+    GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+    gtk_widget_set_margin_start(hboxOnglet, 2);
+    gtk_widget_set_margin_end(hboxOnglet, 2);
+    
+    // Label avec le titre de l'onglet (ou "Nouvel onglet" par défaut)
+    GtkWidget *labelTitre = gtk_label_new("Nouvel onglet");
+    gtk_box_pack_start(GTK_BOX(hboxOnglet), labelTitre, FALSE, FALSE, 5);
 
-
-    GtkWidget *boutonFermer = moteurRendu->creerBouton("window-close", G_CALLBACK(+[](GtkButton *button, Navigateur *n) {
+    // Bouton fermer (X)
+    GtkWidget *boutonFermer = gtk_button_new_with_label("×");
+    gtk_widget_set_tooltip_text(boutonFermer, "Fermer l'onglet");
+    gtk_widget_set_margin_start(boutonFermer, 5);
+    gtk_widget_set_margin_end(boutonFermer, 5);
+    g_signal_connect(boutonFermer, "clicked", G_CALLBACK(+[](GtkButton *button, gpointer user_data) {
+        auto* n = static_cast<Navigateur*>(user_data);
         GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(button));
-        n->supprimerOnglet(parent);
+        if (parent) {
+            n->supprimerOnglet(parent);
+        }
     }), this);
+    gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonFermer, FALSE, FALSE, 0);
 
-    // Correct : lambda avec capture explicite de `this`
+    // Rendre l'onglet cliquable pour changer d'onglet actif
+    gtk_widget_set_events(hboxOnglet, GDK_BUTTON_PRESS_MASK);
     g_signal_connect(hboxOnglet, "button-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEventButton*, gpointer user_data) {
         auto* n = static_cast<Navigateur*>(user_data);
         if (n) {
             n->changerOngletActif(widget);
         }
-        return TRUE; // Pour capturer l'évènement correctemnt on le passe à TRUE
+        return TRUE;
     }), this);
 
-
-    gtk_box_pack_start(GTK_BOX(hboxOnglet), boutonFermer, FALSE, FALSE, 0);
-
-    gtk_box_pack_start(GTK_BOX(barreOnglets), hboxOnglet, FALSE, FALSE, 0);
+    // Ajouter l'onglet à la barre d'onglets
+    if (barreOnglets && !gtk_widget_get_parent(hboxOnglet)) {
+        gtk_box_pack_start(GTK_BOX(barreOnglets), hboxOnglet, FALSE, FALSE, 0);
+    }
     onglets.push_back({url, hboxOnglet});
-    moteurRendu->afficherPage(url);
-    GtkWidget *labelTitre = gtk_label_new("Nouvel Onglet");  // Ajouté juste avant la capture
-    moteurRendu->connecterSignalPageChargee([=](const std::string &titre) {
-        gtk_label_set_text(GTK_LABEL(labelTitre), titre.c_str());
-    });
+    
+    // Afficher l'onglet
+    gtk_widget_show_all(hboxOnglet);
+    
+    // Changer l'onglet actif vers celui-ci
+    changerOngletActif(hboxOnglet);
+    
+    // Afficher la page
+    std::cerr << "[DEBUG] Affichage de la page: " << url << std::endl;
+    if (moteurRendu && !url.empty()) {
+        moteurRendu->afficherPage(url);
+        std::cerr << "[DEBUG] Page affichée" << std::endl;
+    }
+    
+    // Connecter le signal pour mettre à jour le titre de l'onglet quand la page se charge
+    if (moteurRendu) {
+        moteurRendu->connecterSignalPageChargee([labelTitre](const std::string &titre) {
+            if (labelTitre && GTK_IS_LABEL(labelTitre)) {
+                std::string titreCourt = titre.length() > 20 ? titre.substr(0, 17) + "..." : titre;
+                gtk_label_set_text(GTK_LABEL(labelTitre), titreCourt.c_str());
+            }
+        });
+    }
+    
+    std::cerr << "[DEBUG] Fin de ajouterNouvelOnglet()" << std::endl;
 
 
     gtk_widget_show_all(barreOnglets);
@@ -765,15 +951,18 @@ void Navigateur::chargerConfiguration() {
     nlohmann::json config = GestionnaireFichiers::lireJSON(chemin);
     
     std::string cheminFavoris = GestionnaireFichiers::cheminFavorisJSON();
-    nlohmann::json favoris = GestionnaireFichiers::lireJSON(cheminFavoris);
+    nlohmann::json favorisJson = GestionnaireFichiers::lireJSON(cheminFavoris);
 
-    if (favoris.is_null() || favoris.empty()) {
+    if (favorisJson.is_null() || favorisJson.empty()) {
         std::cerr << "Aucun favori trouvé, initialisation avec un favori par défaut." << std::endl;
-        favoris = nlohmann::json::array({
+        favorisJson = nlohmann::json::array({
             {{"name", "DuckDuckGo"}, {"url", "https://www.duckduckgo.com"}, {"tag", "Recherche"}}
         });
-        GestionnaireFichiers::ecrireJSON(cheminFavoris, favoris);
+        GestionnaireFichiers::ecrireJSON(cheminFavoris, favorisJson);
     }
+    
+    // Assigner les favoris au membre de la classe
+    *favoris = favorisJson;
     
     if (config.is_null() || config.empty()) {
         std::cerr << "Fichier de configuration non trouvé ou vide. Création d'une configuration par défaut." << std::endl;
@@ -815,6 +1004,81 @@ void Navigateur::ajouterFavori(const std::string& nom, const std::string& url, c
 }
 
 
+
+void Navigateur::afficherMenuOptions() {
+    GtkWidget* menu = gtk_menu_new();
+    
+    // Option : Gestionnaire de favoris
+    GtkWidget* itemFavoris = gtk_menu_item_new_with_label("Gestionnaire de Favoris");
+    g_signal_connect(itemFavoris, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
+        auto* navigateur = static_cast<Navigateur*>(user_data);
+        navigateur->afficherGestionnaireFavoris();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemFavoris);
+    
+    // Séparateur
+    GtkWidget* separator1 = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator1);
+    
+    // Option : Paramètres
+    GtkWidget* itemParametres = gtk_menu_item_new_with_label("Paramètres");
+    g_signal_connect(itemParametres, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
+        auto* navigateur = static_cast<Navigateur*>(user_data);
+        navigateur->afficherParametres();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemParametres);
+    
+    // Option : À propos
+    GtkWidget* itemAPropos = gtk_menu_item_new_with_label("À propos");
+    g_signal_connect(itemAPropos, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
+        GtkWidget* dialog = gtk_message_dialog_new(
+            nullptr,
+            GTK_DIALOG_MODAL,
+            GTK_MESSAGE_INFO,
+            GTK_BUTTONS_OK,
+            "WeedlyWeb\n\nNavigateur web moderne basé sur WebKit2GTK\nVersion 1.0"
+        );
+        gtk_dialog_run(GTK_DIALOG(dialog));
+        gtk_widget_destroy(dialog);
+    }), nullptr);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemAPropos);
+    
+    // Séparateur
+    GtkWidget* separator2 = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator2);
+    
+    // Option : Quitter
+    GtkWidget* itemQuitter = gtk_menu_item_new_with_label("Quitter");
+    g_signal_connect(itemQuitter, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
+        auto* navigateur = static_cast<Navigateur*>(user_data);
+        navigateur->fermerApplication();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemQuitter);
+    
+    gtk_widget_show_all(menu);
+    
+    // Trouver le bouton menu pour positionner le popup
+    GList* children = gtk_container_get_children(GTK_CONTAINER(barreNavigation));
+    GtkWidget* boutonMenu = nullptr;
+    for (GList* iter = children; iter; iter = iter->next) {
+        GtkWidget* widget = GTK_WIDGET(iter->data);
+        if (GTK_IS_BUTTON(widget)) {
+            const gchar* icon = gtk_button_get_image(GTK_BUTTON(widget)) ? 
+                gtk_image_get_icon_name(GTK_IMAGE(gtk_button_get_image(GTK_BUTTON(widget)))) : nullptr;
+            if (icon && g_strcmp0(icon, "open-menu") == 0) {
+                boutonMenu = widget;
+                break;
+            }
+        }
+    }
+    g_list_free(children);
+    
+    if (boutonMenu) {
+        gtk_menu_popup_at_widget(GTK_MENU(menu), boutonMenu, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, nullptr);
+    } else {
+        gtk_menu_popup_at_pointer(GTK_MENU(menu), nullptr);
+    }
+}
 
 void Navigateur::afficherParametres() {
     std::string cheminParametres = GestionnaireFichiers::cheminParametresHTML();
@@ -858,15 +1122,32 @@ void Navigateur::chargerStyles() {
     GtkCssProvider *provider = gtk_css_provider_new();
     GError *error = NULL;
 
-    std::string cheminCSS = GestionnaireFichiers::cheminStylesCSS();
+    // CSS minimaliste et moderne
+    const gchar* css = 
+        "#barre-favoris { background-color: rgba(240, 240, 240, 0.5); border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding: 4px; } "
+        "#bouton-favori { border: none; border-radius: 4px; padding: 4px 8px; background-color: rgba(255, 255, 255, 0.8); } "
+        "#bouton-favori:hover { background-color: rgba(220, 220, 220, 0.9); } "
+        "#bouton-favori:active { background-color: rgba(200, 200, 200, 1.0); } "
+        "#barre-navigation { padding: 6px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); } "
+        "#barre-onglets { padding: 4px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); } "
+        ".onglet { border-radius: 4px 4px 0 0; padding: 6px 12px; margin: 0 2px; background-color: rgba(240, 240, 240, 0.8); } "
+        ".onglet:hover { background-color: rgba(220, 220, 220, 0.9); } "
+        ".onglet-actif { background-color: rgba(255, 255, 255, 1.0); border-bottom: 2px solid #4A90E2; }";
 
+    gtk_css_provider_load_from_data(provider, css, -1, &error);
+    
     if (error) {
         g_warning("Erreur de chargement du CSS : %s", error->message);
         g_error_free(error);
+        g_object_unref(provider);
+        return;
     }
-    gtk_widget_set_name(barreFavoris, "barre-favoris");
 
-    gtk_css_provider_load_from_data(provider, 
+    // Appliquer le style à l'écran
+    GtkStyleContext *context = gtk_widget_get_style_context(fenetre);
+    gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    
+    // Ne pas libérer le provider ici - il sera libéré automatiquement par GTK 
         "#barre-favoris { background-color: #f0f0f0; padding: 5px; }", 
         -1, nullptr);
 

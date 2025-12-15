@@ -49,6 +49,7 @@ public:
     void ajouterFavori(const std::string& nom, const std::string& url, const std::string& tag);
     void supprimerFavori(GtkWidget* widget);
     void afficherPaletteCommandes();
+    void afficherMenuOptions();
 
     // Méthodes utilitaires
     void chargerURL(const std::string& url);

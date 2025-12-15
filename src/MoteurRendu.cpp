@@ -54,10 +54,9 @@ static void on_load_changed(WebKitWebView* web_view, WebKitLoadEvent load_event,
 
 
 MoteurRendu::MoteurRendu()
-    : vueWeb(WEBKIT_WEB_VIEW(webkit_web_view_new())) {
-    if (!vueWeb) {
-        std::cerr << "Erreur : WebView non initialisé." << std::endl;
-    }
+    : vueWeb(nullptr) {
+    // Ne pas créer la vue Web immédiatement - elle sera créée dans initialiserRendu
+    // après que GTK soit complètement initialisé
 }
 
 
@@ -70,22 +69,64 @@ MoteurRendu::~MoteurRendu() {
 
 
 void MoteurRendu::initialiserRendu(GtkWidget *conteneurPrincipal) {
+    std::cerr << "[DEBUG MoteurRendu] Début de initialiserRendu()" << std::endl;
+    if (!conteneurPrincipal) {
+        std::cerr << "Erreur : conteneurPrincipal est null dans initialiserRendu" << std::endl;
+        return;
+    }
+    
+    // Créer la vue Web seulement maintenant, après que GTK soit complètement initialisé
+    std::cerr << "[DEBUG MoteurRendu] Création de WebView..." << std::endl;
+    if (!vueWeb) {
+        vueWeb = WEBKIT_WEB_VIEW(webkit_web_view_new());
+        std::cerr << "[DEBUG MoteurRendu] webkit_web_view_new() appelé" << std::endl;
+        if (!vueWeb) {
+            std::cerr << "Erreur : Impossible de créer WebView" << std::endl;
+            return;
+        }
+        std::cerr << "[DEBUG MoteurRendu] WebView créé avec succès" << std::endl;
+    }
+    
+    // Vérifier que vueWeb n'est pas déjà dans un conteneur
+    if (gtk_widget_get_parent(GTK_WIDGET(vueWeb))) {
+        gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(GTK_WIDGET(vueWeb))), GTK_WIDGET(vueWeb));
+    }
+    
     GtkWidget *conteneur = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_box_pack_start(GTK_BOX(conteneur), GTK_WIDGET(vueWeb), TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(conteneurPrincipal), conteneur, TRUE, TRUE, 0);
+    if (!conteneur) {
+        std::cerr << "Erreur : Impossible de créer le conteneur" << std::endl;
+        return;
+    }
+    
+    // Vérifier que vueWeb n'a pas déjà un parent avant de l'ajouter
+    if (!gtk_widget_get_parent(GTK_WIDGET(vueWeb))) {
+        gtk_box_pack_start(GTK_BOX(conteneur), GTK_WIDGET(vueWeb), TRUE, TRUE, 0);
+    }
+    
+    // Vérifier que le conteneur n'est pas déjà dans le conteneur principal
+    std::cerr << "[DEBUG MoteurRendu] Ajout du conteneur au conteneur principal..." << std::endl;
+    if (!gtk_widget_get_parent(conteneur)) {
+        gtk_box_pack_start(GTK_BOX(conteneurPrincipal), conteneur, TRUE, TRUE, 0);
+        std::cerr << "[DEBUG MoteurRendu] Conteneur ajouté" << std::endl;
+    }
+    std::cerr << "[DEBUG MoteurRendu] Fin de initialiserRendu()" << std::endl;
 }
 
 void MoteurRendu::afficherPage(const std::string& url) {
+    std::cerr << "[DEBUG MoteurRendu] Début de afficherPage(" << url << ")" << std::endl;
     if (!vueWeb) {
         std::cerr << "Erreur : WebView non initialisé dans afficherPage." << std::endl;
         return;
     }
     std::cout << "Chargement de l'URL : " << url << std::endl;
+    std::cerr << "[DEBUG MoteurRendu] Appel de webkit_web_view_load_uri()..." << std::endl;
     try {
         webkit_web_view_load_uri(vueWeb, url.c_str());
+        std::cerr << "[DEBUG MoteurRendu] webkit_web_view_load_uri() terminé" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Exception lors du chargement de l'URL : " << e.what() << std::endl;
     }
+    std::cerr << "[DEBUG MoteurRendu] Fin de afficherPage()" << std::endl;
 }
 
 
@@ -116,7 +157,10 @@ GtkWidget* MoteurRendu::creerBouton(const std::string& iconName, GCallback callb
     GtkWidget *image = gtk_image_new_from_icon_name(iconName.c_str(), GTK_ICON_SIZE_BUTTON);
     GtkWidget *bouton = gtk_button_new();
     gtk_button_set_image(GTK_BUTTON(bouton), image);
-    g_signal_connect(bouton, "clicked", callback, data);
+    // Connecter le signal seulement si un callback est fourni
+    if (callback) {
+        g_signal_connect(bouton, "clicked", callback, data);
+    }
     return bouton;
 }
 

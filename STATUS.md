@@ -1,7 +1,7 @@
 # 📊 WeedlyWeb - État du Projet
 
-**Dernière mise à jour :** 2025-01-24  
-**Branche active :** dev  
+**Dernière mise à jour :** 2025-12-15  
+**Branche active :** fusion_github_features  
 **Version :** 1.0
 
 ---
@@ -36,13 +36,20 @@
 ## 🚧 En Cours de Développement
 
 ### Interface utilisateur
-- 🔄 Amélioration de la gestion des titres d'onglets
-- 🔄 Optimisation de l'affichage de la barre de favoris
-- 🔄 Refactoring du code commenté dans `Navigateur.cpp` et `Navigateur.h`
+- ✅ Réorganisation complète de l'interface (barres en haut, zone web en bas)
+- ✅ Système d'onglets simplifié avec bouton "+" simple
+- ✅ Menu hamburger (trois barres) pour les options
+- ✅ Design minimaliste et moderne avec CSS
+- ✅ Barre de favoris améliorée (affichage limité à 10, bouton "⋯" pour le reste)
+- ✅ Correction des erreurs de fermeture (GLib-GObject-CRITICAL)
+- ✅ Fenêtre apparaît correctement dans la barre des tâches (XFCE/KDE/GNOME)
 
 ### Infrastructure
-- 🔄 Migration vers Makefile (en cours)
-- 🔄 Amélioration de la structure du projet
+- ✅ Makefile complet avec commandes build, run, debug, valgrind
+- ✅ Script d'installation automatique des dépendances (`install-deps.sh`)
+- ✅ Documentation complète (`INSTALL_DEPENDENCIES.md`, `GUIDE_DEBUG.md`)
+- ✅ Configuration GDB avec `.gdbinit` et commandes personnalisées
+- ✅ Vérification automatique des dépendances (`make check-deps`)
 
 ---
 
@@ -73,15 +80,46 @@
 
 ## 🐛 Bugs Connus
 
-- [ ] Erreur "WebView invalide" dans les logs (occasionnel)
-- [ ] Titre de l'onglet peut rester bloqué sur "Chargement..." dans certains cas
-- [ ] Bouton "+" peut être mal placé après ajout d'un onglet
-- [ ] Crashs possibles lors de la suppression d'onglets pendant le chargement
-- [ ] Titres des onglets ne se mettent pas toujours à jour correctement
+- [ ] Erreur "WebView invalide" dans les logs (occasionnel, non bloquant)
+- [ ] Avertissement "Failed to create GBM buffer" au démarrage (non bloquant, lié au driver graphique)
+- [x] ~~Erreurs GLib-GObject-CRITICAL à la fermeture~~ (Corrigé)
+- [x] ~~Fenêtre n'apparaissait pas dans la barre des tâches~~ (Corrigé)
+- [x] ~~Barre de favoris mal affichée~~ (Corrigé)
 
 ---
 
 ## 🔧 Améliorations Techniques Récentes
+
+### 2025-12-15
+- ✅ Réorganisation complète de l'interface utilisateur
+  - Barres (onglets, navigation, favoris) en haut
+  - Zone de rendu web en bas (expandable)
+- ✅ Système d'onglets simplifié
+  - Bouton "+" simple pour ajouter un onglet
+  - Onglets avec titre et bouton fermer (×)
+  - Suppression du bouton "Changer Groupe" visible au démarrage
+- ✅ Menu hamburger (trois barres) pour les options
+  - Gestionnaire de Favoris
+  - Paramètres
+  - À propos
+  - Quitter
+- ✅ Design minimaliste et moderne
+  - CSS personnalisé pour tous les composants
+  - Barre de favoris avec affichage limité (10 favoris max)
+  - Bouton "⋯" pour les favoris restants
+  - Effets hover/active sur les boutons
+- ✅ Correction des erreurs de fermeture
+  - Nettoyage propre des signaux GTK dans le destructeur
+  - Plus d'erreurs GLib-GObject-CRITICAL
+- ✅ Configuration pour la barre des tâches
+  - Fenêtre apparaît correctement dans XFCE/KDE/GNOME
+  - Propriétés X11 correctement définies
+- ✅ Documentation et outils de développement
+  - `INSTALL_DEPENDENCIES.md` : Guide complet d'installation
+  - `GUIDE_DEBUG.md` : Guide d'utilisation de GDB
+  - `install-deps.sh` : Script d'installation automatique
+  - `.gdbinit` : Configuration GDB avec commandes personnalisées
+  - `make check-deps` : Vérification automatique des dépendances
 
 ### 2025-01-24
 - Création de la branche `dev` à partir de `origin/dev_avant_modif_global_favoris`
@@ -99,12 +137,17 @@
 - **Langage :** C++17
 - **Framework GUI :** GTK+3
 - **Moteur de rendu :** WebKit2GTK 4.1
-- **Gestionnaire de build :** CMake
+- **Gestionnaire de build :** CMake + Makefile
 - **Dépendances principales :**
   - WebKit2GTK 4.1
   - GTK+3
   - cURL
+  - SQLite3
   - nlohmann/json
+- **Outils de développement :**
+  - GDB (débogage)
+  - Valgrind (détection de fuites mémoire)
+  - strace (traçage système)
 
 ---
 

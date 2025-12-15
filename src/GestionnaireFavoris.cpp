@@ -81,7 +81,7 @@ void GestionnaireFavoris::creerInterface() {
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), supprimerItem, FALSE, FALSE, 0);
 
     afficherListeFavoris();
-    gtk_widget_show_all(fenetre);
+    // Ne pas afficher la fenêtre automatiquement - elle sera affichée via afficherFenetre()
 }
 
 void GestionnaireFavoris::afficherListeFavoris() {
