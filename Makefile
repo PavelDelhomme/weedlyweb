@@ -17,7 +17,7 @@ YELLOW := \033[1;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
-.PHONY: all clean build run run-bg run-debug build-debug debug debug-auto valgrind install help monitor test configure watch watch-run watch-basic watch-run-basic dev
+.PHONY: all clean build run run-bg run-debug build-debug debug debug-auto valgrind install help monitor test configure watch watch-run watch-basic watch-run-basic dev install-deps setup
 
 # Cible par défaut
 all: build
@@ -46,9 +46,12 @@ help:
 	@echo "  $(GREEN)make watch-run$(NC)    - Surveille, recompile et relance l'application automatiquement"
 	@echo "  $(GREEN)make dev$(NC)          - Mode développement : surveille, recompile et recharge proprement l'application"
 	@echo ""
-	@echo "$(YELLOW)💡 Pour installer les dépendances :$(NC)"
-	@echo "  $(GREEN)./scripts/install-deps.sh$(NC) - Automatic installation script"
-	@echo "  or see $(GREEN)docs/INSTALL_DEPENDENCIES.md$(NC)"
+	@echo "$(YELLOW)📦 Installation et configuration :$(NC)"
+	@echo "  $(GREEN)make install-deps$(NC)  - Installe les dépendances (détection automatique de la distribution)"
+	@echo "  $(GREEN)make setup$(NC)        - Configuration complète : installe les dépendances et compile"
+	@echo ""
+	@echo "$(YELLOW)💡 Documentation :$(NC)"
+	@echo "  Voir $(GREEN)docs/INSTALL_DEPENDENCIES.md$(NC) pour les instructions détaillées"
 	@echo ""
 
 # Configuration CMake
@@ -201,6 +204,23 @@ monitor:
 test: build
 	@echo "$(YELLOW)🧪 Lancement des tests...$(NC)"
 	@echo "$(YELLOW)⚠️  Aucun test configuré pour le moment$(NC)"
+
+# Installation des dépendances
+install-deps:
+	@echo "$(YELLOW)📦 Installation des dépendances pour $(PROJECT_NAME)...$(NC)"
+	@if [ -f scripts/install-deps.sh ]; then \
+		chmod +x scripts/install-deps.sh; \
+		./scripts/install-deps.sh; \
+	else \
+		echo "$(RED)❌ Script d'installation non trouvé : scripts/install-deps.sh$(NC)"; \
+		echo "$(YELLOW)💡 Voir docs/INSTALL_DEPENDENCIES.md pour l'installation manuelle$(NC)"; \
+		exit 1; \
+	fi
+
+# Configuration complète : installation des dépendances + compilation
+setup: install-deps build
+	@echo "$(GREEN)✅ Configuration complète terminée !$(NC)"
+	@echo "$(YELLOW)💡 Vous pouvez maintenant lancer l'application avec : make run$(NC)"
 
 # Vérification des dépendances
 check-deps:
