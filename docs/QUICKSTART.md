@@ -17,32 +17,29 @@ git clone https://github.com/PavelDelhomme/weedlyweb.git
 cd weedlyweb
 ```
 
-### 2. Installer les dépendances
+### 2. Configuration complète
 
 ```bash
-# Installation automatique (recommandé)
-./scripts/install-deps.sh
-
-# Ou installation manuelle selon votre distribution
-# Arch/Manjaro:
-sudo pacman -S cmake webkit2gtk gtk3 sqlite curl base-devel pkg-config gdk-pixbuf2
-
-# Ubuntu/Debian:
-sudo apt-get update
-sudo apt-get install cmake libwebkit2gtk-4.1-dev libgtk-3-dev libsqlite3-dev libcurl4-openssl-dev build-essential pkg-config libgdk-pixbuf2.0-dev
-
-# Fedora:
-sudo dnf install cmake webkit2gtk4-devel gtk3-devel sqlite-devel libcurl-devel gcc-c++ pkg-config gdk-pixbuf2-devel
+# Tout en une commande (installe les dépendances + compile)
+make setup
 ```
 
-### 3. Compiler et lancer
+**Ou étape par étape :**
+```bash
+# Installer les dépendances
+make install-deps
+
+# Compiler
+make build
+```
+
+### 3. Lancer l'application
 
 ```bash
 # Compiler et lancer en une commande
 make run
 
-# Ou séparément:
-make build
+# Ou si déjà compilé:
 ./build/WeedlyWeb
 ```
 
