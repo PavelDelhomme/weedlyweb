@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 project(WeedlyWeb VERSION 1.0)
 
 # Activer le C++17
@@ -24,6 +24,37 @@ find_package(CURL REQUIRED)
 
 # Rechercher SQLite3
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+
+# Rechercher nlohmann/json (header-only library)
+# Essayer de trouver dans les chemins standards
+find_path(NLOHMANN_JSON_INCLUDE_DIR nlohmann/json.hpp
+    PATHS
+    /usr/include
+    /usr/local/include
+    /opt/homebrew/include
+    ${CMAKE_SOURCE_DIR}/third_party/nlohmann
+)
+
+if(NOT NLOHMANN_JSON_INCLUDE_DIR)
+    # Si pas trouvé, télécharger directement le header
+    message(STATUS "nlohmann/json non trouvé, téléchargement...")
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/nlohmann)
+    file(DOWNLOAD 
+        https://github.com/nlohmann/json/releases/download/v3.11.2/json.hpp
+        ${CMAKE_BINARY_DIR}/nlohmann/json.hpp
+        TIMEOUT 30
+        SHOW_PROGRESS
+    )
+    set(NLOHMANN_JSON_INCLUDE_DIR ${CMAKE_BINARY_DIR})
+    message(STATUS "nlohmann/json téléchargé dans: ${CMAKE_BINARY_DIR}/nlohmann/json.hpp")
+    message(STATUS "Include directory: ${NLOHMANN_JSON_INCLUDE_DIR}")
+endif()
+
+# Ajouter le répertoire d'inclusion pour nlohmann/json
+if(NLOHMANN_JSON_INCLUDE_DIR)
+    include_directories(${NLOHMANN_JSON_INCLUDE_DIR})
+    message(STATUS "nlohmann/json ajouté aux include directories: ${NLOHMANN_JSON_INCLUDE_DIR}")
+endif()
 
 # Ajouter les fichiers sources
 set(SOURCES
@@ -65,7 +96,11 @@ set(HEADERS
 add_executable(WeedlyWeb ${SOURCES} ${HEADERS})
 
 # Inclure les répertoires nécessaires
-target_include_directories(WeedlyWeb PRIVATE ${WEBKIT2GTK_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(WeedlyWeb PRIVATE 
+    ${WEBKIT2GTK_INCLUDE_DIRS} 
+    ${CMAKE_SOURCE_DIR}/include
+    ${NLOHMANN_JSON_INCLUDE_DIR}
+)
 
 # Lier les bibliothèques nécessaires
 target_link_libraries(WeedlyWeb PRIVATE 

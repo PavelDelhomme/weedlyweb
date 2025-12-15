@@ -9,6 +9,8 @@
 #include <gtk/gtk.h>
 #include "MoteurRendu.h"
 #include "GestionnaireHTTP.h"
+#include "GestionnaireMemoire.h"
+#include "MoteurScript.h"
 #include "GestionnaireFavoris.h"
 #include "GestionnaireOnglets.h"
 #include "utils/CommandPalette.h"
@@ -82,6 +84,8 @@ private:
     GtkWidget *barreNavigation;
     GtkWidget *barreFavoris;
     GtkWidget *barreOnglets;
+    GtkWidget *barreURL;
+    GtkWidget *boutonEtoile;
     GtkWidget *entryNomFavori;
     GtkWidget *entryURLFavori;
     GtkWidget *popoverFavoris;
@@ -89,6 +93,8 @@ private:
     // Composants internes
     std::unique_ptr<MoteurRendu> moteurRendu;
     std::unique_ptr<GestionnaireHTTP> gestionnaireHTTP;
+    std::unique_ptr<GestionnaireMemoire> gestionnaireMemoire;
+    std::unique_ptr<MoteurScript> moteurScript;
     std::unique_ptr<GestionnaireFavoris> gestionnaireFavoris;
     std::unique_ptr<GestionnaireOnglets> gestionnaireOnglets;
     std::unique_ptr<CommandPalette> commandPalette;
@@ -103,8 +109,16 @@ private:
 
     // Méthodes internes
     void initialiserBarreNavigation();
+    void initialiserBarreOnglets();
     void initialiserPopoverFavoris();
     void mettreEnSurbrillance(GtkWidget* ongletWidget);
+    void ajouterBouton(GtkWidget* conteneur, const std::string& iconName, GCallback callback, gpointer data);
+    void mettreAJourBoutonEtoile();
+    void executerScriptDansOngletActif(const std::string& script);
+    void afficherMessage(const std::string& message);
+    void afficherParametres();
+    void creerMenuContextuel(GtkWidget* bouton);
+    static void onBoutonFavorisClicked(GtkButton* button, gpointer user_data);
 
     // Gestionnaire de mémoire et signaux
     void configurerRaccourcisClavier(); 

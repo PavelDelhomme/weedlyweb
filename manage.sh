@@ -14,14 +14,36 @@ clean_project() {
     echo "✔️ Nettoyage terminé."
 }
 
+# Fonction de nettoyage forcé
+clean_force() {
+    echo "🧹 Nettoyage forcé (supprime tout le cache CMake)..."
+    rm -rf "$BUILD_DIR" "$ROOT_DIR/CMakeCache.txt" "$ROOT_DIR/CMakeFiles" "$ROOT_DIR/Makefile" "$ROOT_DIR/cmake_install.cmake"
+    # Nettoyer aussi les fichiers cachés dans build/
+    find "$BUILD_DIR" -name "CMakeCache.txt" -delete 2>/dev/null || true
+    find "$BUILD_DIR" -name "CMakeFiles" -type d -exec rm -rf {} + 2>/dev/null || true
+    echo "✔️ Nettoyage forcé terminé."
+}
+
 # Fonction de configuration et de build
 build_project() {
     echo "🔨 Construction du projet..."
     mkdir -p "$BUILD_DIR"
+    
+    # Vérifier et nettoyer le cache CMake si nécessaire
+    if [ -f "$BUILD_DIR/CMakeCache.txt" ]; then
+        CACHED_SOURCE=$(grep "^CMAKE_HOME_DIRECTORY:" "$BUILD_DIR/CMakeCache.txt" 2>/dev/null | cut -d= -f2 | tr -d '\n')
+        CURRENT_SOURCE=$(pwd)
+        if [ "$CACHED_SOURCE" != "$CURRENT_SOURCE" ] && [ -n "$CACHED_SOURCE" ]; then
+            echo "⚠️  Cache CMake détecté depuis un autre répertoire, nettoyage..."
+            rm -rf "$BUILD_DIR/CMakeCache.txt" "$BUILD_DIR/CMakeFiles"
+        fi
+    fi
+    
     cd "$BUILD_DIR" || exit 1
     echo "⚙️ Génération des fichiers de build avec CMake..."
     if ! cmake ..; then
         echo "❌ Erreur lors de la configuration CMake."
+        echo "💡 Essayez: ./manage.sh clean build"
         exit 1
     fi
     echo "⚒️ Compilation avec make..."
@@ -138,6 +160,7 @@ fi
 for arg in "$@"; do
     case $arg in
         clean) clean_project ;;
+        clean-force) clean_force ;;
         build) build_project ;;
         run_project) run_project ;;
         debug) debug_project ;;

@@ -43,6 +43,15 @@ help:
 configure:
 	@echo "$(YELLOW)⚙️  Configuration CMake...$(NC)"
 	@mkdir -p $(BUILD_DIR)
+	@# Nettoyer le cache CMake si le répertoire source a changé
+	@if [ -f $(BUILD_DIR)/CMakeCache.txt ]; then \
+		CACHED_SOURCE=$$(grep "^CMAKE_HOME_DIRECTORY:" $(BUILD_DIR)/CMakeCache.txt 2>/dev/null | cut -d= -f2 | tr -d '\n'); \
+		CURRENT_SOURCE=$$(pwd); \
+		if [ "$$CACHED_SOURCE" != "$$CURRENT_SOURCE" ] && [ -n "$$CACHED_SOURCE" ]; then \
+			echo "$(YELLOW)⚠️  Cache CMake détecté depuis un autre répertoire, nettoyage...$(NC)"; \
+			rm -rf $(BUILD_DIR)/CMakeCache.txt $(BUILD_DIR)/CMakeFiles; \
+		fi; \
+	fi
 	@cd $(BUILD_DIR) && $(CMAKE) ..
 	@echo "$(GREEN)✔️  Configuration terminée$(NC)"
 
@@ -58,9 +67,15 @@ clean:
 	@rm -rf $(BUILD_DIR)
 	@rm -f $(SOURCE_DIR)/CMakeCache.txt
 	@rm -rf $(SOURCE_DIR)/CMakeFiles
-	@rm -f $(SOURCE_DIR)/Makefile
+	@# Ne pas supprimer le Makefile principal du projet
 	@rm -f $(SOURCE_DIR)/cmake_install.cmake
 	@echo "$(GREEN)✔️  Nettoyage terminé$(NC)"
+
+# Nettoyage forcé (nettoie même si build/ existe)
+clean-force: clean
+	@echo "$(YELLOW)🧹 Nettoyage forcé...$(NC)"
+	@rm -rf $(BUILD_DIR)/* $(BUILD_DIR)/.* 2>/dev/null || true
+	@echo "$(GREEN)✔️  Nettoyage forcé terminé$(NC)"
 
 # Rebuild complet
 rebuild: clean build

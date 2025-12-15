@@ -2,6 +2,7 @@
 #include "GestionnaireFichiers.h"
 #include "GestionnaireMemoire.h"
 #include "GestionnaireFavoris.h"
+#include "Utils.h"
 #include "utils/CommandPalette.h"
 #include "utils/RequestInterceptor.h"
 #include "database/Database.h"
@@ -17,17 +18,11 @@ std::string obtenirCheminAbsolu(const std::string& fichier) {
 static void delete_user_data(gpointer user_data, GClosure*) {
     delete static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
 }
-static void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data);
 
-static void on_modifier_favori(GtkWidget*, gpointer user_data);
-
-static void on_supprimer_favori(GtkWidget*, gpointer user_data) {
-    auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
-    if (data && data->first) {
-        data->first->supprimerFavori(data->second);
-    }
-    delete data;
-}
+// Déclarations pour Utils.cpp (non-static pour être accessibles depuis Utils.cpp)
+void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data);
+void on_modifier_favori(GtkWidget*, gpointer user_data);
+void on_supprimer_favori(GtkWidget*, gpointer user_data);
 
 static gboolean on_favori_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
     if (event->type == GDK_BUTTON_PRESS && event->button == GDK_BUTTON_SECONDARY) {
@@ -41,11 +36,21 @@ static gboolean on_favori_button_press(GtkWidget *widget, GdkEventButton *event,
 
 
 
-static void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data) {
+// Définition pour Utils.cpp
+void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data) {
     auto* data = static_cast<std::pair<Navigateur*, std::string>*>(user_data);
     if (!data) return;
     if (data->first) {
         data->first->ajouterNouvelOnglet(data->second);
+    }
+    delete data;
+}
+
+// Définition pour Utils.cpp
+void on_supprimer_favori(GtkWidget* widget, gpointer user_data) {
+    auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
+    if (data && data->first) {
+        data->first->supprimerFavori(data->second);
     }
     delete data;
 }
@@ -106,12 +111,10 @@ static void on_ouvrir_nouvel_onglet(GtkWidget*, gpointer user_data) {
     data->first->ajouterNouvelOnglet(data->second);
     delete data;
 }
-// Fonction statique pour gérer la modification du favori
-static void on_modifier_favori(GtkWidget*, gpointer user_data) {
-    auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
-    const gchar* nomFavori = gtk_button_get_label(GTK_BUTTON(data->second));
-    const gchar* nouvelURL = "https://nouveau-lien.com"; // Exemple - récupéré via une boîte de dialogue
-    data->first->gestionnaireFavoris->modifierFavori(nomFavori, nouvelURL);
+// Définition pour Utils.cpp
+void on_modifier_favori(GtkWidget*, gpointer user_data) {
+    auto* navigateur = static_cast<Navigateur*>(user_data);
+    navigateur->afficherGestionnaireFavoris();
 }
 
 
@@ -191,11 +194,11 @@ static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
             std::string titre = navigateur->getTitreActuel();
             
             // Pré-remplir les champs du formulaire
-            gtk_entry_set_text(GTK_ENTRY(navigateur->entryNomFavori), titre.c_str());
-            gtk_entry_set_text(GTK_ENTRY(navigateur->entryURLFavori), url.c_str());
+            gtk_entry_set_text(GTK_ENTRY(navigateur->getEntryNomFavori()), titre.c_str());
+            gtk_entry_set_text(GTK_ENTRY(navigateur->getEntryURLFavori()), url.c_str());
 
             // Afficher le formulaire d'ajout de favori (popover)
-            gtk_popover_popup(GTK_POPOVER(navigateur->popoverFavoris));
+            gtk_popover_popup(GTK_POPOVER(navigateur->getPopoverFavoris()));
             return TRUE;
         }
         
@@ -349,7 +352,7 @@ void Navigateur::construireInterface() {
         }
     });
 
-    GtkWidget* boutonEtoile = moteurRendu->creerBouton("☆", G_CALLBACK(Navigateur::onBoutonFavorisClicked), this);
+    boutonEtoile = moteurRendu->creerBouton("☆", G_CALLBACK(on_bouton_favoris_clicked), this);
     gtk_box_pack_start(GTK_BOX(barreNavigation), boutonEtoile, FALSE, FALSE, 0);
 
     initialiserPopoverFavoris();
@@ -391,7 +394,7 @@ void Navigateur::initialiserBarreNavigation() {
     barreURL = moteurRendu->creerChampTexte(G_CALLBACK(&Navigateur::onBarreURLActivate), this);
     gtk_box_pack_start(GTK_BOX(barreNavigation), barreURL, TRUE, TRUE, 0);
 
-    GtkWidget* boutonFavoris = moteurRendu->creerBouton("star", G_CALLBACK(Navigateur::onBoutonFavorisClicked), this);
+    GtkWidget* boutonFavoris = moteurRendu->creerBouton("star", G_CALLBACK(on_bouton_favoris_clicked), this);
     gtk_box_pack_start(GTK_BOX(barreNavigation), boutonFavoris, FALSE, FALSE, 0);
 
     gtk_box_pack_start(GTK_BOX(conteneurPrincipal), barreNavigation, FALSE, FALSE, 0);
@@ -498,7 +501,7 @@ void Navigateur::rafraichirBarreFavoris() {
 
     barreFavoris = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
-    if (favoris.empty()) {
+    if (favoris->empty()) {
         GtkWidget *labelAucunFavori = gtk_label_new("Aucun favori");
         gtk_box_pack_start(GTK_BOX(barreFavoris), labelAucunFavori, FALSE, FALSE, 5);
     }
@@ -520,7 +523,7 @@ void Navigateur::rafraichirBarreFavoris() {
 void Navigateur::mettreAJourBoutonEtoile() {
     std::string urlActuelle = getURLActuelle();
     bool estDejaFavori = std::any_of(
-        favoris.begin(), favoris.end(),
+        favoris->begin(), favoris->end(),
         [&urlActuelle](const nlohmann::json& favori) { return favori["url"] == urlActuelle; }
     );
 
@@ -780,7 +783,9 @@ void Navigateur::chargerConfiguration() {
 
     if (config.contains("onglets")) {
         for (const auto& onglet : config["onglets"]) {
-            ajouterNouvelOnglet(onglet["url"], onglet["etat"]);
+            if (onglet.contains("url")) {
+                ajouterNouvelOnglet(onglet["url"]);
+            }
         }
     }
     
@@ -794,12 +799,12 @@ void Navigateur::sauvegarderConfiguration() {
     config["homepage"] = homepage;
     GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminConfigJSON(), config);
     
-    GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminFavorisJSON(), favoris);
+    GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminFavorisJSON(), *favoris);
     std::cout << "Favoris sauvegardés automatiquement !" << std::endl;
     
     nlohmann::json ongletsJson = nlohmann::json::array();
     for (const auto& [url, widget] : onglets) {
-        ongletsJson.push_back({{"url", url}, {"etat", widget->etat}});
+        ongletsJson.push_back({{"url", url}});
     }
     config["onglets"] = ongletsJson;
 }
@@ -958,9 +963,10 @@ void Navigateur::onBoutonFavorisClicked(GtkButton* button, gpointer user_data) {
     gtk_entry_set_text(GTK_ENTRY(navigateur->entryURLFavori), urlActuelle.c_str());
 
     // Vérifier si l'URL est déjà dans les favoris
+    auto favoris = navigateur->getFavoris();
     bool estDejaFavori = std::any_of(
-        navigateur->getFavoris().begin(),
-        navigateur->getFavoris().end(),
+        favoris->begin(),
+        favoris->end(),
         [&urlActuelle](const nlohmann::json& favori) { return favori["url"] == urlActuelle; }
     );
 
@@ -972,16 +978,8 @@ void Navigateur::onBoutonFavorisClicked(GtkButton* button, gpointer user_data) {
     } else {
         // Sinon, ouvrir le popover pour permettre l'ajout
         gtk_button_set_label(button, "☆");  // Étoile vide
-        gtk_popover_popup(GTK_POPOVER(navigateur->popoverFavoris));
+        gtk_popover_popup(GTK_POPOVER(navigateur->getPopoverFavoris()));
     }
-}
-
-void Navigateur::on_supprimer_favori(GtkWidget* widget, gpointer user_data) {
-    auto* data = static_cast<std::pair<Navigateur*, GtkWidget*>*>(user_data);
-    if (data && data->first) {
-        data->first->supprimerFavori(data->second);
-    }
-    delete data;
 }
 
 void Navigateur::afficherPaletteCommandes() {
@@ -991,25 +989,4 @@ void Navigateur::afficherPaletteCommandes() {
     }
 }
 
-void Navigateur::hibernerOnglet(const std::string& url) {
-    for (auto& onglet : onglets) {
-        if (onglet.first == url) {
-            onglet.second->etat = "hiberné";
-            gestionnaireMemoire->hibernerOnglet(onglet.first);
-            std::cout << "Onglet mis en veille : " << url << std::endl;
-            return;
-        }
-    }
-    std::cerr << "Onglet introuvable pour mise en veille : " << url << std::endl;
-}
-void Navigateur::reactiverOnglet(const std::string& url) {
-    for (auto& onglet : onglets) {
-        if (onglet.first == url && onglet.second->etat == "hiberné") {
-            onglet.second->etat = "actif";
-            moteurRendu->afficherPage(url);
-            std::cout << "Onglet réactivé : " << url << std::endl;
-            return;
-        }
-    }
-    std::cerr << "Onglet introuvable pour réactivation : " << url << std::endl;
-}
+// Fonctions hibernerOnglet et reactiverOnglet supprimées - gérées par GestionnaireMemoire

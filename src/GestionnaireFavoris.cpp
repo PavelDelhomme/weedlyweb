@@ -1,4 +1,5 @@
 #include "GestionnaireFavoris.h"
+#include "Utils.h"
 #include "Utils.h"  // Ajout de l'import
 #include "GestionnaireFichiers.h"
 #include <iostream>
@@ -110,7 +111,7 @@ void GestionnaireFavoris::afficherListeFavoris() {
 }
 
 void GestionnaireFavoris::ajouterDossier(const std::string& nom) {
-    favoris.push_back({{"name", nom}, {"type", "folder"}, {"children", nlohmann::json::array()}});
+    (*favoris).push_back({{"name", nom}, {"type", "folder"}, {"children", nlohmann::json::array()}});
     if (favoris->empty()) {
 
     }
@@ -140,7 +141,12 @@ void GestionnaireFavoris::ajouterFavori(const std::string& nom, const std::strin
 }
 
 void GestionnaireFavoris::supprimerFavori(const std::string& nomFavori) {
-    if (Utils::supprimerFavoriDeListe(favoris, nomFavori)) {
+    auto it = std::remove_if(favoris->begin(), favoris->end(), [&](const nlohmann::json& favori) {
+        return favori.contains("name") && favori["name"] == nomFavori;
+    });
+    
+    if (it != favoris->end()) {
+        favoris->erase(it, favoris->end());
         sauvegarderModifications();
         afficherMessageConsole("Favori supprimé avec succès : " + nomFavori);
         callbackRafraichir();  // Rafraîchir l'interface pour refléter les changements
@@ -215,7 +221,7 @@ void GestionnaireFavoris::creerMenuContextuelFavori(GtkWidget* bouton, const std
 
 
 void GestionnaireFavoris::sauvegarderModifications() {
-    GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminFavorisJSON(), favoris);
+    GestionnaireFichiers::ecrireJSON(GestionnaireFichiers::cheminFavorisJSON(), *favoris);
 }
 
 void GestionnaireFavoris::rafraichirInterface() {

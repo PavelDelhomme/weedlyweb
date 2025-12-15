@@ -1,6 +1,12 @@
 #include "Utils.h"
+#include "GestionnaireFichiers.h"
 #include "Navigateur.h"
 #include <iostream>
+
+// Déclarations forward pour les fonctions (définies dans Navigateur.cpp)
+void on_ouvrir_nouvel_onglet_safe(GtkWidget*, gpointer user_data);
+void on_modifier_favori(GtkWidget*, gpointer user_data);
+void on_supprimer_favori(GtkWidget*, gpointer user_data);
 
 void connecterSignal(GtkWidget* widget, const char* signal, GCallback callback, gpointer data) {
     g_signal_connect(widget, signal, callback, data);
