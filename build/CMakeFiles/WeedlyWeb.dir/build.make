@@ -86,150 +86,136 @@ CMakeFiles/WeedlyWeb.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/main.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/main.cpp -o CMakeFiles/WeedlyWeb.dir/src/main.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Navigateur.cpp
-CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Navigateur.cpp
+CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/browser/Browser.cpp
+CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/browser/Browser.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Navigateur.cpp > CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/browser/Browser.cpp > CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Navigateur.cpp -o CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/browser/Browser.cpp -o CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurRendu.cpp
-CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurRendu.cpp
+CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/rendering/RenderingEngine.cpp
+CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/rendering/RenderingEngine.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurRendu.cpp > CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/rendering/RenderingEngine.cpp > CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurRendu.cpp -o CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/rendering/RenderingEngine.cpp -o CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurScript.cpp
-CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurScript.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FavoritesManager.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FavoritesManager.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurScript.cpp > CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FavoritesManager.cpp > CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurScript.cpp -o CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FavoritesManager.cpp -o CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireHTTP.cpp
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireHTTP.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/TabsManager.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/TabsManager.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireHTTP.cpp > CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/TabsManager.cpp > CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireHTTP.cpp -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/TabsManager.cpp -o CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireMemoire.cpp
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireMemoire.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/HTTPManager.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/HTTPManager.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireMemoire.cpp > CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/HTTPManager.cpp > CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireMemoire.cpp -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/HTTPManager.cpp -o CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFichiers.cpp
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFichiers.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/MemoryManager.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/MemoryManager.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFichiers.cpp > CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/MemoryManager.cpp > CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFichiers.cpp -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/MemoryManager.cpp -o CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFavoris.cpp
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFavoris.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FileManager.cpp
+CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FileManager.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFavoris.cpp > CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FileManager.cpp > CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFavoris.cpp -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FileManager.cpp -o CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireOnglets.cpp
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireOnglets.cpp
+CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/engine/ScriptEngine.cpp
+CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/engine/ScriptEngine.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireOnglets.cpp > CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/engine/ScriptEngine.cpp > CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireOnglets.cpp -o CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/engine/ScriptEngine.cpp -o CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.s
 
-CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Utils.cpp
-CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Utils.cpp
+CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/Utils.cpp
+CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/Utils.cpp
 
-CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Utils.cpp > CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.i
+CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/Utils.cpp > CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.i
 
-CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Utils.cpp -o CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.s
-
-CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
-CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp
-CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp
-
-CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp > CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.i
-
-CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp -o CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.s
+CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/Utils.cpp -o CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.s
 
 CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
 CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/CVEAnalyzer.cpp
 CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/CVEAnalyzer.cpp
 
 CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.i: cmake_force
@@ -243,7 +229,7 @@ CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.s: cmake_force
 CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
 CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/CommandPalette.cpp
 CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/CommandPalette.cpp
 
 CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.i: cmake_force
@@ -257,7 +243,7 @@ CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.s: cmake_force
 CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
 CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/RequestInterceptor.cpp
 CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/RequestInterceptor.cpp
 
 CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.i: cmake_force
@@ -268,40 +254,54 @@ CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/RequestInterceptor.cpp -o CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.s
 
+CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o: CMakeFiles/WeedlyWeb.dir/flags.make
+CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp
+CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o -MF CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o.d -o CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o -c /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp
+
+CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp > CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.i
+
+CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp -o CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.s
+
 # Object files for target WeedlyWeb
 WeedlyWeb_OBJECTS = \
 "CMakeFiles/WeedlyWeb.dir/src/main.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o" \
 "CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o" \
 "CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o" \
-"CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o"
+"CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o" \
+"CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o"
 
 # External object files for target WeedlyWeb
 WeedlyWeb_EXTERNAL_OBJECTS =
 
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/main.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o
-WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o
+WeedlyWeb: CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/build.make
 WeedlyWeb: CMakeFiles/WeedlyWeb.dir/compiler_depend.ts
 WeedlyWeb: /usr/lib/libcurl.so
@@ -312,9 +312,12 @@ WeedlyWeb: CMakeFiles/WeedlyWeb.dir/link.txt
 	/usr/bin/cmake -E copy_directory /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets
 	/usr/bin/cmake -E make_directory /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/settings
 	/usr/bin/cmake -E make_directory /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/datas
+	/usr/bin/cmake -E make_directory /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/icons
 	/usr/bin/cmake -E copy /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/settings/config.json /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/settings/config.json
-	/usr/bin/cmake -E copy /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/datas/favoris.json /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/datas/favoris.json
+	/usr/bin/cmake -E copy /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/datas/favorites.json /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/datas/favorites.json
 	/usr/bin/cmake -E copy /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/styles/style.css /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/styles/style.css
+	/usr/bin/cmake -E copy_if_different /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/icons/weedlyweb.svg /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/icons/weedlyweb.svg
+	/usr/bin/cmake -E copy_if_different /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/icons/weedlyweb.png /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/icons/weedlyweb.png
 
 # Rule to build all files generated by this target.
 CMakeFiles/WeedlyWeb.dir/build: WeedlyWeb

@@ -1,12 +1,12 @@
 
-// void Navigateur::creerMenuContextuel(GtkWidget* bouton) {
+// void Browser::createContextMenu(GtkWidget* button) {
 //     GtkWidget *menu = gtk_menu_new();
 
 //     GtkWidget *ajouterItem = gtk_menu_item_new_with_label("Ajouter Favori");
 //     // g_signal_connect(ajouterItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-//     //     auto* navigateur = static_cast<Navigateur*>(user_data);
-//     //     std::string urlActuelle = navigateur->getURLActuelle();
-//     //     navigateur->ajouterFavori("Nouveau Favori", urlActuelle, "Général");
+//     //     auto* navigateur = static_cast<Browser*>(user_data);
+//     //     std::string urlActuelle = navigateur->getCurrentURL();
+//     //     navigateur->addFavorite("Nouveau Favori", urlActuelle, "Général");
 //     // }), this);
 //     g_signal_connect(ajouterItem, "activate", G_CALLBACK(on_ajouter_favori_menu), this);
 //     gtk_menu_shell_append(GTK_MENU_SHELL(menu), ajouterItem);
@@ -22,7 +22,7 @@
 
 //     // // Correction ici : changement de nom de la variable
 //     // GtkWidget *ajouterItem2 = gtk_menu_item_new_with_label("Confirmer l'ajout");
-//     // auto* data = new std::pair<Navigateur*, std::pair<GtkWidget*, GtkWidget*>>(this, {entryNom, entryURL});
+//     // auto* data = new std::pair<Browser*, std::pair<GtkWidget*, GtkWidget*>>(this, {entryNom, entryURL});
 //     // g_signal_connect(ajouterItem2, "activate", G_CALLBACK(on_ajouter_favori_menu), data);
 
 //     // gtk_menu_shell_append(GTK_MENU_SHELL(menu), ajouterItem2);
@@ -30,10 +30,10 @@
 
 
 //     gtk_widget_show_all(menu);
-//     gtk_menu_popup_at_widget(GTK_MENU(menu), bouton, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
+//     gtk_menu_popup_at_widget(GTK_MENU(menu), button, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
 // }
 
-// void Navigateur::creerMenuContextuel(GtkWidget* bouton) {
+// void Browser::createContextMenu(GtkWidget* button) {
 //     GtkWidget *menu = gtk_menu_new();
 
 //     // Créer un item pour ajouter un favori
@@ -41,41 +41,41 @@
 //     g_signal_connect(ajouterItem, "activate", G_CALLBACK(on_ajouter_favori_menu), this);
 //     gtk_menu_shell_append(GTK_MENU_SHELL(menu), ajouterItem);
 
-//     // Créer un item pour gérer les favoris
+//     // Créer un item pour gérer les favorites
 //     GtkWidget *gererFavorisItem = gtk_menu_item_new_with_label("Gérer les Favoris");
 //     g_signal_connect(gererFavorisItem, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-//         auto* navigateur = static_cast<Navigateur*>(user_data);
-//         navigateur->afficherGestionnaireFavoris();
+//         auto* navigateur = static_cast<Browser*>(user_data);
+//         navigateur->showFavoritesManager();
 //     }), this);
 //     gtk_menu_shell_append(GTK_MENU_SHELL(menu), gererFavorisItem);
 
 //     // Afficher le menu correctement
 //     gtk_widget_show_all(menu);
-//     gtk_menu_popup_at_widget(GTK_MENU(menu), bouton, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
+//     gtk_menu_popup_at_widget(GTK_MENU(menu), button, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
 // }
 
 
-    // ajouterBouton(barreNavigation, "go-previous", G_CALLBACK(&Navigateur::onNaviguerRetourWrapper), this);
-    // ajouterBouton(barreNavigation, "go-next", G_CALLBACK(&Navigateur::onNaviguerSuivantWrapper), this);
-    // ajouterBouton(barreNavigation, "view-refresh", G_CALLBACK(&Navigateur::onRafraichirPageWrapper), this);
-    // ajouterBouton(barreNavigation, "go-previous", G_CALLBACK(on_naviguer_retour), this);
-    // ajouterBouton(barreNavigation, "go-next", G_CALLBACK(on_naviguer_suivant), this);
-    // ajouterBouton(barreNavigation, "view-refresh", G_CALLBACK(on_rafraichir_page), this);
-    //gtk_widget_show_all(conteneurPrincipal);
-        // GtkWidget *boutonAjouterOnglet = moteurRendu->creerBouton("list-add", G_CALLBACK(+[](GtkButton *, Navigateur *n) {
-    //     n->ajouterNouvelOnglet(n->homepage);
+    // addButton(navigationBar, "go-previous", G_CALLBACK(&Browser::onNavigateBackWrapper), this);
+    // addButton(navigationBar, "go-next", G_CALLBACK(&Browser::onNavigateForwardWrapper), this);
+    // addButton(navigationBar, "view-refresh", G_CALLBACK(&Browser::onRefreshPageWrapper), this);
+    // addButton(navigationBar, "go-previous", G_CALLBACK(on_naviguer_retour), this);
+    // addButton(navigationBar, "go-next", G_CALLBACK(on_naviguer_suivant), this);
+    // addButton(navigationBar, "view-refresh", G_CALLBACK(on_rafraichir_page), this);
+    //gtk_widget_show_all(mainContainer);
+        // GtkWidget *boutonAjouterOnglet = renderingEngine->createButton("list-add", G_CALLBACK(+[](GtkButton *, Browser *n) {
+    //     n->addNewTab(n->homepage);
     // }), this);
-    // void Navigateur::onBarreURLActivate(GtkEntry *entry, Navigateur *n) {
-//     n->chargerURL(gtk_entry_get_text(entry));
+    // void Browser::onUrlBarActivate(GtkEntry *entry, Browser *n) {
+//     n->loadURL(gtk_entry_get_text(entry));
 // }
-    // auto *navigateur = static_cast<Navigateur*>(user_data);
+    // auto *navigateur = static_cast<Browser*>(user_data);
     // if (navigateur) {
-    //     navigateur->onNaviguerSuivant(button, navigateur);
+    //     navigateur->onNavigateForward(button, navigateur);
     // }
-    // auto *navigateur = static_cast<Navigateur*>(user_data);
+    // auto *navigateur = static_cast<Browser*>(user_data);
     // if (navigateur) {
-    //     navigateur->onRafraichirPage(button, navigateur);
+    //     navigateur->onRefreshPage(button, navigateur);
     // }
 
-    // ajouterBouton(barreNavigation, "go-home", G_CALLBACK(&Navigateur::onAllerAccueil), this);
+    // addButton(navigationBar, "go-home", G_CALLBACK(&Browser::onGoHome), this);
 

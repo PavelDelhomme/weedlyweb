@@ -1,5 +1,5 @@
 #include "utils/CommandPalette.h"
-#include "MoteurRendu.h"
+#include "rendering/RenderingEngine.h"
 #include "utils/RequestInterceptor.h"
 #include "utils/CVEAnalyzer.h"
 #include <iostream>
@@ -20,8 +20,12 @@ CommandPalette::CommandPalette()
 }
 
 CommandPalette::~CommandPalette() {
-    if (m_window) {
-        gtk_widget_destroy(m_window);
+    if (m_window && GTK_IS_WIDGET(m_window)) {
+        // Vérifier que le widget n'est pas déjà en cours de destruction
+        if (!gtk_widget_in_destruction(m_window)) {
+            gtk_widget_destroy(m_window);
+        }
+        m_window = nullptr;
     }
 }
 
@@ -75,7 +79,14 @@ void CommandPalette::showPalette(GtkWindow* parent) {
 void CommandPalette::filterCommands(const std::string& text) {
     // Vider la liste
     GList* children = gtk_container_get_children(GTK_CONTAINER(m_listBox));
-    g_list_free_full(children, (GDestroyNotify)gtk_widget_destroy);
+    // Détruire les children de manière sécurisée
+    for (GList* iter = children; iter != nullptr; iter = iter->next) {
+        GtkWidget* child = GTK_WIDGET(iter->data);
+        if (child && GTK_IS_WIDGET(child) && !gtk_widget_in_destruction(child)) {
+            gtk_widget_destroy(child);
+        }
+    }
+    g_list_free(children);
     
     // Filtrer les commandes
     for (const auto& cmd : m_commands) {
@@ -105,8 +116,8 @@ void CommandPalette::processCommand(const std::string& command) {
     } else if (command == "/analyze") {
         showRequestAnalyzer();
     } else if (command == "/history") {
-        // TODO: Afficher l'historique
-        std::cout << "Affichage de l'historique..." << std::endl;
+        // TODO: Afficher l'history
+        std::cout << "Affichage de l'history..." << std::endl;
     } else if (command == "/clear cache") {
         // TODO: Vider le cache
         std::cout << "Vidage du cache..." << std::endl;
@@ -176,7 +187,7 @@ gboolean CommandPalette::onDeleteEvent(GtkWidget* widget, GdkEvent* event, gpoin
     return TRUE;
 }
 
-void CommandPalette::setCurrentWebView(MoteurRendu* webView) {
+void CommandPalette::setCurrentWebView(RenderingEngine* webView) {
     m_currentWebView = webView;
 }
 

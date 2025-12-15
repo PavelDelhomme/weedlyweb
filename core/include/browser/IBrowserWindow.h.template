@@ -1,0 +1,44 @@
+#ifndef IBROWSERWINDOW_H
+#define IBROWSERWINDOW_H
+
+#include "IWebView.h"
+#include <string>
+#include <memory>
+
+namespace weedlyweb::core::browser {
+
+/**
+ * Interface abstraite pour une fenêtre de navigateur
+ * Permet l'implémentation multi-plateforme
+ */
+class IBrowserWindow {
+public:
+    virtual ~IBrowserWindow() = default;
+
+    // Gestion de la fenêtre
+    virtual void show() = 0;
+    virtual void hide() = 0;
+    virtual void close() = 0;
+    virtual bool isVisible() const = 0;
+
+    // Propriétés
+    virtual void setTitle(const std::string& title) = 0;
+    virtual std::string getTitle() const = 0;
+    virtual void setSize(int width, int height) = 0;
+    virtual void getSize(int& width, int& height) const = 0;
+
+    // Accès à la vue web
+    virtual IWebView* getWebView() = 0;
+    virtual const IWebView* getWebView() const = 0;
+
+    // Barres d'interface
+    virtual void setUrlBarText(const std::string& url) = 0;
+    virtual std::string getUrlBarText() const = 0;
+    virtual void showFavoritesBar(bool show) = 0;
+    virtual void showTabBar(bool show) = 0;
+};
+
+} // namespace weedlyweb::core::browser
+
+#endif // IBROWSERWINDOW_H
+

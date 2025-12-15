@@ -1,5 +1,5 @@
 # Makefile pour WeedlyWeb
-# Navigateur web en C++ avec WebKit2GTK
+# Browser web en C++ avec WebKit2GTK
 
 # Variables
 PROJECT_NAME := WeedlyWeb
@@ -17,7 +17,7 @@ YELLOW := \033[1;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
-.PHONY: all clean build run run-bg run-debug build-debug debug debug-auto valgrind install help monitor test configure
+.PHONY: all clean build run run-bg run-debug build-debug debug debug-auto valgrind install help monitor test configure watch watch-run watch-basic watch-run-basic dev
 
 # Cible par défaut
 all: build
@@ -42,10 +42,13 @@ help:
 	@echo "  $(GREEN)make configure$(NC)   - Configure CMake uniquement"
 	@echo "  $(GREEN)make rebuild$(NC)      - Nettoie et recompile"
 	@echo "  $(GREEN)make check-deps$(NC)   - Vérifie les dépendances installées"
+	@echo "  $(GREEN)make watch$(NC)        - Surveille les fichiers et recompile automatiquement"
+	@echo "  $(GREEN)make watch-run$(NC)    - Surveille, recompile et relance l'application automatiquement"
+	@echo "  $(GREEN)make dev$(NC)          - Mode développement : surveille, recompile et recharge proprement l'application"
 	@echo ""
 	@echo "$(YELLOW)💡 Pour installer les dépendances :$(NC)"
-	@echo "  $(GREEN)./install-deps.sh$(NC) - Script d'installation automatique"
-	@echo "  ou consultez $(GREEN)INSTALL_DEPENDENCIES.md$(NC)"
+	@echo "  $(GREEN)./scripts/install-deps.sh$(NC) - Automatic installation script"
+	@echo "  or see $(GREEN)docs/INSTALL_DEPENDENCIES.md$(NC)"
 	@echo ""
 
 # Configuration CMake
@@ -142,7 +145,9 @@ debug: build-debug
 # Exécution en mode debug (sans GDB, juste avec symboles)
 run-debug: build-debug
 	@echo "$(GREEN)🚀 Lancement de $(PROJECT_NAME) en mode debug...$(NC)"
+	@echo "$(YELLOW)💡 Appuyez sur Ctrl+C pour arrêter proprement$(NC)"
 	@if [ -f $(EXECUTABLE) ]; then \
+		trap 'echo ""; echo "$(YELLOW)🛑 Arrêt de l'application...$(NC)"; exit 0' INT TERM; \
 		$(EXECUTABLE); \
 	else \
 		echo "$(RED)❌ Erreur : L'exécutable n'existe pas$(NC)"; \
@@ -233,3 +238,217 @@ info:
 		echo "$(YELLOW)⚠️  Exécutable non trouvé (compiler avec 'make build')$(NC)"; \
 	fi
 
+# Mode watch : surveille les fichiers et recompile automatiquement
+watch:
+	@echo "$(YELLOW)👀 Mode watch activé - Surveillance des fichiers source...$(NC)"
+	@echo "$(YELLOW)💡 Appuyez sur Ctrl+C pour arrêter$(NC)"
+	@echo ""
+	@if command -v inotifywait >/dev/null 2>&1; then \
+		echo "$(GREEN)✅ Utilisation de inotifywait$(NC)"; \
+		while true; do \
+			inotifywait -r -e modify,create,delete,move --include='\.(cpp|h|hpp|cmake|CMakeLists\.txt)$$' \
+				--exclude='$(BUILD_DIR)' \
+				$(SOURCE_DIR)/src $(SOURCE_DIR)/include $(SOURCE_DIR)/CMakeLists.txt 2>/dev/null && \
+			echo "$(YELLOW)📝 Fichier modifié, recompilation...$(NC)" && \
+			$(MAKE) build || true; \
+		done; \
+	elif command -v entr >/dev/null 2>&1; then \
+		echo "$(GREEN)✅ Utilisation de entr$(NC)"; \
+		find $(SOURCE_DIR)/src $(SOURCE_DIR)/include -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
+		entr -p $(MAKE) build; \
+	else \
+		echo "$(RED)❌ Aucun outil de surveillance trouvé (inotifywait ou entr)$(NC)"; \
+		echo "$(YELLOW)💡 Installation : sudo pacman -S inotify-tools$(NC)"; \
+		echo "$(YELLOW)🔄 Utilisation d'un mode de surveillance basique (polling)...$(NC)"; \
+		$(MAKE) watch-basic; \
+	fi
+
+# Mode watch basique (polling) si inotifywait/entr ne sont pas disponibles
+watch-basic:
+	@echo "$(YELLOW)👀 Mode watch basique (polling toutes les 2 secondes)...$(NC)"
+	@echo "$(YELLOW)💡 Appuyez sur Ctrl+C pour arrêter$(NC)"
+	@echo "$(YELLOW)💡 Pour un meilleur mode watch, installez: sudo pacman -S inotify-tools$(NC)"
+	@echo ""
+	@LAST_BUILD=$$(find $(SOURCE_DIR)/src $(SOURCE_DIR)/include -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -exec stat -c %Y {} \; | sort -n | tail -1); \
+	while true; do \
+		CURRENT_BUILD=$$(find $(SOURCE_DIR)/src $(SOURCE_DIR)/include -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -exec stat -c %Y {} \; | sort -n | tail -1); \
+		if [ "$$CURRENT_BUILD" != "$$LAST_BUILD" ]; then \
+			echo "$(YELLOW)📝 Fichier modifié, recompilation...$(NC)"; \
+			$(MAKE) build || true; \
+			LAST_BUILD=$$CURRENT_BUILD; \
+		fi; \
+		sleep 2; \
+	done
+
+# Mode watch avec relance automatique de l'application
+watch-run:
+	@echo "$(YELLOW)👀 Mode watch avec relance automatique activé...$(NC)"
+	@echo "$(YELLOW)💡 Appuyez sur Ctrl+C pour arrêter$(NC)"
+	@echo ""
+	@PID_FILE=/tmp/weedlyweb-watch.pid; \
+	trap 'kill $$(cat $$PID_FILE 2>/dev/null) 2>/dev/null; rm -f $$PID_FILE; exit' INT TERM; \
+	if command -v inotifywait >/dev/null 2>&1; then \
+		echo "$(GREEN)✅ Utilisation de inotifywait$(NC)"; \
+		$(MAKE) build && $(MAKE) run-bg; \
+		echo $$! > $$PID_FILE; \
+		while true; do \
+			inotifywait -r -e modify,create,delete,move --include='\.(cpp|h|hpp|cmake|CMakeLists\.txt)$$' \
+				--exclude='$(BUILD_DIR)' \
+				$(SOURCE_DIR)/src $(SOURCE_DIR)/include $(SOURCE_DIR)/CMakeLists.txt 2>/dev/null && \
+			echo "$(YELLOW)📝 Fichier modifié, recompilation...$(NC)" && \
+			kill $$(cat $$PID_FILE 2>/dev/null) 2>/dev/null; \
+			$(MAKE) build && \
+			echo "$(GREEN)✅ Recompilation terminée, relance de l'application...$(NC)" && \
+			$(MAKE) run-bg; \
+			echo $$! > $$PID_FILE; \
+		done; \
+	elif command -v entr >/dev/null 2>&1; then \
+		echo "$(GREEN)✅ Utilisation de entr$(NC)"; \
+		$(MAKE) build && $(MAKE) run-bg; \
+		echo $$! > $$PID_FILE; \
+		find $(SOURCE_DIR)/src $(SOURCE_DIR)/include -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
+		entr -p sh -c 'kill $$(cat /tmp/weedlyweb-watch.pid 2>/dev/null) 2>/dev/null; make build && make run-bg; echo $$! > /tmp/weedlyweb-watch.pid'; \
+	else \
+		echo "$(RED)❌ Aucun outil de surveillance trouvé (inotifywait ou entr)$(NC)"; \
+		echo "$(YELLOW)💡 Installation : sudo pacman -S inotify-tools$(NC)"; \
+		echo "$(YELLOW)🔄 Utilisation d'un mode de surveillance basique (polling)...$(NC)"; \
+		$(MAKE) watch-run-basic; \
+	fi
+
+# Mode watch-run basique (polling)
+watch-run-basic:
+	@echo "$(YELLOW)👀 Mode watch-run basique (polling toutes les 2 secondes)...$(NC)"
+	@echo "$(YELLOW)💡 Appuyez sur Ctrl+C pour arrêter$(NC)"
+	@echo "$(YELLOW)💡 Pour un meilleur mode watch, installez: sudo pacman -S inotify-tools$(NC)"
+	@echo ""
+	@PID_FILE=/tmp/weedlyweb-watch.pid; \
+	trap 'kill $$(cat $$PID_FILE 2>/dev/null) 2>/dev/null; rm -f $$PID_FILE; exit' INT TERM; \
+	$(MAKE) build && $(MAKE) run-bg; \
+	echo $$! > $$PID_FILE; \
+	LAST_BUILD=$$(find $(SOURCE_DIR)/src $(SOURCE_DIR)/include -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -exec stat -c %Y {} \; | sort -n | tail -1); \
+	while true; do \
+		CURRENT_BUILD=$$(find $(SOURCE_DIR)/src $(SOURCE_DIR)/include -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -exec stat -c %Y {} \; | sort -n | tail -1); \
+		if [ "$$CURRENT_BUILD" != "$$LAST_BUILD" ]; then \
+			echo "$(YELLOW)📝 Fichier modifié, recompilation...$(NC)"; \
+			kill $$(cat $$PID_FILE 2>/dev/null) 2>/dev/null; \
+			$(MAKE) build && \
+			echo "$(GREEN)✅ Recompilation terminée, relance de l'application...$(NC)" && \
+			$(MAKE) run-bg; \
+			echo $$! > $$PID_FILE; \
+			LAST_BUILD=$$CURRENT_BUILD; \
+		fi; \
+		sleep 2; \
+	done
+
+
+# Mode développement : surveille, recompile et recharge proprement l'application
+dev:
+	@PID_FILE=/tmp/weedlyweb-dev.pid; \
+	WATCH_PID=; \
+	cleanup() { \
+		echo ""; \
+		echo "$(YELLOW)🛑 Arrêt en cours...$(NC)"; \
+		if [ -n "$$WATCH_PID" ] && kill -0 $$WATCH_PID 2>/dev/null; then \
+			kill -TERM $$WATCH_PID 2>/dev/null; \
+			kill -KILL $$WATCH_PID 2>/dev/null || true; \
+		fi; \
+		if [ -f $$PID_FILE ]; then \
+			PID=$$(cat $$PID_FILE 2>/dev/null); \
+			if [ -n "$$PID" ] && kill -0 $$PID 2>/dev/null; then \
+				echo "$(YELLOW)🛑 Arrêt propre de l'application (PID: $$PID)...$(NC)"; \
+				kill -TERM $$PID 2>/dev/null; \
+				sleep 0.5; \
+				if kill -0 $$PID 2>/dev/null; then \
+					kill -KILL $$PID 2>/dev/null || true; \
+				fi; \
+			fi; \
+			rm -f $$PID_FILE; \
+		fi; \
+		pkill -f "$(EXECUTABLE)" 2>/dev/null || true; \
+		echo "$(GREEN)✅ Arrêt terminé$(NC)"; \
+	}; \
+	trap 'cleanup; exit 0' INT TERM EXIT; \
+	echo "$(GREEN)🚀 Mode développement activé$(NC)"; \
+	echo "$(YELLOW)💡 L'application sera automatiquement recompilée et rechargée à chaque modification$(NC)"; \
+	echo "$(YELLOW)💡 Appuyez sur Ctrl+C pour arrêter proprement$(NC)"; \
+	echo ""; \
+	launch_app() { \
+		if [ -f $$PID_FILE ]; then \
+			PID=$$(cat $$PID_FILE 2>/dev/null); \
+			if [ -n "$$PID" ] && kill -0 $$PID 2>/dev/null; then \
+				echo "$(YELLOW)🛑 Arrêt de l'ancienne instance...$(NC)"; \
+				kill -TERM $$PID 2>/dev/null; \
+				sleep 0.3; \
+				kill -KILL $$PID 2>/dev/null || true; \
+				rm -f $$PID_FILE; \
+			fi; \
+		fi; \
+		echo "$(YELLOW)🔨 Compilation...$(NC)"; \
+		if $(MAKE) build >/dev/null 2>&1; then \
+			echo "$(GREEN)✅ Compilation réussie$(NC)"; \
+			echo "$(YELLOW)🚀 Lancement de l'application...$(NC)"; \
+			$(EXECUTABLE) >/dev/null 2>&1 & \
+			APP_PID=$$!; \
+			echo $$APP_PID > $$PID_FILE; \
+			sleep 0.5; \
+			if kill -0 $$APP_PID 2>/dev/null; then \
+				echo "$(GREEN)✅ Application lancée (PID: $$APP_PID)$(NC)"; \
+			else \
+				echo "$(RED)❌ L'application n'a pas pu démarrer$(NC)"; \
+				rm -f $$PID_FILE; \
+			fi; \
+		else \
+			echo "$(RED)❌ Erreur de compilation$(NC)"; \
+		fi; \
+	}; \
+	launch_app; \
+	if command -v inotifywait >/dev/null 2>&1; then \
+		echo "$(GREEN)✅ Utilisation de inotifywait (surveillance en temps réel)$(NC)"; \
+		(inotifywait -r -m -q -e modify,create,delete,move --include='\.(cpp|h|hpp|cmake|CMakeLists\.txt)$$' \
+			--exclude='$(BUILD_DIR)' \
+			$(SOURCE_DIR)/src $(SOURCE_DIR)/include $(SOURCE_DIR)/CMakeLists.txt 2>/dev/null | \
+		while read -r event; do \
+			echo ""; \
+			echo "$(YELLOW)📝 Modification détectée...$(NC)"; \
+			launch_app; \
+		done) & \
+		WATCH_PID=$$!; \
+		wait $$WATCH_PID; \
+	elif command -v entr >/dev/null 2>&1; then \
+		echo "$(GREEN)✅ Utilisation de entr (surveillance en temps réel)$(NC)"; \
+		(find $(SOURCE_DIR)/src $(SOURCE_DIR)/include $(SOURCE_DIR)/CMakeLists.txt -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "CMakeLists.txt" | \
+		entr -p sh -c 'echo ""; echo "$(YELLOW)📝 Modification détectée...$(NC)"; \
+			PID_FILE=/tmp/weedlyweb-dev.pid; \
+			if [ -f $$PID_FILE ]; then \
+				PID=$$(cat $$PID_FILE 2>/dev/null); \
+				if [ -n "$$PID" ] && kill -0 $$PID 2>/dev/null; then \
+					kill -TERM $$PID 2>/dev/null; \
+					sleep 0.3; \
+					kill -KILL $$PID 2>/dev/null || true; \
+				fi; \
+			fi; \
+			make build >/dev/null 2>&1 && \
+			$(EXECUTABLE) >/dev/null 2>&1 & \
+			echo $$! > $$PID_FILE; \
+			sleep 0.5; \
+			if kill -0 $$(cat $$PID_FILE) 2>/dev/null; then \
+				echo "$(GREEN)✅ Application rechargée$(NC)"; \
+			fi') & \
+		WATCH_PID=$$!; \
+		wait $$WATCH_PID; \
+	else \
+		echo "$(YELLOW)⚠️  inotifywait/entr non trouvés, utilisation du mode polling$(NC)"; \
+		echo "$(YELLOW)💡 Pour une meilleure expérience : sudo pacman -S inotify-tools$(NC)"; \
+		echo ""; \
+		LAST_BUILD=$$(find $(SOURCE_DIR)/src $(SOURCE_DIR)/include -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -exec stat -c %Y {} \; | sort -n | tail -1); \
+		while true; do \
+			CURRENT_BUILD=$$(find $(SOURCE_DIR)/src $(SOURCE_DIR)/include -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -exec stat -c %Y {} \; | sort -n | tail -1); \
+			if [ "$$CURRENT_BUILD" != "$$LAST_BUILD" ]; then \
+				echo ""; \
+				echo "$(YELLOW)📝 Modification détectée...$(NC)"; \
+				launch_app; \
+				LAST_BUILD=$$CURRENT_BUILD; \
+			fi; \
+			sleep 1; \
+		done; \
+	fi

@@ -6,7 +6,7 @@
 #include <vector>
 #include <functional>
 
-class MoteurRendu;
+class RenderingEngine;
 class RequestInterceptor;
 
 class CommandPalette {
@@ -15,7 +15,7 @@ public:
     ~CommandPalette();
     
     void showPalette(GtkWindow* parent);
-    void setCurrentWebView(MoteurRendu* webView);
+    void setCurrentWebView(RenderingEngine* webView);
     void setRequestInterceptor(RequestInterceptor* interceptor);
     void processCommand(const std::string& command);
     
@@ -26,7 +26,7 @@ private:
     GtkWidget* m_window;
     GtkWidget* m_entry;
     GtkWidget* m_listBox;
-    MoteurRendu* m_currentWebView;
+    RenderingEngine* m_currentWebView;
     RequestInterceptor* m_requestInterceptor;
     std::vector<std::string> m_commands;
     

@@ -30,7 +30,7 @@ public:
     bool initDatabase();
     bool migrateFromJson();
     
-    // Opérations sur les favoris
+    // Opérations sur les favorites
     bool addFavorite(const std::string& title, const std::string& url, 
                      const std::string& iconPath = "", int parentId = 0);
     bool deleteFavorite(int id);

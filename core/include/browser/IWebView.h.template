@@ -1,0 +1,46 @@
+#ifndef IWEBVIEW_H
+#define IWEBVIEW_H
+
+#include <string>
+#include <functional>
+
+namespace weedlyweb::core::browser {
+
+/**
+ * Interface abstraite pour une vue web
+ * Permet l'implémentation multi-plateforme (GTK, Qt, Android)
+ */
+class IWebView {
+public:
+    virtual ~IWebView() = default;
+
+    // Chargement de page
+    virtual void loadUrl(const std::string& url) = 0;
+    virtual void reload() = 0;
+    virtual void stop() = 0;
+
+    // Navigation
+    virtual void goBack() = 0;
+    virtual void goForward() = 0;
+    virtual bool canGoBack() const = 0;
+    virtual bool canGoForward() const = 0;
+
+    // Informations
+    virtual std::string getCurrentUrl() const = 0;
+    virtual std::string getTitle() const = 0;
+    virtual bool isLoading() const = 0;
+
+    // Signaux/Callbacks
+    virtual void onUrlChanged(std::function<void(const std::string&)> callback) = 0;
+    virtual void onTitleChanged(std::function<void(const std::string&)> callback) = 0;
+    virtual void onLoadFinished(std::function<void()> callback) = 0;
+    virtual void onLoadStarted(std::function<void()> callback) = 0;
+
+    // Scripts
+    virtual void executeJavaScript(const std::string& script) = 0;
+};
+
+} // namespace weedlyweb::core::browser
+
+#endif // IWEBVIEW_H
+

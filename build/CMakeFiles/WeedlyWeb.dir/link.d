@@ -3,19 +3,19 @@ WeedlyWeb: \
   /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o \
   /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o \
   CMakeFiles/WeedlyWeb.dir/src/main.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o \
-  CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o \
   CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o \
   CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o \
   CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o \
+  CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o \
   /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libwebkit2gtk-4.1.so \
   /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgtk-3.so \
   /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk-3.so \
@@ -265,31 +265,31 @@ WeedlyWeb: \
 
 CMakeFiles/WeedlyWeb.dir/src/main.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o:
 
-CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o:
-
-CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
+CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o:
 
 CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o:
 
 CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o:
 
 CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o:
+
+CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libwebkit2gtk-4.1.so:
 

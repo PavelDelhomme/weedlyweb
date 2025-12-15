@@ -194,7 +194,7 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o: \
  /usr/include/c++/15.2.1/codecvt /usr/include/c++/15.2.1/bits/fs_dir.h \
  /usr/include/c++/15.2.1/bits/fs_ops.h /usr/include/c++/15.2.1/cstring \
  /usr/include/string.h /usr/include/strings.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/GestionnaireFichiers.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/managers/FileManager.h \
  /usr/include/c++/15.2.1/fstream \
  /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/basic_file.h \
  /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/c++io.h \

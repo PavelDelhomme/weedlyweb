@@ -8,20 +8,20 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFavoris.cpp" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireFavoris.cpp.o.d"
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireFichiers.cpp" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireFichiers.cpp.o.d"
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireHTTP.cpp" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireHTTP.cpp.o.d"
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireMemoire.cpp" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireMemoire.cpp.o.d"
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/GestionnaireOnglets.cpp" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/GestionnaireOnglets.cpp.o.d"
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurRendu.cpp" "CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/MoteurRendu.cpp.o.d"
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/MoteurScript.cpp" "CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/MoteurScript.cpp.o.d"
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Navigateur.cpp" "CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/Navigateur.cpp.o.d"
-  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/Utils.cpp" "CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/browser/Browser.cpp" "CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o.d"
   "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/database/Database.cpp" "CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/engine/ScriptEngine.cpp" "CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o.d"
   "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/main.cpp" "CMakeFiles/WeedlyWeb.dir/src/main.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/main.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FavoritesManager.cpp" "CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/FileManager.cpp" "CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/HTTPManager.cpp" "CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/MemoryManager.cpp" "CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/TabsManager.cpp" "CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/rendering/RenderingEngine.cpp" "CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o.d"
   "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/CVEAnalyzer.cpp" "CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o.d"
   "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/CommandPalette.cpp" "CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o.d"
   "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/RequestInterceptor.cpp" "CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o.d"
+  "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/Utils.cpp" "CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o" "gcc" "CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o.d"
   "" "WeedlyWeb" "gcc" "CMakeFiles/WeedlyWeb.dir/link.d"
   )
 

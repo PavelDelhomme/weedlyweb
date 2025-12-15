@@ -5,7 +5,7 @@
 #include <ctime>
 #include <sstream>
 #include <iomanip>
-#include "GestionnaireFichiers.h"
+#include "managers/FileManager.h"
 
 Database::Database() : m_db(nullptr) {
     m_dbPath = getDatabasePath();
@@ -55,7 +55,7 @@ bool Database::initDatabase() {
         return false;
     }
     
-    // Créer la table des favoris
+    // Créer la table des favorites
     const char* createFavoritesTable = R"(
         CREATE TABLE IF NOT EXISTS favorites (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +75,7 @@ bool Database::initDatabase() {
         return false;
     }
     
-    // Créer la table d'historique
+    // Créer la table d'history
     const char* createHistoryTable = R"(
         CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -319,7 +319,7 @@ std::vector<std::pair<std::string, std::string>> Database::getHistory(int limit)
 }
 
 bool Database::migrateFromJson() {
-    // TODO: Implémenter la migration depuis favoris.json
+    // TODO: Implémenter la migration depuis favorites.json
     return true;
 }
 

@@ -889,16 +889,16 @@ CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o: \
  /usr/include/c++/15.2.1/bits/sstream.tcc /usr/include/c++/15.2.1/codecvt \
  /usr/include/c++/15.2.1/bits/fs_dir.h \
  /usr/include/c++/15.2.1/bits/fs_ops.h /usr/include/c++/15.2.1/any \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/GestionnaireFichiers.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/FileManager.h \
  /usr/include/c++/15.2.1/fstream \
  /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/basic_file.h \
  /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/c++io.h \
  /usr/include/c++/15.2.1/bits/fstream.tcc \
  /usr/include/c++/15.2.1/iostream \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/Navigateur.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/Browser.h \
  /usr/include/c++/15.2.1/set /usr/include/c++/15.2.1/bits/stl_set.h \
  /usr/include/c++/15.2.1/bits/stl_multiset.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/MoteurRendu.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/RenderingEngine.h \
  /usr/include/webkitgtk-4.1/webkit2/webkit2.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitApplicationInfo.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitDefines.h \
@@ -1031,7 +1031,7 @@ CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o: \
  /usr/include/webkitgtk-4.1/webkit/WebKitWebExtensionMatchPattern.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitWebsiteDataAccessPermissionRequest.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitAutocleanups.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/GestionnaireHTTP.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/HTTPManager.h \
  /usr/include/curl/curl.h /usr/include/curl/curlver.h \
  /usr/include/curl/system.h /usr/include/sys/socket.h \
  /usr/include/bits/types/struct_iovec.h /usr/include/bits/socket.h \
@@ -1043,10 +1043,10 @@ CMakeFiles/WeedlyWeb.dir/src/Utils.cpp.o: \
  /usr/include/curl/curl.h /usr/include/curl/urlapi.h \
  /usr/include/curl/options.h /usr/include/curl/header.h \
  /usr/include/curl/websockets.h /usr/include/curl/mprintf.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/GestionnaireMemoire.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/MoteurScript.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/GestionnaireFavoris.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/GestionnaireOnglets.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/MemoryManager.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/ScriptEngine.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/FavoritesManager.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/TabsManager.h \
  /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/utils/CommandPalette.h \
  /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/utils/RequestInterceptor.h \
  /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/database/Database.h \

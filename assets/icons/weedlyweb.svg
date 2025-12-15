@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5BA3F5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E6DA4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="128" cy="128" r="120" fill="url(#bgGradient)" stroke="#2E6DA4" stroke-width="4"/>
+  
+  <!-- Globe/Earth representation -->
+  <circle cx="128" cy="128" r="80" fill="url(#globeGradient)" opacity="0.9"/>
+  
+  <!-- Latitude lines -->
+  <ellipse cx="128" cy="100" rx="60" ry="20" fill="none" stroke="#E8F4F8" stroke-width="2" opacity="0.6"/>
+  <ellipse cx="128" cy="128" rx="70" ry="25" fill="none" stroke="#E8F4F8" stroke-width="2" opacity="0.6"/>
+  <ellipse cx="128" cy="156" rx="60" ry="20" fill="none" stroke="#E8F4F8" stroke-width="2" opacity="0.6"/>
+  
+  <!-- Longitude lines -->
+  <path d="M 68 128 Q 128 100 188 128" fill="none" stroke="#E8F4F8" stroke-width="2" opacity="0.6"/>
+  <path d="M 68 128 Q 128 156 188 128" fill="none" stroke="#E8F4F8" stroke-width="2" opacity="0.6"/>
+  
+  <!-- Web/Network nodes -->
+  <circle cx="100" cy="100" r="6" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="156" cy="100" r="6" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="100" cy="156" r="6" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="156" cy="156" r="6" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="128" cy="128" r="8" fill="#FFFFFF" opacity="0.95"/>
+  
+  <!-- Connection lines between nodes -->
+  <line x1="100" y1="100" x2="128" y2="128" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/>
+  <line x1="156" y1="100" x2="128" y2="128" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/>
+  <line x1="100" y1="156" x2="128" y2="128" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/>
+  <line x1="156" y1="156" x2="128" y2="128" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/>
+  
+  <!-- Browser window frame -->
+  <rect x="60" y="60" width="136" height="136" rx="8" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.8"/>
+  <rect x="68" y="68" width="120" height="20" rx="2" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="78" cy="78" r="4" fill="#FF5F57"/>
+  <circle cx="98" cy="78" r="4" fill="#FFBD2E"/>
+  <circle cx="118" cy="78" r="4" fill="#28CA42"/>
+</svg>
+

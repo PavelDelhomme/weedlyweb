@@ -56,40 +56,50 @@ if(NLOHMANN_JSON_INCLUDE_DIR)
     message(STATUS "nlohmann/json ajouté aux include directories: ${NLOHMANN_JSON_INCLUDE_DIR}")
 endif()
 
-# Ajouter les fichiers sources
+# Add source files (organized by category)
 set(SOURCES
     src/main.cpp
-    src/Navigateur.cpp
-    src/MoteurRendu.cpp
-    src/MoteurScript.cpp
-    src/GestionnaireHTTP.cpp
-    src/GestionnaireMemoire.cpp
-    src/GestionnaireFichiers.cpp
-    src/GestionnaireFavoris.cpp
-    src/GestionnaireOnglets.cpp
-    src/Utils.cpp
-    # Nouveaux modules
-    src/database/Database.cpp
+    # Browser core
+    src/browser/Browser.cpp
+    # Rendering engine
+    src/rendering/RenderingEngine.cpp
+    # Managers
+    src/managers/FavoritesManager.cpp
+    src/managers/TabsManager.cpp
+    src/managers/HTTPManager.cpp
+    src/managers/MemoryManager.cpp
+    src/managers/FileManager.cpp
+    # Script engine
+    src/engine/ScriptEngine.cpp
+    # Utils
+    src/utils/Utils.cpp
     src/utils/CVEAnalyzer.cpp
     src/utils/CommandPalette.cpp
     src/utils/RequestInterceptor.cpp
+    # Database
+    src/database/Database.cpp
 )
 
 set(HEADERS
-    include/Navigateur.h
-    include/MoteurRendu.h
-    include/GestionnaireFavoris.h
-    include/GestionnaireHTTP.h
-    include/GestionnaireMemoire.h
-    include/GestionnaireFichiers.h
-    include/MoteurScript.h
-    include/GestionnaireOnglets.h
-    include/Utils.h
-    # Nouveaux modules
-    include/database/Database.h
+    # Browser core
+    include/browser/Browser.h
+    # Rendering engine
+    include/rendering/RenderingEngine.h
+    # Managers
+    include/managers/FavoritesManager.h
+    include/managers/TabsManager.h
+    include/managers/HTTPManager.h
+    include/managers/MemoryManager.h
+    include/managers/FileManager.h
+    # Script engine
+    include/engine/ScriptEngine.h
+    # Utils
+    include/utils/Utils.h
     include/utils/CVEAnalyzer.h
     include/utils/CommandPalette.h
     include/utils/RequestInterceptor.h
+    # Database
+    include/database/Database.h
 )
 
 # Créer l'exécutable
@@ -98,6 +108,7 @@ add_executable(WeedlyWeb ${SOURCES} ${HEADERS})
 # Inclure les répertoires nécessaires
 target_include_directories(WeedlyWeb PRIVATE 
     ${WEBKIT2GTK_INCLUDE_DIRS} 
+    ${GDK_PIXBUF_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/include
     ${NLOHMANN_JSON_INCLUDE_DIR}
 )
@@ -106,6 +117,7 @@ target_include_directories(WeedlyWeb PRIVATE
 target_link_libraries(WeedlyWeb PRIVATE 
     ${WEBKIT2GTK_LIBRARIES} 
     gtk-3 
+    ${GDK_PIXBUF_LIBRARIES}
     ${CURL_LIBRARIES}
     ${SQLITE3_LIBRARIES}
 )
@@ -115,9 +127,12 @@ add_custom_command(TARGET WeedlyWeb POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/assets
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/settings
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/datas
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/icons
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/settings/config.json ${CMAKE_BINARY_DIR}/assets/settings/config.json
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/datas/favoris.json ${CMAKE_BINARY_DIR}/assets/datas/favoris.json
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/datas/favorites.json ${CMAKE_BINARY_DIR}/assets/datas/favorites.json
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/styles/style.css ${CMAKE_BINARY_DIR}/assets/styles/style.css
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/assets/icons/weedlyweb.svg ${CMAKE_BINARY_DIR}/assets/icons/weedlyweb.svg
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/assets/icons/weedlyweb.png ${CMAKE_BINARY_DIR}/assets/icons/weedlyweb.png
 )
 
 # Définir le répertoire d'installation
@@ -129,7 +144,7 @@ install(TARGETS WeedlyWeb RUNTIME DESTINATION ${INSTALL_DIR}/bin)
 # Installer les fichiers de configuration et styles
 install(FILES
     ${CMAKE_SOURCE_DIR}/assets/settings/config.json
-    ${CMAKE_SOURCE_DIR}/assets/datas/favoris.json
+    ${CMAKE_SOURCE_DIR}/assets/datas/favorites.json
     ${CMAKE_SOURCE_DIR}/assets/styles/style.css
     DESTINATION ${INSTALL_DIR}/share/WeedlyWeb
 )
