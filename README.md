@@ -52,6 +52,8 @@
 
 ## 🚀 Installation
 
+> 💡 **Démarrage rapide ?** Consultez le [Guide de démarrage rapide](docs/QUICKSTART.md) pour une installation en 3 étapes !
+
 ### Installation automatique (Recommandé)
 
 Un script d'installation automatique est disponible :
