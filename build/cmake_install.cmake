@@ -68,7 +68,7 @@ endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/share/WeedlyWeb/config.json;/usr/local/share/WeedlyWeb/favorites.json;/usr/local/share/WeedlyWeb/style.css")
+   "/usr/local/share/WeedlyWeb/config.json;/usr/local/share/WeedlyWeb/favorites.json;/usr/local/share/WeedlyWeb/style.css;/usr/local/share/WeedlyWeb/help.html")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
@@ -79,6 +79,7 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
     "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/settings/config.json"
     "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/datas/favorites.json"
     "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/styles/style.css"
+    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/help/help.html"
     )
 endif()
 

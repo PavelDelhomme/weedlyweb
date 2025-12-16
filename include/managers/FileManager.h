@@ -15,6 +15,7 @@ public:
     static std::string configJSONPath();
     static std::string favoritesJSONPath();
     static std::string cheminParametresHTML();
+    static std::string cheminHelpHTML();
     static std::string cheminStylesCSS();
 
     // Méthodes pour lire et écrire des fichiers JSON

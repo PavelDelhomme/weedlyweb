@@ -7,6 +7,7 @@
 #include <set>
 #include <nlohmann/json.hpp>
 #include <gtk/gtk.h>
+#include <webkit2/webkit2.h>
 #include "rendering/RenderingEngine.h"
 #include "managers/HTTPManager.h"
 #include "managers/MemoryManager.h"
@@ -16,6 +17,16 @@
 #include "utils/CommandPalette.h"
 #include "utils/RequestInterceptor.h"
 #include "database/Database.h"
+
+// Structure pour stocker les données d'un onglet
+struct TabData {
+    std::string url;
+    GtkWidget* tabWidget;  // Le widget de l'onglet dans la barre
+    WebKitWebView* webView;  // La WebView unique pour cet onglet
+    GtkWidget* label;  // Le label avec le titre
+    
+    TabData() : tabWidget(nullptr), webView(nullptr), label(nullptr) {}
+};
 
 class Browser {
 public:
@@ -49,8 +60,11 @@ public:
     void addFavorite(const std::string& nom, const std::string& url, const std::string& tag);
     void removeFavorite(GtkWidget* widget);
     void showCommandPalette();
+    void toggleCommandPalette();  // Afficher/masquer la palette de commandes
     void showOptionsMenu();
     void showGroupsMenu();
+    void showSettings();
+    void showHelp();
 
     // Méthodes utilitaires
     void loadURL(const std::string& url);
@@ -74,6 +88,9 @@ public:
     GtkWidget* getEntryNomFavori() { return favoriteNameEntry; }
     GtkWidget* getEntryURLFavori() { return favoriteUrlEntry; }
     GtkWidget* getPopoverFavoris() { return favoritesPopover; }
+    
+    // Méthode publique pour gérer l'état de chargement
+    void setLoadingState(bool loading);
 
     // Interface utilisateur
     void closeApplication();
@@ -88,6 +105,7 @@ private:
     GtkWidget *tabsBar;
     GtkWidget *urlBar;
     GtkWidget *starButton;
+    GtkWidget *loadingSpinner;  // Indicateur de chargement dans la barre d'URL
     GtkWidget *favoriteNameEntry;
     GtkWidget *favoriteUrlEntry;
     GtkWidget *favoritesPopover;
@@ -105,7 +123,9 @@ private:
 
     // Données
     std::vector<std::string> history;
-    std::vector<std::pair<std::string, GtkWidget*>> tabs;
+    std::vector<TabData> tabs;  // Chaque onglet a sa propre WebView
+    TabData* activeTab;  // Pointeur vers l'onglet actif
+    GtkWidget* webContainer;  // Container pour les WebViews (une seule visible à la fois)
     std::shared_ptr<nlohmann::json> favorites;
     std::string homepage;
 
@@ -118,7 +138,6 @@ private:
     void updateStarButton();
     void executeScriptInActiveTab(const std::string& script);
     void showMessage(const std::string& message);
-    void showSettings();
     void createContextMenu(GtkWidget* button);
     static void onStarButtonClicked(GtkButton* button, gpointer user_data);
 

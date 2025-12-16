@@ -12,6 +12,30 @@
 #include <fstream>
 #include <set>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gdk/gdk.h>
+
+// Variable globale pour le callback de chargement
+Browser* g_browser_instance = nullptr;
+
+// Fonction helper pour gérer l'état de chargement dans la barre d'URL
+void browser_set_loading_state(bool loading) {
+    if (g_browser_instance) {
+        g_browser_instance->setLoadingState(loading);
+    }
+}
+
+// Méthode publique pour gérer l'état de chargement
+void Browser::setLoadingState(bool loading) {
+    if (loadingSpinner) {
+        if (loading) {
+            gtk_widget_show(loadingSpinner);
+            gtk_spinner_start(GTK_SPINNER(loadingSpinner));
+        } else {
+            gtk_spinner_stop(GTK_SPINNER(loadingSpinner));
+            gtk_widget_hide(loadingSpinner);
+        }
+    }
+}
 
 std::string obtenirCheminAbsolu(const std::string& fichier) {
     return std::filesystem::current_path().string() + "/" + fichier;
@@ -208,10 +232,17 @@ static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
             return TRUE;
         }
         
-        // Gestion du raccourci CTRL + ALT + C pour la palette de commandes
-        if ((key_event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK)) && 
+        // Gestion du raccourci CTRL + SHIFT + C pour afficher/masquer la palette de commandes
+        if ((key_event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) && 
             key_event->keyval == GDK_KEY_c) {
-            navigateur->showCommandPalette();
+            navigateur->toggleCommandPalette();
+            return TRUE;
+        }
+        
+        // Gestion du raccourci CTRL + H pour afficher l'aide
+        if ((key_event->state & GDK_CONTROL_MASK) && 
+            key_event->keyval == GDK_KEY_h) {
+            navigateur->showHelp();
             return TRUE;
         }
         
@@ -302,9 +333,12 @@ Browser::Browser()
       tabsBar(nullptr),
       urlBar(nullptr),
       starButton(nullptr),
+      loadingSpinner(nullptr),
       favoriteNameEntry(nullptr),
       favoriteUrlEntry(nullptr),
-      favoritesPopover(nullptr)
+      favoritesPopover(nullptr),
+      activeTab(nullptr),
+      webContainer(nullptr)
 {
     // Initialiser la base de données
     database = std::make_unique<Database>();
@@ -356,7 +390,8 @@ Browser::~Browser() {
     favoritesBar = nullptr;
     tabsBar = nullptr;
     urlBar = nullptr;
-    starButton = nullptr;
+        starButton = nullptr;
+        loadingSpinner = nullptr;
     favoriteNameEntry = nullptr;
     favoriteUrlEntry = nullptr;
     favoritesPopover = nullptr;
@@ -367,11 +402,59 @@ std::shared_ptr<nlohmann::json> Browser::getFavoris() {
 }
 
 void Browser::buildInterface() {
-    std::cerr << "[DEBUG] Début de buildInterface()" << std::endl;
+    // Debug messages removed for cleaner output
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    std::cerr << "[DEBUG] Fenêtre créée" << std::endl;
     gtk_window_set_title(GTK_WINDOW(window), "WeedlyWeb");
-    gtk_window_set_default_size(GTK_WINDOW(window), 1024, 768);
+    
+    // Activer le redimensionnement de la fenêtre
+    gtk_window_set_resizable(GTK_WINDOW(window), TRUE);
+    
+    // Obtenir la taille de l'écran immédiatement pour définir la taille par défaut
+    GdkDisplay* display = gdk_display_get_default();
+    if (display) {
+        GdkMonitor* monitor = gdk_display_get_primary_monitor(display);
+        if (!monitor) {
+            gint n_monitors = gdk_display_get_n_monitors(display);
+            if (n_monitors > 0) {
+                monitor = gdk_display_get_monitor(display, 0);
+            }
+        }
+        
+        if (monitor) {
+            GdkRectangle geometry;
+            gdk_monitor_get_geometry(monitor, &geometry);
+            // Utiliser 85% de la largeur et 85% de la hauteur
+            gint windowWidth = (geometry.width * 85) / 100;
+            gint windowHeight = (geometry.height * 85) / 100;
+            gtk_window_set_default_size(GTK_WINDOW(window), windowWidth, windowHeight);
+            
+            // Centrer la fenêtre
+            gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+        } else {
+            // Fallback si pas de moniteur
+            gtk_window_set_default_size(GTK_WINDOW(window), 1280, 720);
+        }
+    } else {
+        // Fallback si pas de display
+        gtk_window_set_default_size(GTK_WINDOW(window), 1280, 720);
+    }
+    
+    // Ajouter le support du plein écran avec F11
+    g_signal_connect(window, "key-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEvent* event, gpointer user_data) -> gboolean {
+        if (event->type == GDK_KEY_PRESS) {
+            GdkEventKey* key_event = (GdkEventKey*) event;
+            if (key_event->keyval == GDK_KEY_F11) {
+                GtkWindow* window = GTK_WINDOW(widget);
+                if (gtk_window_is_maximized(window)) {
+                    gtk_window_unmaximize(window);
+                } else {
+                    gtk_window_maximize(window);
+                }
+                return TRUE;
+            }
+        }
+        return FALSE;
+    }), this);
     
     // Définir l'icône de la fenêtre
     std::string iconPath = FileManager::obtenirCheminAbsolu("assets/icons/weedlyweb.png");
@@ -380,7 +463,6 @@ void Browser::buildInterface() {
         if (icon) {
             gtk_window_set_icon(GTK_WINDOW(window), icon);
             g_object_unref(icon);
-            std::cerr << "[DEBUG] Icône chargée : " << iconPath << std::endl;
         }
     } else {
         // Essayer avec le SVG si PNG n'existe pas
@@ -390,7 +472,6 @@ void Browser::buildInterface() {
             if (icon) {
                 gtk_window_set_icon(GTK_WINDOW(window), icon);
                 g_object_unref(icon);
-                std::cerr << "[DEBUG] Icône SVG chargée : " << svgPath << std::endl;
             }
         }
     }
@@ -410,7 +491,6 @@ void Browser::buildInterface() {
     // Définir le type de fenêtre (normal, pas un splash ou un popup)
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_NORMAL);
     
-    std::cerr << "[DEBUG] Fenêtre configurée" << std::endl;
 
     // Connexion sécurisée du signal de fermeture avec lambda sécurisée
     g_signal_connect(window, "delete-event", G_CALLBACK(+[](GtkWidget*, GdkEvent*, gpointer user_data) -> gboolean {
@@ -421,63 +501,70 @@ void Browser::buildInterface() {
     }), this);
 
     // Conteneur principal
-    std::cerr << "[DEBUG] Création du container principal" << std::endl;
     mainContainer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(window), mainContainer);
-    std::cerr << "[DEBUG] Conteneur principal ajouté à la fenêtre" << std::endl;
 
     // CORRECT ORDER: Bars at top, web view at bottom (expandable)
     // 1. Tabs bar (at top)
-    std::cerr << "[DEBUG] Initialisation de la barre d'tabs..." << std::endl;
     initializeTabsBar();
-    std::cerr << "[DEBUG] Barre d'tabs initialisée" << std::endl;
     
     // 2. Navigation bar with URL (under tabs)
-    std::cerr << "[DEBUG] Initialisation de la barre de navigation..." << std::endl;
     initializeNavigationBar();
-    std::cerr << "[DEBUG] Barre de navigation initialisée" << std::endl;
     
     // 3. Favorites bar (under URL bar)
-    std::cerr << "[DEBUG] Initialisation de la barre de favorites..." << std::endl;
-    // Ne pas appeler initializeFavoritesBar() ici car refreshFavoritesBar() le fait déjà
     refreshFavoritesBar();
-    std::cerr << "[DEBUG] Barre de favorites initialisée" << std::endl;
     
-    // 4. Web rendering zone (at bottom, expandable) - MUST be last to take remaining space
-    std::cerr << "[DEBUG] Initialisation du moteur de rendu..." << std::endl;
-    renderingEngine->initializeRendering(mainContainer);
-    std::cerr << "[DEBUG] Moteur de rendu initialisé" << std::endl;
+    // 4. Web container (at bottom, expandable) - MUST be last to take remaining space
+    // NOUVELLE APPROCHE : Container simple et direct
+    webContainer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_widget_set_name(webContainer, "container-web");
+    gtk_widget_set_vexpand(webContainer, TRUE);
+    gtk_widget_set_hexpand(webContainer, TRUE);
+    
+    // S'assurer que le container est visible dès le début
+    gtk_widget_show_all(webContainer);
+    
+    if (mainContainer && !gtk_widget_get_parent(webContainer)) {
+        // Utiliser pack_end pour que le container web prenne tout l'espace restant
+        gtk_box_pack_end(GTK_BOX(mainContainer), webContainer, TRUE, TRUE, 0);
+    }
+    
+    // Initialiser le moteur de rendu (passe le webContainer)
+    renderingEngine->initializeRendering(webContainer);
+    
+    // Charger les styles CSS pour un design minimaliste
+    loadStyles();
+    
+    // Initialiser l'instance globale pour le callback de chargement
+    g_browser_instance = this;
     
     // Afficher la fenêtre
-    std::cerr << "[DEBUG] Affichage de la fenêtre..." << std::endl;
     gtk_widget_show_all(window);
     
     // Présenter la fenêtre au gestionnaire de fenêtres (pour qu'elle apparaisse dans la barre des tâches)
     gtk_window_present(GTK_WINDOW(window));
     
-    std::cerr << "[DEBUG] Fenêtre affichée" << std::endl;
+    // Forcer le traitement des événements GTK pour s'assurer que la fenêtre est rendue
+    while (gtk_events_pending()) {
+        gtk_main_iteration();
+    }
     
-    // Ajouter le premier onglet et charger la page d'accueil
-    std::cerr << "[DEBUG] Ajout du premier onglet..." << std::endl;
+    // Ajouter le premier onglet et charger la page d'accueil (APRÈS que la fenêtre soit visible)
     std::string homepageUrl = homepage.empty() ? "https://www.duckduckgo.com" : homepage;
     addNewTab(homepageUrl);
-    std::cerr << "[DEBUG] Premier onglet ajouté avec URL: " << homepageUrl << std::endl;
-    
-    // Charger les styles CSS pour un design minimaliste
-    loadStyles();
-    
-    std::cerr << "[DEBUG] Fin de buildInterface()" << std::endl;
 
     renderingEngine->connectURLChangedSignal([this](const std::string& url) {
         if (urlBar) {
             gtk_entry_set_text(GTK_ENTRY(urlBar), url.c_str());
         }
+        // Mettre à jour le bouton étoile selon si l'URL est en favoris
+        updateStarButton();
     });
 
-    starButton = renderingEngine->createButton("☆", G_CALLBACK(on_bouton_favoris_clicked), this);
-    gtk_box_pack_start(GTK_BOX(navigationBar), starButton, FALSE, FALSE, 0);
-
     initializeFavoritesPopover();
+    
+    // Mettre à jour le bouton étoile initial
+    updateStarButton();
     // gtk_widget_show_all sera appelé après l'ajout de l'onglet
 }
 
@@ -489,7 +576,11 @@ void Browser::addButton(GtkWidget* container, const std::string& iconName, GCall
 }
 
 std::string Browser::getCurrentTitle() const {
-    return renderingEngine->getCurrentTitle();
+    if (activeTab && activeTab->webView) {
+        const gchar* title = webkit_web_view_get_title(activeTab->webView);
+        return title ? std::string(title) : "Titre inconnu";
+    }
+    return "Titre inconnu";
 }
 
 
@@ -518,12 +609,31 @@ void Browser::initializeNavigationBar() {
     addButton(navigationBar, "view-refresh", G_CALLBACK(on_rafraichir_page), this);
     addButton(navigationBar, "go-home", G_CALLBACK(on_aller_accueil), this);
     
+    // Container pour la barre d'URL avec indicateur de chargement
+    GtkWidget* urlContainer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+    gtk_widget_set_name(urlContainer, "url-container");
+    
+    // Indicateur de chargement (spinner) dans la barre d'URL
+    loadingSpinner = gtk_spinner_new();
+    gtk_widget_set_size_request(loadingSpinner, 16, 16);
+    gtk_widget_set_margin_start(loadingSpinner, 5);
+    gtk_widget_set_margin_end(loadingSpinner, 5);
+    gtk_widget_hide(loadingSpinner); // Masqué par défaut
+    gtk_box_pack_start(GTK_BOX(urlContainer), loadingSpinner, FALSE, FALSE, 0);
+    
     // Barre d'URL (expandable)
     urlBar = renderingEngine->createTextEntry(G_CALLBACK(&Browser::onUrlBarActivate), this);
-    gtk_box_pack_start(GTK_BOX(navigationBar), urlBar, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(urlContainer), urlBar, TRUE, TRUE, 0);
+    
+    // Ajouter le container URL à la barre de navigation
+    gtk_box_pack_start(GTK_BOX(navigationBar), urlContainer, TRUE, TRUE, 0);
 
-    // Bouton favorites (étoile)
-    starButton = renderingEngine->createButton("☆", G_CALLBACK(on_bouton_favoris_clicked), this);
+    // Bouton favorites (étoile) - visible et mis à jour selon l'état
+    starButton = gtk_button_new_with_label("☆");
+    gtk_widget_set_tooltip_text(starButton, "Ajouter aux favoris");
+    gtk_widget_set_margin_start(starButton, 3);
+    gtk_widget_set_margin_end(starButton, 3);
+    g_signal_connect(starButton, "clicked", G_CALLBACK(on_bouton_favoris_clicked), this);
     gtk_box_pack_start(GTK_BOX(navigationBar), starButton, FALSE, FALSE, 0);
 
     // Menu hamburger (trois barres horizontales) pour les options
@@ -541,7 +651,11 @@ void Browser::initializeNavigationBar() {
 
 
 std::string Browser::getCurrentURL() const {
-    return renderingEngine->getCurrentURL();
+    if (activeTab && activeTab->webView) {
+        const gchar* uri = webkit_web_view_get_uri(activeTab->webView);
+        return uri ? std::string(uri) : "";
+    }
+    return "";
 }
 
 
@@ -687,18 +801,28 @@ void Browser::refreshFavoritesBar() {
     }
 
     favoritesBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_widget_set_name(favoritesBar, "barre-favorites");
+    gtk_widget_set_margin_start(favoritesBar, 5);
+    gtk_widget_set_margin_end(favoritesBar, 5);
+    gtk_widget_set_margin_top(favoritesBar, 2);
+    gtk_widget_set_margin_bottom(favoritesBar, 2);
 
     if (favorites->empty()) {
         GtkWidget *labelAucunFavori = gtk_label_new("Aucun favori");
         gtk_box_pack_start(GTK_BOX(favoritesBar), labelAucunFavori, FALSE, FALSE, 5);
-    }
-
-    for (const auto& favori : *favorites) {
-        GtkWidget *boutonFavori = renderingEngine->createButton(favori["name"], nullptr, nullptr);
-        auto* data = new std::pair<Browser*, std::string>(this, favori["url"]);
-        g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
-        if (gtk_widget_get_parent(boutonFavori) == nullptr) {
-            gtk_box_pack_start(GTK_BOX(favoritesBar), boutonFavori, FALSE, FALSE, 5);
+    } else {
+        for (const auto& favori : *favorites) {
+            std::string nomFavori = favori.value("name", "Favori");
+            GtkWidget *boutonFavori = gtk_button_new_with_label(nomFavori.c_str());
+            gtk_widget_set_name(boutonFavori, "button-favori");
+            gtk_widget_set_tooltip_text(boutonFavori, favori.value("url", "").c_str());
+            
+            auto* data = new std::pair<Browser*, std::string>(this, favori["url"]);
+            g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
+            
+            if (gtk_widget_get_parent(boutonFavori) == nullptr) {
+                gtk_box_pack_start(GTK_BOX(favoritesBar), boutonFavori, FALSE, FALSE, 5);
+            }
         }
     }
 
@@ -766,6 +890,12 @@ void Browser::initializeTabsBar() {
         tabsBar = nullptr;
     }
 
+    // Créer un ScrolledWindow pour rendre les onglets scrollables
+    GtkWidget* scrolledWindow = gtk_scrolled_window_new(nullptr, nullptr);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+    gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolledWindow), GTK_SHADOW_NONE);
+    gtk_widget_set_name(scrolledWindow, "scrolled-tabs");
+    
     // Créer une nouvelle barre d'tabs avec container visible
     tabsBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
     gtk_widget_set_margin_start(tabsBar, 5);
@@ -773,6 +903,9 @@ void Browser::initializeTabsBar() {
     gtk_widget_set_margin_top(tabsBar, 5);
     gtk_widget_set_margin_bottom(tabsBar, 2);
     gtk_widget_set_name(tabsBar, "barre-tabs");
+    
+    // Ajouter la barre d'onglets au ScrolledWindow
+    gtk_container_add(GTK_CONTAINER(scrolledWindow), tabsBar);
     
     // Bouton pour gérer les groupes (à gauche)
     GtkWidget* boutonGroupes = gtk_button_new_with_label("📁");
@@ -785,33 +918,61 @@ void Browser::initializeTabsBar() {
         navigateur->showGroupsMenu();
     }), this);
     gtk_box_pack_start(GTK_BOX(tabsBar), boutonGroupes, FALSE, FALSE, 0);
+    gtk_widget_show_all(boutonGroupes);
     
     // Les tabs seront ajoutés ici (au milieu)
+    // Le bouton "+" sera ajouté dynamiquement après chaque onglet dans addNewTab()
     
-    // Bouton "+" à droite pour ajouter un nouvel onglet
-    GtkWidget* boutonAjouterOnglet = gtk_button_new_with_label("+");
-    gtk_widget_set_tooltip_text(boutonAjouterOnglet, "Ajouter un nouvel onglet");
-    gtk_widget_set_margin_start(boutonAjouterOnglet, 2);
-    gtk_widget_set_margin_end(boutonAjouterOnglet, 2);
-    gtk_widget_set_name(boutonAjouterOnglet, "button-ajouter-onglet");
-    g_signal_connect(boutonAjouterOnglet, "clicked", G_CALLBACK(on_ajouter_onglet), this);
-    gtk_box_pack_end(GTK_BOX(tabsBar), boutonAjouterOnglet, FALSE, FALSE, 0);
-    
-    // Ajouter la barre d'tabs au container principal (en haut)
-    if (mainContainer && !gtk_widget_get_parent(tabsBar)) {
-        gtk_box_pack_start(GTK_BOX(mainContainer), tabsBar, FALSE, FALSE, 0);
+    // Ajouter le ScrolledWindow au container principal (en haut)
+    if (mainContainer && !gtk_widget_get_parent(scrolledWindow)) {
+        gtk_box_pack_start(GTK_BOX(mainContainer), scrolledWindow, FALSE, FALSE, 0);
     }
+    
+    // Connecter le signal scroll-event pour permettre le changement d'onglet avec la molette
+    g_signal_connect(scrolledWindow, "scroll-event", G_CALLBACK(+[](GtkWidget* widget, GdkEventScroll* event, gpointer user_data) -> gboolean {
+        auto* navigateur = static_cast<Browser*>(user_data);
+        if (navigateur->tabs.empty() || !navigateur->activeTab) return FALSE;
+        
+        // Trouver l'onglet actif
+        int currentIndex = -1;
+        for (size_t i = 0; i < navigateur->tabs.size(); ++i) {
+            if (navigateur->tabs[i].tabWidget == navigateur->activeTab->tabWidget) {
+                currentIndex = i;
+                break;
+            }
+        }
+        
+        if (currentIndex == -1) return FALSE;
+        
+        // Changer d'onglet selon la direction du scroll
+        if (event->direction == GDK_SCROLL_DOWN || event->direction == GDK_SCROLL_SMOOTH) {
+            if (event->delta_y > 0 && currentIndex < static_cast<int>(navigateur->tabs.size()) - 1) {
+                navigateur->changeActiveTab(navigateur->tabs[currentIndex + 1].tabWidget);
+                return TRUE;
+            }
+        } else if (event->direction == GDK_SCROLL_UP || event->direction == GDK_SCROLL_SMOOTH) {
+            if (event->delta_y < 0 && currentIndex > 0) {
+                navigateur->changeActiveTab(navigateur->tabs[currentIndex - 1].tabWidget);
+                return TRUE;
+            }
+        }
+        
+        return FALSE;
+    }), this);
 }
 
 void Browser::changeTabGroup(const std::string& groupName) {
     tabsManager->changerGroupeActif(groupName);
-    // Retirer du container avant de détruire
+    // Retirer le ScrolledWindow du container avant de détruire
     if (tabsBar && GTK_IS_WIDGET(tabsBar)) {
-        GtkWidget* parent = gtk_widget_get_parent(tabsBar);
-        if (parent && GTK_IS_CONTAINER(parent)) {
-            gtk_container_remove(GTK_CONTAINER(parent), tabsBar);
+        GtkWidget* scrolledWindow = gtk_widget_get_parent(tabsBar);
+        if (scrolledWindow && GTK_IS_SCROLLED_WINDOW(scrolledWindow)) {
+            GtkWidget* parent = gtk_widget_get_parent(scrolledWindow);
+            if (parent && GTK_IS_CONTAINER(parent)) {
+                gtk_container_remove(GTK_CONTAINER(parent), scrolledWindow);
+            }
+            gtk_widget_destroy(scrolledWindow);
         }
-        gtk_widget_destroy(tabsBar);
         tabsBar = nullptr;
     }
     initializeTabsBar();
@@ -819,9 +980,7 @@ void Browser::changeTabGroup(const std::string& groupName) {
 
 
 void Browser::addNewTab(const std::string &url) {
-    std::cerr << "[DEBUG] Début de addNewTab(" << url << ")" << std::endl;
     tabsManager->ajouterOnglet(tabsManager->getGroupeActif(), url);
-    std::cerr << "[DEBUG] Onglet ajouté au gestionnaire" << std::endl;
 
     // Créer un container visible pour l'onglet avec style
     GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
@@ -843,7 +1002,7 @@ void Browser::addNewTab(const std::string &url) {
     gtk_widget_set_tooltip_text(boutonFermer, "Fermer l'onglet");
     gtk_widget_set_margin_start(boutonFermer, 2);
     gtk_widget_set_margin_end(boutonFermer, 2);
-    g_signal_connect(boutonFermer, "clicked", G_CALLBACK(+[](GtkButton *button, gpointer user_data) {
+    g_signal_connect(boutonFermer, "clicked", G_CALLBACK(+[](GtkButton *button, gpointer user_data) -> gboolean {
         auto* n = static_cast<Browser*>(user_data);
         // Trouver le container parent (hboxOnglet) - remonter de 1 niveau
         GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(button));
@@ -856,7 +1015,22 @@ void Browser::addNewTab(const std::string &url) {
 
     // Rendre l'onglet cliquable pour changer d'onglet actif
     gtk_widget_set_events(hboxOnglet, GDK_BUTTON_PRESS_MASK);
-    g_signal_connect(hboxOnglet, "button-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEventButton*, gpointer user_data) {
+    // Définir le curseur pointer en code (GTK CSS ne supporte pas cursor)
+    // Attendre que le widget soit réalisé pour définir le curseur
+    g_signal_connect(hboxOnglet, "realize", G_CALLBACK(+[](GtkWidget* widget, gpointer) {
+        GdkWindow* window = gtk_widget_get_window(widget);
+        if (window) {
+            GdkDisplay* display = gtk_widget_get_display(widget);
+            if (display) {
+                GdkCursor* cursor = gdk_cursor_new_from_name(display, "pointer");
+                if (cursor) {
+                    gdk_window_set_cursor(window, cursor);
+                    g_object_unref(cursor);
+                }
+            }
+        }
+    }), nullptr);
+    g_signal_connect(hboxOnglet, "button-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEventButton*, gpointer user_data) -> gboolean {
         auto* n = static_cast<Browser*>(user_data);
         if (n) {
             n->changeActiveTab(widget);
@@ -864,74 +1038,210 @@ void Browser::addNewTab(const std::string &url) {
         return TRUE;
     }), this);
 
-    // Ajouter l'onglet à la barre d'tabs (après le button groupes, avant le button +)
+    // Ajouter l'onglet à la barre d'tabs (après le button groupes)
     if (tabsBar && !gtk_widget_get_parent(hboxOnglet)) {
-        // Insérer après le premier enfant (le button groupes)
+        // Retirer le bouton "+" s'il existe déjà pour le réinsérer après le nouvel onglet
         GList* children = gtk_container_get_children(GTK_CONTAINER(tabsBar));
-        if (children) {
-            // Insérer après le premier enfant (button groupes)
-            gtk_box_pack_start(GTK_BOX(tabsBar), hboxOnglet, FALSE, FALSE, 0);
-            g_list_free(children);
+        GtkWidget* boutonAjouterOnglet = nullptr;
+        
+        // Chercher le bouton "+" dans les enfants
+        for (GList* iter = children; iter != nullptr; iter = iter->next) {
+            GtkWidget* widget = GTK_WIDGET(iter->data);
+            const gchar* name = gtk_widget_get_name(widget);
+            if (name && strcmp(name, "button-ajouter-onglet") == 0) {
+                boutonAjouterOnglet = widget;
+                // Retirer temporairement le bouton du container
+                gtk_container_remove(GTK_CONTAINER(tabsBar), widget);
+                break;
+            }
+        }
+        g_list_free(children);
+        
+        // Ajouter le nouvel onglet
+        gtk_box_pack_start(GTK_BOX(tabsBar), hboxOnglet, FALSE, FALSE, 0);
+        
+        // Réinsérer le bouton "+" juste après le nouvel onglet (pas à l'extrême droite)
+        if (boutonAjouterOnglet) {
+            gtk_box_pack_start(GTK_BOX(tabsBar), boutonAjouterOnglet, FALSE, FALSE, 0);
         } else {
-            gtk_box_pack_start(GTK_BOX(tabsBar), hboxOnglet, FALSE, FALSE, 0);
+            // Créer le bouton "+" s'il n'existe pas encore
+            boutonAjouterOnglet = gtk_button_new_with_label("+");
+            gtk_widget_set_tooltip_text(boutonAjouterOnglet, "Ajouter un nouvel onglet");
+            gtk_widget_set_margin_start(boutonAjouterOnglet, 2);
+            gtk_widget_set_margin_end(boutonAjouterOnglet, 2);
+            gtk_widget_set_name(boutonAjouterOnglet, "button-ajouter-onglet");
+            g_signal_connect(boutonAjouterOnglet, "clicked", G_CALLBACK(on_ajouter_onglet), this);
+            gtk_box_pack_start(GTK_BOX(tabsBar), boutonAjouterOnglet, FALSE, FALSE, 0);
+            gtk_widget_show_all(boutonAjouterOnglet);
         }
     }
-    tabs.push_back({url, hboxOnglet});
+    // Normaliser l'URL
+    std::string urlNormalisee = url.empty() ? "https://www.duckduckgo.com" : url;
+    if (urlNormalisee.find("://") == std::string::npos) {
+        urlNormalisee = "https://" + urlNormalisee;
+    }
+    
+    // NOUVELLE APPROCHE : Créer la WebView et l'ajouter directement au container
+    WebKitWebView* newWebView = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    if (!newWebView) {
+        std::cerr << "[ERREUR] Impossible de créer une nouvelle WebView" << std::endl;
+        return;
+    }
+    
+    GtkWidget* webWidget = GTK_WIDGET(newWebView);
+    
+    // Configuration de base de la WebView
+    gtk_widget_set_vexpand(webWidget, TRUE);
+    gtk_widget_set_hexpand(webWidget, TRUE);
+    
+    // CRITIQUE : S'assurer que la WebView a une taille minimale valide
+    // WebKit nécessite une taille valide pour initialiser le contexte de rendu
+    gtk_widget_set_size_request(webWidget, 800, 600);
+    
+    // Ajouter la WebView au container web
+    if (webContainer && !gtk_widget_get_parent(webWidget)) {
+        gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
+    }
+    
+    // CRITIQUE : Connecter au signal "realize" pour s'assurer que la WebView est prête
+    // avant de charger du contenu
+    g_signal_connect(webWidget, "realize", G_CALLBACK(+[](GtkWidget* widget, gpointer user_data) {
+        std::cerr << "[DEBUG] WebView realized, ready to render" << std::endl;
+        // Forcer le rendu après réalisation
+        gtk_widget_queue_draw(widget);
+    }), nullptr);
+    
+    // Masquer cette WebView initialement (elle sera affichée dans changeActiveTab)
+    gtk_widget_hide(webWidget);
+    
+    // Créer la structure TabData
+    TabData tabData;
+    tabData.url = urlNormalisee;
+    tabData.tabWidget = hboxOnglet;
+    tabData.webView = newWebView;
+    tabData.label = labelTitre;
+    
+    // Ajouter l'onglet à la liste
+    tabs.push_back(tabData);
     
     // Afficher l'onglet
     gtk_widget_show_all(hboxOnglet);
     
-    // Changer l'onglet actif vers celui-ci
+    // Changer l'onglet actif vers celui-ci (cela affichera la WebView)
     changeActiveTab(hboxOnglet);
     
-    // Afficher la page - IMPORTANT: s'assurer que la webView est visible
-    std::cerr << "[DEBUG] Affichage de la page: " << url << std::endl;
-    if (renderingEngine && !url.empty()) {
-        // Normaliser l'URL si nécessaire
-        std::string urlNormalisee = url;
-        if (url.find("://") == std::string::npos) {
-            urlNormalisee = "https://" + url;
-        }
-        renderingEngine->displayPage(urlNormalisee);
-        
-        // S'assurer que la webView est visible et expandable
-        WebKitWebView* webView = renderingEngine->getVueWeb();
-        if (webView) {
-            GtkWidget* widget = GTK_WIDGET(webView);
-            gtk_widget_set_vexpand(widget, TRUE);
-            gtk_widget_set_hexpand(widget, TRUE);
-            gtk_widget_show(widget);
-            // S'assurer que le parent est aussi visible
-            GtkWidget* parent = gtk_widget_get_parent(widget);
-            if (parent) {
-                gtk_widget_show_all(parent);
-            }
-        }
-        
-        std::cerr << "[DEBUG] Page affichée" << std::endl;
-    }
-    
     // Connecter le signal pour mettre à jour le titre de l'onglet quand la page se charge
-    if (renderingEngine) {
-        renderingEngine->connectPageLoadedSignal([labelTitre](const std::string &titre) {
-            if (labelTitre && GTK_IS_LABEL(labelTitre)) {
-                std::string titreCourt = titre.length() > 20 ? titre.substr(0, 17) + "..." : titre;
-                gtk_label_set_text(GTK_LABEL(labelTitre), titreCourt.c_str());
+    g_signal_connect(newWebView, "notify::title", G_CALLBACK(+[](GObject* obj, GParamSpec*, gpointer user_data) {
+        auto* data = static_cast<TabData*>(user_data);
+        if (data && data->label && GTK_IS_LABEL(data->label)) {
+            const gchar* title = webkit_web_view_get_title(data->webView);
+            if (title) {
+                std::string titreStr(title);
+                std::string titreCourt = titreStr.length() > 20 ? titreStr.substr(0, 17) + "..." : titreStr;
+                gtk_label_set_text(GTK_LABEL(data->label), titreCourt.c_str());
             }
-        });
-    }
+        }
+    }), &tabs.back());
     
-    std::cerr << "[DEBUG] Fin de addNewTab()" << std::endl;
 
 
     gtk_widget_show_all(tabsBar);
 }
 
 void Browser::changeActiveTab(GtkWidget* tabWidget) {
-    for (auto &[url, widget] : tabs) {
-        if (widget == tabWidget) {
-            renderingEngine->displayPage(url);
-            highlight(widget);
+    for (auto &tab : tabs) {
+        if (tab.tabWidget == tabWidget) {
+            // Cacher toutes les autres WebViews
+            for (auto &otherTab : tabs) {
+                if (otherTab.webView && GTK_IS_WIDGET(otherTab.webView) && &otherTab != &tab) {
+                    gtk_widget_hide(GTK_WIDGET(otherTab.webView));
+                }
+            }
+            
+            // Mettre à jour l'onglet actif
+            activeTab = &tab;
+            
+            // Afficher la WebView de l'onglet actif
+            if (tab.webView && GTK_IS_WIDGET(tab.webView)) {
+                GtkWidget* webWidget = GTK_WIDGET(tab.webView);
+                
+                // NOUVELLE APPROCHE ULTRA-SIMPLIFIÉE
+                // 1. S'assurer que le container web est visible et expansible
+                if (webContainer) {
+                    gtk_widget_show_all(webContainer);
+                    gtk_widget_set_visible(webContainer, TRUE);
+                    gtk_widget_set_vexpand(webContainer, TRUE);
+                    gtk_widget_set_hexpand(webContainer, TRUE);
+                }
+                
+                // 2. Afficher la WebView IMMÉDIATEMENT
+                gtk_widget_show_all(webWidget);
+                gtk_widget_set_visible(webWidget, TRUE);
+                gtk_widget_set_vexpand(webWidget, TRUE);
+                gtk_widget_set_hexpand(webWidget, TRUE);
+                
+                // CRITIQUE : S'assurer que la WebView est "réalisée" avant de charger
+                // Si elle n'est pas encore réalisée, attendre le signal "realize"
+                if (!gtk_widget_get_realized(webWidget)) {
+                    // Connecter au signal realize pour charger l'URL une fois prête
+                    // Utiliser g_signal_connect avec un flag pour n'appeler qu'une fois
+                    static std::set<GtkWidget*> realizedWidgets;
+                    if (realizedWidgets.find(webWidget) == realizedWidgets.end()) {
+                        g_signal_connect(webWidget, "realize", G_CALLBACK(+[](GtkWidget* widget, gpointer user_data) {
+                            auto* tabData = static_cast<TabData*>(user_data);
+                            if (tabData && tabData->webView) {
+                                std::cerr << "[DEBUG] WebView realized, loading URL: " << tabData->url << std::endl;
+                                webkit_web_view_load_uri(tabData->webView, tabData->url.c_str());
+                            }
+                        }), &tab);
+                        realizedWidgets.insert(webWidget);
+                    }
+                }
+                
+                // 3. Connecter le signal load-changed UNE SEULE FOIS
+                static std::set<WebKitWebView*> connectedViews;
+                if (connectedViews.find(tab.webView) == connectedViews.end()) {
+                    connectedViews.insert(tab.webView);
+                    g_signal_connect(tab.webView, "load-changed", G_CALLBACK(+[](WebKitWebView* web_view, WebKitLoadEvent load_event, gpointer) {
+                        if (load_event == WEBKIT_LOAD_STARTED) {
+                            browser_set_loading_state(true);
+                        } else if (load_event == WEBKIT_LOAD_FINISHED) {
+                            browser_set_loading_state(false);
+                            // CRITIQUE : Forcer l'affichage après chargement
+                            GtkWidget* w = GTK_WIDGET(web_view);
+                            gtk_widget_show_all(w);
+                            gtk_widget_set_visible(w, TRUE);
+                            gtk_widget_queue_draw(w);
+                            // Forcer le traitement des événements pour le rendu
+                            while (gtk_events_pending()) {
+                                gtk_main_iteration_do(FALSE);
+                            }
+                        }
+                    }), nullptr);
+                }
+                
+                // 4. Charger l'URL si nécessaire ET si la WebView est déjà réalisée
+                const gchar* currentUri = webkit_web_view_get_uri(tab.webView);
+                std::string currentUrl = currentUri ? std::string(currentUri) : "";
+                
+                if ((currentUrl.empty() || currentUrl != tab.url) && gtk_widget_get_realized(webWidget)) {
+                    std::cerr << "[DEBUG] Loading URL immediately: " << tab.url << std::endl;
+                    webkit_web_view_load_uri(tab.webView, tab.url.c_str());
+                }
+                
+                // 5. Forcer le rendu
+                gtk_widget_queue_draw(webWidget);
+                gtk_widget_queue_resize(webWidget);
+                
+                // Mettre à jour la barre d'URL
+                if (urlBar) {
+                    gtk_entry_set_text(GTK_ENTRY(urlBar), tab.url.c_str());
+                }
+                
+                // Mettre à jour le bouton étoile
+                updateStarButton();
+            }
+            highlight(tab.tabWidget);
             return;
         }
     }
@@ -940,15 +1250,8 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
 
 
 void Browser::executeScriptInActiveTab(const std::string& script) {
-    if (!tabs.empty()) {
-        GtkWidget* ongletActif = tabs.back().second;
-        WebKitWebView* webView = nullptr;
-        GList* children = gtk_container_get_children(GTK_CONTAINER(ongletActif));
-        if (children != nullptr) {
-            webView = WEBKIT_WEB_VIEW(children->data);
-            g_list_free(children);
-        }        
-        scriptEngine->executerScript(webView, script);
+    if (activeTab && activeTab->webView) {
+        scriptEngine->executerScript(activeTab->webView, script);
     }
 }
 
@@ -961,50 +1264,56 @@ void Browser::removeFavorite(GtkWidget* widget) {
 
 void Browser::removeTab(GtkWidget *tabWidget) {
     // Trouver l'onglet à supprimer
-    auto it = std::find_if(tabs.begin(), tabs.end(), [tabWidget](const auto &pair) {
-        return pair.second == tabWidget;
+    auto it = std::find_if(tabs.begin(), tabs.end(), [tabWidget](const auto &tab) {
+        return tab.tabWidget == tabWidget;
     });
 
     if (it != tabs.end()) {
-        GtkWidget *hboxOnglet = it->second;
-
-        WebKitWebView* webView = nullptr;  // Déclaration ici
-
-        GList* children = gtk_container_get_children(GTK_CONTAINER(hboxOnglet));
-        if (children != nullptr) {
-            for (GList* iter = children; iter != nullptr; iter = iter->next) {
-                if (WEBKIT_IS_WEB_VIEW(iter->data)) {
-                    webView = WEBKIT_WEB_VIEW(iter->data);
-                    break;
-                }
+        TabData& tab = *it;
+        
+        // Nettoyer la WebView
+        if (tab.webView && WEBKIT_IS_WEB_VIEW(tab.webView)) {
+            // Retirer du container
+            GtkWidget* webWidget = GTK_WIDGET(tab.webView);
+            GtkWidget* parent = gtk_widget_get_parent(webWidget);
+            if (parent && GTK_IS_CONTAINER(parent)) {
+                gtk_container_remove(GTK_CONTAINER(parent), webWidget);
             }
-            g_list_free(children);
+            
+            // Libérer la WebView
+            g_clear_object(&tab.webView);
         }
 
-        if (webView && WEBKIT_IS_WEB_VIEW(webView)) {
-            memoryManager->hibernerOnglet(webView); // Mise en veille de l'onglet
-        }
-
-        // Supprimer l'onglet de la liste
-        if (hboxOnglet && GTK_IS_WIDGET(hboxOnglet)) {
-            // Vérifier que le widget n'est pas déjà en cours de destruction
-            if (!gtk_widget_in_destruction(hboxOnglet)) {
-                // Retirer du container avant de détruire
-                GtkWidget* parent = gtk_widget_get_parent(hboxOnglet);
+        // Supprimer le widget de l'onglet
+        if (tab.tabWidget && GTK_IS_WIDGET(tab.tabWidget)) {
+            if (!gtk_widget_in_destruction(tab.tabWidget)) {
+                GtkWidget* parent = gtk_widget_get_parent(tab.tabWidget);
                 if (parent && GTK_IS_CONTAINER(parent)) {
-                    gtk_container_remove(GTK_CONTAINER(parent), hboxOnglet);
+                    gtk_container_remove(GTK_CONTAINER(parent), tab.tabWidget);
                 }
-                gtk_widget_destroy(hboxOnglet);
+                gtk_widget_destroy(tab.tabWidget);
             }
         }
+        
+        // Mettre à jour l'onglet actif avant de supprimer
+        bool wasActive = (activeTab == &(*it));
+        
+        // Supprimer l'onglet de la liste
         tabs.erase(it);
+        
+        // Réinitialiser activeTab si c'était l'onglet actif
+        if (wasActive) {
+            activeTab = nullptr;
+        }
 
         // Si aucun onglet n'est présent, fermer l'application
         if (tabs.empty()) {
             closeApplication();
         } else {
-            // Charger l'URL du premier onglet
-            loadURL(tabs.front().first);
+            // Activer le premier onglet restant
+            if (!tabs.empty()) {
+                changeActiveTab(tabs.front().tabWidget);
+            }
         }
     }
 }
@@ -1013,10 +1322,10 @@ void Browser::highlight(GtkWidget *tabWidget) {
     if (!tabWidget) return;
     
     // Parcourir tous les tabs et gérer les classes CSS
-    for (auto &[url, widget] : tabs) {
-        if (widget && GTK_IS_WIDGET(widget)) {
-            GtkStyleContext* context = gtk_widget_get_style_context(widget);
-            if (widget == tabWidget) {
+    for (auto &tab : tabs) {
+        if (tab.tabWidget && GTK_IS_WIDGET(tab.tabWidget)) {
+            GtkStyleContext* context = gtk_widget_get_style_context(tab.tabWidget);
+            if (tab.tabWidget == tabWidget) {
                 // Ajouter la classe "onglet-actif" à l'onglet sélectionné
                 gtk_style_context_add_class(context, "onglet-actif");
             } else {
@@ -1028,27 +1337,21 @@ void Browser::highlight(GtkWidget *tabWidget) {
 }
 
 void Browser::loadURL(const std::string& url) {
-    renderingEngine->displayPage(url);
-    history.push_back(url);
+    if (activeTab && activeTab->webView) {
+        std::string urlNormalisee = url;
+        if (urlNormalisee.find("://") == std::string::npos) {
+            urlNormalisee = "https://" + urlNormalisee;
+        }
+        webkit_web_view_load_uri(activeTab->webView, urlNormalisee.c_str());
+        activeTab->url = urlNormalisee;
+        history.push_back(urlNormalisee);
+    }
 
     if (urlBar) {
         gtk_entry_set_text(GTK_ENTRY(urlBar), url.c_str());
     }
-
-    // Mettre à jour le titre de l'onglet actif
-    renderingEngine->connectTitleChangedSignal([this](const std::string& titre) {
-        if (!tabs.empty()) {
-            GtkWidget* hboxOnglet = tabs.back().second;
-            GList* children = gtk_container_get_children(GTK_CONTAINER(hboxOnglet));
-            if (children) {
-                GtkWidget* labelTitre = GTK_WIDGET(children->data);
-                if (GTK_IS_LABEL(labelTitre)) {
-                    gtk_label_set_text(GTK_LABEL(labelTitre), titre.c_str());
-                }
-                g_list_free(children);
-            }
-        }
-    });
+    
+    updateStarButton();
     memoryManager->optimiserMemoire();
 }
 
@@ -1077,7 +1380,7 @@ void Browser::loadConfiguration() {
     
     if (config.is_null() || config.empty()) {
         std::cerr << "Fichier de configuration non trouvé ou vide. Création d'une configuration par défaut." << std::endl;
-        config["homepage"] = "https://www.duckduckgo.com";
+        config["homepage"] = "https://www.google.fr";
         FileManager::writeJSON(chemin, config);
     }
 
@@ -1089,7 +1392,7 @@ void Browser::loadConfiguration() {
         }
     }
     
-    homepage = config.value("homepage", "https://www.duckduckgo.com");
+    homepage = config.value("homepage", "https://www.google.fr");
     std::cout << "Page d'accueil définie sur : " << homepage << std::endl;
 }
 
@@ -1103,8 +1406,8 @@ void Browser::saveConfiguration() {
     std::cout << "Favoris sauvegardés automatiquement !" << std::endl;
     
     nlohmann::json ongletsJson = nlohmann::json::array();
-    for (const auto& [url, widget] : tabs) {
-        ongletsJson.push_back({{"url", url}});
+    for (const auto& tab : tabs) {
+        ongletsJson.push_back({{"url", tab.url}});
     }
     config["tabs"] = ongletsJson;
 }
@@ -1141,23 +1444,10 @@ void Browser::showOptionsMenu() {
     
     // Option : Aide
     GtkWidget* itemAide = gtk_menu_item_new_with_label("❓ Aide");
-    g_signal_connect(itemAide, "activate", G_CALLBACK(+[](GtkWidget*, gpointer) {
-        GtkWidget* dialog = gtk_message_dialog_new(
-            nullptr,
-            GTK_DIALOG_MODAL,
-            GTK_MESSAGE_INFO,
-            GTK_BUTTONS_OK,
-            "Raccourcis clavier:\n\n"
-            "Ctrl+T : Nouvel onglet\n"
-            "Ctrl+W : Fermer l'onglet\n"
-            "Ctrl+D : Ajouter aux favorites\n"
-            "Ctrl+E : Focus barre URL"
-        );
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        if (dialog && GTK_IS_WIDGET(dialog)) {
-            gtk_widget_destroy(dialog);
-        }
-    }), nullptr);
+    g_signal_connect(itemAide, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
+        auto* navigateur = static_cast<Browser*>(user_data);
+        navigateur->showHelp();
+    }), this);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemAide);
     
     // Option : À propos
@@ -1260,13 +1550,13 @@ void Browser::showGroupsMenu() {
     
     gtk_widget_show_all(menu);
     
-    // Trouver le button groupes pour positionner le popup
+    // Trouver le button groupes pour positionner le popup (premier enfant, à gauche)
     GList* children = gtk_container_get_children(GTK_CONTAINER(tabsBar));
     GtkWidget* boutonGroupes = nullptr;
     if (children) {
-        GList* last = g_list_last(children);
-        if (last && GTK_IS_BUTTON(GTK_WIDGET(last->data))) {
-            boutonGroupes = GTK_WIDGET(last->data);
+        // Prendre le premier enfant (le bouton groupes est le premier)
+        if (children->data && GTK_IS_BUTTON(GTK_WIDGET(children->data))) {
+            boutonGroupes = GTK_WIDGET(children->data);
         }
     }
     g_list_free(children);
@@ -1281,7 +1571,6 @@ void Browser::showGroupsMenu() {
 void Browser::showSettings() {
     std::string cheminParametres = FileManager::cheminParametresHTML();
     std::string urlParametres = "file://" + cheminParametres;
-    std::cerr << "[DEBUG] Chargement des paramètres depuis: " << urlParametres << std::endl;
     
     // Vérifier que le fichier existe
     std::ifstream fichier(cheminParametres);
@@ -1303,12 +1592,51 @@ void Browser::showSettings() {
     }
     fichier.close();
     
-    renderingEngine->displayPage(urlParametres);
+    // Charger dans l'onglet actif ou créer un nouvel onglet
+    if (activeTab && activeTab->webView) {
+        webkit_web_view_load_uri(activeTab->webView, urlParametres.c_str());
+        activeTab->url = urlParametres;
+        if (urlBar) {
+            gtk_entry_set_text(GTK_ENTRY(urlBar), urlParametres.c_str());
+        }
+    } else {
+        addNewTab(urlParametres);
+    }
+}
+
+void Browser::showHelp() {
+    std::string cheminHelp = FileManager::cheminHelpHTML();
+    std::string urlHelp = "file://" + cheminHelp;
     
-    // S'assurer que la webView est visible
-    WebKitWebView* webView = renderingEngine->getVueWeb();
-    if (webView) {
-        gtk_widget_show_all(GTK_WIDGET(webView));
+    // Vérifier que le fichier existe
+    std::ifstream fichier(cheminHelp);
+    if (!fichier.good()) {
+        std::cerr << "[ERREUR] Le fichier d'aide n'existe pas: " << cheminHelp << std::endl;
+        // Afficher un message d'erreur si le fichier n'existe pas
+        GtkWidget* dialog = gtk_message_dialog_new(
+            nullptr,
+            GTK_DIALOG_MODAL,
+            GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_OK,
+            "Page d'aide\n\nLe fichier d'aide n'a pas pu être chargé."
+        );
+        gtk_dialog_run(GTK_DIALOG(dialog));
+        if (dialog && GTK_IS_WIDGET(dialog)) {
+            gtk_widget_destroy(dialog);
+        }
+        return;
+    }
+    fichier.close();
+    
+    // Charger dans l'onglet actif ou créer un nouvel onglet
+    if (activeTab && activeTab->webView) {
+        webkit_web_view_load_uri(activeTab->webView, urlHelp.c_str());
+        activeTab->url = urlHelp;
+        if (urlBar) {
+            gtk_entry_set_text(GTK_ENTRY(urlBar), urlHelp.c_str());
+        }
+    } else {
+        addNewTab(urlHelp);
     }
 }
 
@@ -1324,10 +1652,10 @@ void Browser::configureKeyboardShortcuts() {
                 navigateur->addNewTab(navigateur->getHomepage());
             } else if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_w) {
                 if (!navigateur->tabs.empty()) {
-                    navigateur->removeTab(navigateur->tabs.back().second);
+                    navigateur->removeTab(navigateur->tabs.back().tabWidget);
                 }
             } else if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_d) {
-                std::string url = navigateur->renderingEngine->getCurrentURL();
+                std::string url = navigateur->getCurrentURL();
                 if (!url.empty()) {
                     navigateur->favoritesManager->addFavorite("Favori", url, "");
                     navigateur->refreshFavoritesBar();
@@ -1392,66 +1720,118 @@ void Browser::loadStyles() {
         "  background-color: rgba(255, 255, 255, 0.9); "
         "  min-width: 28px; "
         "  min-height: 24px; "
+        "  font-size: 16px; "
+        "  font-weight: bold; "
+        "} "
+        "#button-ajouter-onglet { "
+        "  background-color: rgba(74, 144, 226, 0.9); "
+        "  color: white; "
+        "  border-color: rgba(74, 144, 226, 1.0); "
         "} "
         "#button-groupes:hover, "
         "#button-ajouter-onglet:hover { "
         "  background-color: rgba(240, 240, 240, 1.0); "
         "  border-color: rgba(150, 150, 150, 0.8); "
         "} "
+        "#button-ajouter-onglet:hover { "
+        "  background-color: rgba(74, 144, 226, 1.0); "
+        "  border-color: rgba(50, 120, 200, 1.0); "
+        "} "
         "#button-groupes:active, "
         "#button-ajouter-onglet:active { "
         "  background-color: rgba(220, 220, 220, 1.0); "
         "} "
-        "/* Onglets - style amélioré pour montrer qu'ils sont dans le même container */ "
+        "#button-ajouter-onglet:active { "
+        "  background-color: rgba(50, 120, 200, 1.0); "
+        "} "
+        "/* ScrolledWindow pour les onglets */ "
+        "#scrolled-tabs { "
+        "  border-bottom: 1px solid rgba(0, 0, 0, 0.12); "
+        "  background-color: rgba(235, 235, 235, 0.95); "
+        "} "
+        "/* Onglets - style amélioré avec séparation claire entre chaque onglet */ "
         "#onglet { "
-        "  border: 1px solid rgba(180, 180, 180, 0.5); "
-        "  border-radius: 4px 4px 0 0; "
+        "  border: 2px solid rgba(150, 150, 150, 0.5); "
+        "  border-radius: 6px 6px 0 0; "
         "  padding: 6px 12px; "
         "  margin: 0 2px; "
-        "  background-color: rgba(245, 245, 245, 0.9); "
+        "  background-color: rgba(220, 220, 220, 0.9); "
         "  border-bottom: none; "
-        "  min-height: 28px; "
+        "  min-height: 32px; "
+        "  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); "
         "} "
         "#onglet:hover { "
-        "  background-color: rgba(235, 235, 235, 1.0); "
-        "  border-color: rgba(150, 150, 150, 0.7); "
+        "  background-color: rgba(200, 200, 200, 1.0); "
+        "  border-color: rgba(120, 120, 120, 0.7); "
         "} "
         "#onglet:active { "
-        "  background-color: rgba(225, 225, 225, 1.0); "
+        "  background-color: rgba(190, 190, 190, 1.0); "
         "} "
-        "/* Onglet actif - style distinctif */ "
+        "/* Onglet actif - style distinctif avec couleur différente */ "
         "#onglet.onglet-actif { "
-        "  background-color: rgba(255, 255, 255, 1.0); "
-        "  border-color: rgba(74, 144, 226, 0.8); "
-        "  border-bottom: 2px solid #4A90E2; "
-        "  border-bottom-width: 2px; "
-        "  font-weight: 500; "
+        "  background-color: rgba(100, 150, 200, 0.9); "
+        "  border-color: rgba(70, 120, 170, 1.0); "
+        "  border-bottom: 3px solid rgba(70, 120, 170, 1.0); "
+        "  border-bottom-width: 3px; "
+        "  font-weight: 600; "
+        "  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); "
         "} "
         "#onglet.onglet-actif:hover { "
-        "  background-color: rgba(250, 250, 250, 1.0); "
+        "  background-color: rgba(120, 170, 220, 1.0); "
+        "  border-color: rgba(90, 140, 190, 1.0); "
         "} "
         "/* Labels dans les tabs */ "
         "#onglet label { "
-        "  color: rgba(50, 50, 50, 0.9); "
+        "  color: rgba(50, 50, 50, 0.95); "
+        "  font-size: 12px; "
         "} "
         "#onglet.onglet-actif label { "
-        "  color: rgba(30, 30, 30, 1.0); "
+        "  color: rgba(255, 255, 255, 1.0); "
+        "  font-weight: 600; "
         "} "
-        "/* Bouton fermer dans l'onglet */ "
+        "/* Bouton fermer dans l'onglet - couleur discrète sans rouge */ "
         "#onglet button { "
-        "  border: none; "
-        "  background-color: transparent; "
-        "  padding: 2px 4px; "
-        "  margin: 0 2px; "
-        "  border-radius: 3px; "
-        "  min-width: 18px; "
-        "  min-height: 18px; "
+        "  border: 1px solid rgba(150, 150, 150, 0.4); "
+        "  background-color: rgba(240, 240, 240, 0.8); "
+        "  padding: 2px 6px; "
+        "  margin: 0 4px 0 8px; "
+        "  border-radius: 4px; "
+        "  min-width: 20px; "
+        "  min-height: 20px; "
+        "  color: rgba(100, 100, 100, 1.0); "
+        "  font-weight: bold; "
+        "  font-size: 14px; "
         "} "
         "#onglet button:hover { "
-        "  background-color: rgba(220, 220, 220, 0.8); "
+        "  background-color: rgba(200, 200, 200, 0.9); "
+        "  border-color: rgba(130, 130, 130, 0.6); "
+        "  color: rgba(60, 60, 60, 1.0); "
         "} "
         "#onglet button:active { "
-        "  background-color: rgba(200, 200, 200, 1.0); "
+        "  background-color: rgba(180, 180, 180, 1.0); "
+        "} "
+        "#onglet.onglet-actif button { "
+        "  background-color: rgba(255, 255, 255, 0.3); "
+        "  border-color: rgba(255, 255, 255, 0.5); "
+        "  color: rgba(255, 255, 255, 1.0); "
+        "} "
+        "#onglet.onglet-actif button:hover { "
+        "  background-color: rgba(255, 255, 255, 0.5); "
+        "  border-color: rgba(255, 255, 255, 0.7); "
+        "  color: rgba(255, 255, 255, 1.0); "
+        "} "
+        "/* Container web et indicateur de chargement */ "
+        "#container-web { "
+        "  background-color: #ffffff; "
+        "  min-height: 600px; "
+        "} "
+        "#loading-indicator { "
+        "  background-color: rgba(255, 255, 255, 0.95); "
+        "  padding: 20px; "
+        "} "
+        "#loading-indicator label { "
+        "  font-size: 14px; "
+        "  color: #666666; "
         "}";
 
     gtk_css_provider_load_from_data(provider, css, -1, &error);
@@ -1474,15 +1854,25 @@ void Browser::loadStyles() {
 
 
 void Browser::onNavigateBack(GtkButton *, Browser *n) {
-    n->renderingEngine->navigateBack();
+    if (n->activeTab && n->activeTab->webView) {
+        if (webkit_web_view_can_go_back(n->activeTab->webView)) {
+            webkit_web_view_go_back(n->activeTab->webView);
+        }
+    }
 }
 
 void Browser::onNavigateForward(GtkButton *, Browser *n) {
-    n->renderingEngine->navigateForward();
+    if (n->activeTab && n->activeTab->webView) {
+        if (webkit_web_view_can_go_forward(n->activeTab->webView)) {
+            webkit_web_view_go_forward(n->activeTab->webView);
+        }
+    }
 }
 
 void Browser::onRefreshPage(GtkButton *, Browser *n) {
-    n->loadURL(n->renderingEngine->getCurrentURL());
+    if (n->activeTab && n->activeTab->webView) {
+        webkit_web_view_reload(n->activeTab->webView);
+    }
 }
 
 void Browser::onGoHome(GtkButton *, Browser *n) {
@@ -1579,6 +1969,20 @@ void Browser::onStarButtonClicked(GtkButton* button, gpointer user_data) {
 
 void Browser::showCommandPalette() {
     if (commandPalette && window) {
+        commandPalette->setCurrentWebView(renderingEngine.get());
+        commandPalette->showPalette(GTK_WINDOW(window));
+    }
+}
+
+void Browser::toggleCommandPalette() {
+    if (!commandPalette || !window) return;
+    
+    // Vérifier si la palette est déjà visible
+    if (commandPalette->isVisible()) {
+        // Si elle est visible, la masquer
+        commandPalette->hidePalette();
+    } else {
+        // Si elle n'est pas visible, l'afficher
         commandPalette->setCurrentWebView(renderingEngine.get());
         commandPalette->showPalette(GTK_WINDOW(window));
     }

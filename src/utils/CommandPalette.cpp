@@ -43,7 +43,7 @@ void CommandPalette::showPalette(GtkWindow* parent) {
         
         // Entry pour la saisie
         m_entry = gtk_entry_new();
-        gtk_entry_set_placeholder_text(GTK_ENTRY(m_entry), "Tapez une commande... (CTRL+ALT+C)");
+        gtk_entry_set_placeholder_text(GTK_ENTRY(m_entry), "Tapez une commande... (CTRL+SHIFT+C pour fermer)");
         gtk_box_pack_start(GTK_BOX(vbox), m_entry, FALSE, FALSE, 0);
         
         // ScrolledWindow pour la liste
@@ -74,6 +74,16 @@ void CommandPalette::showPalette(GtkWindow* parent) {
     filterCommands("");
     gtk_widget_show_all(m_window);
     gtk_widget_grab_focus(m_entry);
+}
+
+void CommandPalette::hidePalette() {
+    if (m_window && gtk_widget_get_visible(m_window)) {
+        gtk_widget_hide(m_window);
+    }
+}
+
+bool CommandPalette::isVisible() const {
+    return m_window && gtk_widget_get_visible(m_window);
 }
 
 void CommandPalette::filterCommands(const std::string& text) {
@@ -157,6 +167,13 @@ gboolean CommandPalette::onKeyPress(GtkWidget* widget, GdkEventKey* event, gpoin
     
     // Échap pour fermer
     if (event->keyval == GDK_KEY_Escape) {
+        gtk_widget_hide(palette->m_window);
+        return TRUE;
+    }
+    
+    // CTRL+SHIFT+C pour fermer (toggle)
+    if ((event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) && 
+        event->keyval == GDK_KEY_c) {
         gtk_widget_hide(palette->m_window);
         return TRUE;
     }

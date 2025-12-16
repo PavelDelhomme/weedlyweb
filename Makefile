@@ -1,5 +1,12 @@
 # Makefile pour WeedlyWeb
 # Browser web en C++ avec WebKit2GTK
+#
+# Ce Makefile utilise CMake pour générer le Makefile dans build/
+# Workflow :
+#   1. make configure -> CMake génère build/Makefile
+#   2. make build     -> Utilise build/Makefile pour compiler
+#
+# Vous n'avez pas besoin de modifier ce Makefile, CMake gère tout !
 
 # Variables
 PROJECT_NAME := WeedlyWeb
@@ -17,64 +24,105 @@ YELLOW := \033[1;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
-.PHONY: all clean build run run-bg run-debug build-debug debug debug-auto valgrind install help monitor test configure watch watch-run watch-basic watch-run-basic dev install-deps setup
+.PHONY: all clean build run run-build run-bg run-debug build-debug debug debug-auto valgrind install uninstall reinstall help monitor test configure watch watch-run watch-basic watch-run-basic dev install-deps setup
 
-# Cible par défaut
-all: build
+# Cible par défaut - utiliser Qt si disponible, sinon GTK
+all: build-qt
+
+# Configuration Qt
+configure-qt:
+	@printf "$(YELLOW)⚙️  Configuration CMake pour Qt6...$(NC)\n"
+	@mkdir -p $(BUILD_DIR)
+	@cd $(BUILD_DIR) && $(CMAKE) -DUSE_QT=ON ..
+	@printf "$(GREEN)✔️  Configuration Qt terminée$(NC)\n"
+
+# Build Qt (prioritaire)
+build-qt:
+	@if pkg-config --exists Qt6Core Qt6Gui Qt6Widgets Qt6WebEngineWidgets 2>/dev/null; then \
+		echo "$(GREEN)🔨 Compilation avec Qt6...$(NC)"; \
+		cd ui-qt && mkdir -p build && cd build && $(CMAKE) .. && $(MAKE) -j$(NPROC) || (echo "$(RED)❌ Erreur de compilation Qt$(NC)"; exit 1); \
+		echo "$(GREEN)✔️  Compilation Qt terminée$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  Qt6 non disponible, utilisation de GTK...$(NC)"; \
+		echo "$(YELLOW)💡 Pour installer Qt6 : sudo pacman -S qt6-base qt6-webengine$(NC)"; \
+		$(MAKE) build-gtk; \
+	fi
+
+# Build GTK (fallback)
+build-gtk: build
+
+# Run Qt
+run-qt: build-qt
+	@printf "$(GREEN)🚀 Lancement de WeedlyWebQt...$(NC)\n"
+	@if [ -f ui-qt/build/WeedlyWebQt ]; then \
+		ui-qt/build/WeedlyWebQt; \
+	else \
+		printf "$(RED)❌ Erreur : L'exécutable Qt n'existe pas$(NC)\n"; \
+		exit 1; \
+	fi
 
 # Afficher l'aide
 help:
-	@echo "$(GREEN)🔧 Makefile pour $(PROJECT_NAME)$(NC)"
-	@echo ""
-	@echo "$(YELLOW)Commandes disponibles :$(NC)"
-	@echo "  $(GREEN)make$(NC)              - Compile le projet (alias de 'make build')"
-	@echo "  $(GREEN)make build$(NC)        - Compile le projet"
-	@echo "  $(GREEN)make clean$(NC)        - Nettoie le répertoire de build"
-	@echo "  $(GREEN)make run$(NC)           - Compile et lance l'application (foreground)"
-	@echo "  $(GREEN)make run-bg$(NC)       - Compile et lance en arrière-plan"
-	@echo "  $(GREEN)make run-debug$(NC)    - Compile en debug et lance (avec symboles)"
-	@echo "  $(GREEN)make debug$(NC)        - Compile en debug et lance avec GDB (interactif)"
-	@echo "  $(GREEN)make debug-auto$(NC)   - Compile en debug et lance avec GDB (automatique)"
-	@echo "  $(GREEN)make valgrind$(NC)     - Lance avec Valgrind (détection fuites)"
-	@echo "  $(GREEN)make install$(NC)      - Installe l'application"
-	@echo "  $(GREEN)make monitor$(NC)       - Surveille le processus en cours"
-	@echo "  $(GREEN)make test$(NC)         - Lance les tests (si disponibles)"
-	@echo "  $(GREEN)make configure$(NC)   - Configure CMake uniquement"
-	@echo "  $(GREEN)make rebuild$(NC)      - Nettoie et recompile"
-	@echo "  $(GREEN)make check-deps$(NC)   - Vérifie les dépendances installées"
-	@echo "  $(GREEN)make watch$(NC)        - Surveille les fichiers et recompile automatiquement"
-	@echo "  $(GREEN)make watch-run$(NC)    - Surveille, recompile et relance l'application automatiquement"
-	@echo "  $(GREEN)make dev$(NC)          - Mode développement : surveille, recompile et recharge proprement l'application"
-	@echo ""
-	@echo "$(YELLOW)📦 Installation et configuration :$(NC)"
-	@echo "  $(GREEN)make install-deps$(NC)  - Installe les dépendances (détection automatique de la distribution)"
-	@echo "  $(GREEN)make setup$(NC)        - Configuration complète : installe les dépendances et compile"
-	@echo ""
-	@echo "$(YELLOW)💡 Documentation :$(NC)"
-	@echo "  Voir $(GREEN)docs/INSTALL_DEPENDENCIES.md$(NC) pour les instructions détaillées"
-	@echo ""
+	@printf "$(GREEN)🔧 Makefile pour $(PROJECT_NAME)$(NC)\n"
+	@printf "\n"
+	@printf "$(YELLOW)Commandes disponibles :$(NC)\n"
+	@printf "  $(GREEN)make$(NC)              - Compile le projet (alias de 'make build')\n"
+	@printf "  $(GREEN)make build$(NC)        - Compile le projet\n"
+	@printf "  $(GREEN)make clean$(NC)        - Nettoie le répertoire de build\n"
+	@printf "  $(GREEN)make run$(NC)           - Compile et lance l'application (foreground)\n"
+	@printf "  $(GREEN)make run-build$(NC)    - Compile puis lance l'application (vérifie le build)\n"
+	@printf "  $(GREEN)make run-bg$(NC)       - Compile et lance en arrière-plan\n"
+	@printf "  $(GREEN)make run-debug$(NC)    - Compile en debug et lance (avec symboles)\n"
+	@printf "  $(GREEN)make debug$(NC)        - Compile en debug et lance avec GDB (interactif)\n"
+	@printf "  $(GREEN)make debug-auto$(NC)   - Compile en debug et lance avec GDB (automatique)\n"
+	@printf "  $(GREEN)make valgrind$(NC)     - Lance avec Valgrind (détection fuites)\n"
+	@printf "  $(GREEN)make install$(NC)      - Installe l'application sur le système\n"
+	@printf "  $(GREEN)make uninstall$(NC)    - Désinstalle l'application\n"
+	@printf "  $(GREEN)make reinstall$(NC)    - Réinstalle l'application (uninstall + install)\n"
+	@printf "  $(GREEN)make monitor$(NC)       - Surveille le processus en cours\n"
+	@printf "  $(GREEN)make test$(NC)         - Lance les tests (si disponibles)\n"
+	@printf "  $(GREEN)make configure$(NC)   - Configure CMake uniquement\n"
+	@printf "  $(GREEN)make rebuild$(NC)      - Nettoie et recompile\n"
+	@printf "  $(GREEN)make check-deps$(NC)   - Vérifie les dépendances installées\n"
+	@printf "  $(GREEN)make watch$(NC)        - Surveille les fichiers et recompile automatiquement\n"
+	@printf "  $(GREEN)make watch-run$(NC)    - Surveille, recompile et relance l'application automatiquement\n"
+	@printf "  $(GREEN)make dev$(NC)          - Mode développement : surveille, recompile et recharge proprement l'application\n"
+	@printf "\n"
+	@printf "$(YELLOW)📦 Installation et configuration :$(NC)\n"
+	@printf "  $(GREEN)make install-deps$(NC)  - Installe les dépendances (détection automatique de la distribution)\n"
+	@printf "  $(GREEN)make setup$(NC)        - Configuration complète : installe les dépendances et compile\n"
+	@printf "\n"
+	@printf "$(YELLOW)💡 Documentation :$(NC)\n"
+	@printf "  Voir $(GREEN)docs/INSTALL_DEPENDENCIES.md$(NC) pour les instructions détaillées\n"
+	@printf "\n"
+	@printf "$(YELLOW)📝 Note :$(NC)\n"
+	@printf "  Ce Makefile utilise CMake pour générer le Makefile dans $(BUILD_DIR)/\n"
+	@printf "  Vous n'avez pas besoin de modifier ce Makefile, CMake gère tout !\n"
+	@printf "\n"
 
 # Configuration CMake
+# CMake génère automatiquement le Makefile dans build/
 configure:
-	@echo "$(YELLOW)⚙️  Configuration CMake...$(NC)"
+	@printf "$(YELLOW)⚙️  Configuration CMake (génération du Makefile dans build/)...$(NC)\n"
 	@mkdir -p $(BUILD_DIR)
 	@# Nettoyer le cache CMake si le répertoire source a changé
 	@if [ -f $(BUILD_DIR)/CMakeCache.txt ]; then \
 		CACHED_SOURCE=$$(grep "^CMAKE_HOME_DIRECTORY:" $(BUILD_DIR)/CMakeCache.txt 2>/dev/null | cut -d= -f2 | tr -d '\n'); \
 		CURRENT_SOURCE=$$(pwd); \
 		if [ "$$CACHED_SOURCE" != "$$CURRENT_SOURCE" ] && [ -n "$$CACHED_SOURCE" ]; then \
-			echo "$(YELLOW)⚠️  Cache CMake détecté depuis un autre répertoire, nettoyage...$(NC)"; \
+			printf "$(YELLOW)⚠️  Cache CMake détecté depuis un autre répertoire, nettoyage...$(NC)\n"; \
 			rm -rf $(BUILD_DIR)/CMakeCache.txt $(BUILD_DIR)/CMakeFiles; \
 		fi; \
 	fi
 	@cd $(BUILD_DIR) && $(CMAKE) ..
-	@echo "$(GREEN)✔️  Configuration terminée$(NC)"
+	@printf "$(GREEN)✔️  Configuration terminée - Makefile généré dans $(BUILD_DIR)/$(NC)\n"
 
 # Compilation
+# Utilise le Makefile généré par CMake dans build/
 build: configure
-	@echo "$(YELLOW)🔨 Compilation du projet...$(NC)"
+	@printf "$(YELLOW)🔨 Compilation du projet (via Makefile généré par CMake)...$(NC)\n"
 	@cd $(BUILD_DIR) && $(MAKE) -j$(NPROC)
-	@echo "$(GREEN)✔️  Compilation terminée avec succès$(NC)"
+	@printf "$(GREEN)✔️  Compilation terminée avec succès$(NC)\n"
 
 # Nettoyage
 clean:
@@ -96,12 +144,32 @@ clean-force: clean
 rebuild: clean build
 
 # Exécution (mode normal - foreground pour voir les sorties)
+# Redirige les erreurs GBM non-critiques vers /dev/null
 run: build
-	@echo "$(GREEN)🚀 Lancement de $(PROJECT_NAME)...$(NC)"
+	@printf "$(GREEN)🚀 Lancement de $(PROJECT_NAME)...$(NC)\n"
 	@if [ -f $(EXECUTABLE) ]; then \
-		$(EXECUTABLE); \
+		$(EXECUTABLE) 2>/dev/null || $(EXECUTABLE); \
 	else \
-		echo "$(RED)❌ Erreur : L'exécutable n'existe pas$(NC)"; \
+		printf "$(RED)❌ Erreur : L'exécutable n'existe pas$(NC)\n"; \
+		exit 1; \
+	fi
+
+# Compilation puis exécution (vérifie que le build a réussi avant de lancer)
+run-build:
+	@printf "$(YELLOW)🔨 Compilation du projet...$(NC)\n"
+	@if $(MAKE) build; then \
+		printf "$(GREEN)✔️  Compilation réussie$(NC)\n"; \
+		printf "$(GREEN)🚀 Lancement de $(PROJECT_NAME)...$(NC)\n"; \
+		printf "$(YELLOW)💡 Les logs de débogage seront affichés ci-dessous$(NC)\n"; \
+		printf "$(YELLOW)💡 Appuyez sur Ctrl+C pour arrêter$(NC)\n\n"; \
+		if [ -f $(EXECUTABLE) ]; then \
+			$(EXECUTABLE) 2>&1 || $(EXECUTABLE) 2>&1; \
+		else \
+			printf "$(RED)❌ Erreur : L'exécutable n'existe pas$(NC)\n"; \
+			exit 1; \
+		fi; \
+	else \
+		printf "$(RED)❌ Erreur de compilation - l'application ne sera pas lancée$(NC)\n"; \
 		exit 1; \
 	fi
 
@@ -180,10 +248,35 @@ debug-auto: build-debug
 	fi
 
 # Installation
+# Installe l'application sur n'importe quel système Linux
 install: build
-	@echo "$(YELLOW)📦 Installation de l'application...$(NC)"
-	@cd $(BUILD_DIR) && sudo $(MAKE) install
-	@echo "$(GREEN)✔️  Application installée avec succès$(NC)"
+	@printf "$(YELLOW)📦 Installation de l'application...$(NC)\n"
+	@if [ -f $(BUILD_DIR)/CMakeCache.txt ]; then \
+		cd $(BUILD_DIR) && sudo $(MAKE) install; \
+	else \
+		printf "$(RED)❌ Erreur : Le projet n'a pas été configuré. Lancez 'make build' d'abord.$(NC)\n"; \
+		exit 1; \
+	fi
+	@printf "$(GREEN)✔️  Application installée avec succès dans $(INSTALL_DIR)$(NC)\n"
+	@printf "$(YELLOW)💡 Vous pouvez maintenant lancer l'application avec : $(INSTALL_DIR)/bin/$(PROJECT_NAME)$(NC)\n"
+
+# Réinstallation (désinstalle puis réinstalle)
+reinstall: uninstall install
+
+# Désinstallation
+uninstall:
+	@printf "$(YELLOW)🗑️  Désinstallation de l'application...$(NC)\n"
+	@if [ -f $(BUILD_DIR)/CMakeCache.txt ]; then \
+		cd $(BUILD_DIR) && sudo $(MAKE) uninstall 2>/dev/null || \
+		(sudo rm -f $(INSTALL_DIR)/bin/$(PROJECT_NAME) && \
+		 sudo rm -rf $(INSTALL_DIR)/share/WeedlyWeb && \
+		 printf "$(GREEN)✔️  Application désinstallée$(NC)\n"); \
+	else \
+		# Désinstallation manuelle si CMake n'est pas configuré
+		sudo rm -f $(INSTALL_DIR)/bin/$(PROJECT_NAME) 2>/dev/null || true; \
+		sudo rm -rf $(INSTALL_DIR)/share/WeedlyWeb 2>/dev/null || true; \
+		printf "$(GREEN)✔️  Application désinstallée$(NC)\n"; \
+	fi
 
 # Monitoring du processus
 monitor:
@@ -206,15 +299,39 @@ test: build
 	@echo "$(YELLOW)⚠️  Aucun test configuré pour le moment$(NC)"
 
 # Installation des dépendances
-install-deps:
+install-deps: install-dependencies
+
+install-dependencies:
 	@echo "$(YELLOW)📦 Installation des dépendances pour $(PROJECT_NAME)...$(NC)"
-	@if [ -f scripts/install-deps.sh ]; then \
-		chmod +x scripts/install-deps.sh; \
-		./scripts/install-deps.sh; \
+	@echo ""
+	@echo "$(YELLOW)🔍 Détection de la distribution...$(NC)"
+	@if [ -f /etc/arch-release ] || [ -f /etc/manjaro-release ]; then \
+		echo "$(GREEN)✅ Distribution détectée : Arch/Manjaro$(NC)"; \
+		echo "$(YELLOW)📦 Installation des dépendances GTK...$(NC)"; \
+		sudo pacman -S --needed cmake gtk3 webkit2gtk sqlite curl pkg-config gdb valgrind strace || true; \
+		echo "$(YELLOW)📦 Installation des dépendances Qt6...$(NC)"; \
+		sudo pacman -S --needed qt6-base qt6-webengine || true; \
+		echo "$(GREEN)✅ Dépendances installées$(NC)"; \
+	elif [ -f /etc/debian_version ]; then \
+		echo "$(GREEN)✅ Distribution détectée : Debian/Ubuntu$(NC)"; \
+		echo "$(YELLOW)📦 Installation des dépendances GTK...$(NC)"; \
+		sudo apt-get update && sudo apt-get install -y cmake libgtk-3-dev libwebkit2gtk-4.1-dev libsqlite3-dev libcurl4-openssl-dev pkg-config gdb valgrind strace || true; \
+		echo "$(YELLOW)📦 Installation des dépendances Qt6...$(NC)"; \
+		sudo apt-get install -y qt6-base-dev qt6-webengine-dev || true; \
+		echo "$(GREEN)✅ Dépendances installées$(NC)"; \
+	elif [ -f /etc/fedora-release ]; then \
+		echo "$(GREEN)✅ Distribution détectée : Fedora$(NC)"; \
+		echo "$(YELLOW)📦 Installation des dépendances GTK...$(NC)"; \
+		sudo dnf install -y cmake gtk3-devel webkit2gtk3-devel sqlite-devel libcurl-devel pkg-config gdb valgrind strace || true; \
+		echo "$(YELLOW)📦 Installation des dépendances Qt6...$(NC)"; \
+		sudo dnf install -y qt6-qtbase-devel qt6-qtwebengine-devel || true; \
+		echo "$(GREEN)✅ Dépendances installées$(NC)"; \
 	else \
-		echo "$(RED)❌ Script d'installation non trouvé : scripts/install-deps.sh$(NC)"; \
-		echo "$(YELLOW)💡 Voir docs/INSTALL_DEPENDENCIES.md pour l'installation manuelle$(NC)"; \
-		exit 1; \
+		echo "$(YELLOW)⚠️  Distribution non reconnue$(NC)"; \
+		echo "$(YELLOW)💡 Installation manuelle requise$(NC)"; \
+		echo "$(YELLOW)📦 Dépendances GTK : cmake, gtk3, webkit2gtk, sqlite, curl, pkg-config$(NC)"; \
+		echo "$(YELLOW)📦 Dépendances Qt6 : qt6-base, qt6-webengine$(NC)"; \
+		echo "$(YELLOW)💡 Voir docs/INSTALL_DEPENDENCIES.md pour plus d'informations$(NC)"; \
 	fi
 
 # Configuration complète : installation des dépendances + compilation
@@ -226,21 +343,33 @@ setup: install-deps build
 check-deps:
 	@echo "$(YELLOW)🔍 Vérification des dépendances...$(NC)"
 	@echo ""
-	@echo "$(YELLOW)📦 Dépendances obligatoires :$(NC)"
+	@echo "$(YELLOW)📦 Dépendances communes obligatoires :$(NC)"
 	@command -v $(CMAKE) >/dev/null 2>&1 && echo "$(GREEN)✅ CMake$(NC)" || { echo "$(RED)❌ CMake n'est pas installé$(NC)"; exit 1; }
-	@pkg-config --exists webkit2gtk-4.1 && echo "$(GREEN)✅ WebKit2GTK 4.1$(NC)" || { echo "$(RED)❌ WebKit2GTK 4.1 n'est pas installé$(NC)"; exit 1; }
-	@pkg-config --exists gtk+-3.0 && echo "$(GREEN)✅ GTK+3$(NC)" || { echo "$(RED)❌ GTK+3 n'est pas installé$(NC)"; exit 1; }
 	@pkg-config --exists sqlite3 && echo "$(GREEN)✅ SQLite3$(NC)" || { echo "$(RED)❌ SQLite3 n'est pas installé$(NC)"; exit 1; }
 	@command -v curl-config >/dev/null 2>&1 && echo "$(GREEN)✅ cURL$(NC)" || { echo "$(RED)❌ cURL n'est pas installé$(NC)"; exit 1; }
 	@command -v pkg-config >/dev/null 2>&1 && echo "$(GREEN)✅ pkg-config$(NC)" || { echo "$(RED)❌ pkg-config n'est pas installé$(NC)"; exit 1; }
+	@echo ""
+	@echo "$(YELLOW)📦 Dépendances GTK (pour make build) :$(NC)"
+	@pkg-config --exists webkit2gtk-4.1 && echo "$(GREEN)✅ WebKit2GTK 4.1$(NC)" || echo "$(YELLOW)⚠️  WebKit2GTK 4.1 n'est pas installé (optionnel si Qt utilisé)$(NC)"
+	@pkg-config --exists gtk+-3.0 && echo "$(GREEN)✅ GTK+3$(NC)" || echo "$(YELLOW)⚠️  GTK+3 n'est pas installé (optionnel si Qt utilisé)$(NC)"
+	@echo ""
+	@echo "$(YELLOW)📦 Dépendances Qt6 (pour make build-qt) :$(NC)"
+	@pkg-config --exists Qt6Core Qt6Gui Qt6Widgets Qt6WebEngineWidgets && echo "$(GREEN)✅ Qt6 (Core, Gui, Widgets, WebEngine)$(NC)" || echo "$(YELLOW)⚠️  Qt6 n'est pas installé (optionnel si GTK utilisé)$(NC)"
 	@echo ""
 	@echo "$(YELLOW)🐞 Outils de débogage (optionnels mais recommandés) :$(NC)"
 	@command -v gdb >/dev/null 2>&1 && echo "$(GREEN)✅ GDB$(NC)" || echo "$(YELLOW)⚠️  GDB n'est pas installé (optionnel)$(NC)"
 	@command -v valgrind >/dev/null 2>&1 && echo "$(GREEN)✅ Valgrind$(NC)" || echo "$(YELLOW)⚠️  Valgrind n'est pas installé (optionnel)$(NC)"
 	@command -v strace >/dev/null 2>&1 && echo "$(GREEN)✅ strace$(NC)" || echo "$(YELLOW)⚠️  strace n'est pas installé (optionnel)$(NC)"
 	@echo ""
-	@echo "$(GREEN)✔️  Toutes les dépendances obligatoires sont installées$(NC)"
-	@echo "$(YELLOW)💡 Pour installer les outils de débogage : sudo pacman -S gdb valgrind strace$(NC)"
+	@if pkg-config --exists Qt6Core Qt6Gui Qt6Widgets Qt6WebEngineWidgets 2>/dev/null; then \
+		echo "$(GREEN)✔️  Qt6 disponible - vous pouvez utiliser 'make build-qt'$(NC)"; \
+	elif pkg-config --exists webkit2gtk-4.1 gtk+-3.0 2>/dev/null; then \
+		echo "$(GREEN)✔️  GTK disponible - vous pouvez utiliser 'make build'$(NC)"; \
+	else \
+		echo "$(RED)❌ Aucune dépendance UI trouvée$(NC)"; \
+		echo "$(YELLOW)💡 Installez Qt6 : sudo pacman -S qt6-base qt6-webengine$(NC)"; \
+		echo "$(YELLOW)💡 OU installez GTK : sudo pacman -S gtk3 webkit2gtk$(NC)"; \
+	fi
 
 # Informations sur le projet
 info:

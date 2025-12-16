@@ -313,9 +313,11 @@ WeedlyWeb: CMakeFiles/WeedlyWeb.dir/link.txt
 	/usr/bin/cmake -E make_directory /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/settings
 	/usr/bin/cmake -E make_directory /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/datas
 	/usr/bin/cmake -E make_directory /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/icons
+	/usr/bin/cmake -E make_directory /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/help
 	/usr/bin/cmake -E copy /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/settings/config.json /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/settings/config.json
 	/usr/bin/cmake -E copy /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/datas/favorites.json /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/datas/favorites.json
 	/usr/bin/cmake -E copy /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/styles/style.css /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/styles/style.css
+	/usr/bin/cmake -E copy /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/help/help.html /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/help/help.html
 	/usr/bin/cmake -E copy_if_different /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/icons/weedlyweb.svg /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/icons/weedlyweb.svg
 	/usr/bin/cmake -E copy_if_different /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/icons/weedlyweb.png /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/assets/icons/weedlyweb.png
 

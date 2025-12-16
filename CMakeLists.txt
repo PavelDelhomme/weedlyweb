@@ -128,9 +128,11 @@ add_custom_command(TARGET WeedlyWeb POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/settings
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/datas
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/icons
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/help
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/settings/config.json ${CMAKE_BINARY_DIR}/assets/settings/config.json
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/datas/favorites.json ${CMAKE_BINARY_DIR}/assets/datas/favorites.json
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/styles/style.css ${CMAKE_BINARY_DIR}/assets/styles/style.css
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/help/help.html ${CMAKE_BINARY_DIR}/assets/help/help.html
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/assets/icons/weedlyweb.svg ${CMAKE_BINARY_DIR}/assets/icons/weedlyweb.svg
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/assets/icons/weedlyweb.png ${CMAKE_BINARY_DIR}/assets/icons/weedlyweb.png
 )
@@ -146,6 +148,7 @@ install(FILES
     ${CMAKE_SOURCE_DIR}/assets/settings/config.json
     ${CMAKE_SOURCE_DIR}/assets/datas/favorites.json
     ${CMAKE_SOURCE_DIR}/assets/styles/style.css
+    ${CMAKE_SOURCE_DIR}/assets/help/help.html
     DESTINATION ${INSTALL_DIR}/share/WeedlyWeb
 )
 

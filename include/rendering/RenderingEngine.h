@@ -6,6 +6,9 @@
 #include <string>
 #include <functional>
 
+// Forward declaration pour éviter les dépendances circulaires
+typedef void (*LoadingStateCallback)(bool loading);
+
 class RenderingEngine {
 public:
     RenderingEngine();
@@ -30,10 +33,14 @@ public:
     std::string getCurrentURL() const;
     std::string getCurrentTitle() const;
     WebKitWebView* getVueWeb() const { return webView; }
+    
+    // Callback pour gérer l'état de chargement dans la barre d'URL
+    void setLoadingStateCallback(LoadingStateCallback callback) { loadingStateCallback = callback; }
 
 private:
     WebKitWebView *webView;
     std::function<void(const std::string&)> callbackTitreChange;
+    LoadingStateCallback loadingStateCallback;
 };
 
 #endif

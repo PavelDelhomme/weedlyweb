@@ -36,6 +36,11 @@ std::string FileManager::cheminParametresHTML() {
     return obtenirCheminAbsolu("assets/settings/settings.html");
 }
 
+// Chemin spécifique pour help.html
+std::string FileManager::cheminHelpHTML() {
+    return obtenirCheminAbsolu("assets/help/help.html");
+}
+
 // Chemin spécifique pour style.css
 std::string FileManager::cheminStylesCSS() {
     return obtenirCheminAbsolu("assets/styles/style.css");

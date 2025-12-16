@@ -54,7 +54,7 @@ static void on_load_changed(WebKitWebView* web_view, WebKitLoadEvent load_event,
 
 
 RenderingEngine::RenderingEngine()
-    : webView(nullptr) {
+    : webView(nullptr), loadingStateCallback(nullptr) {
     // Ne pas créer la vue Web immédiatement - elle sera créée dans initializeRendering
     // après que GTK soit complètement initialisé
 }
@@ -68,23 +68,23 @@ RenderingEngine::~RenderingEngine() {
 }
 
 
+// Variable statique pour stocker le container (pour l'indicateur de chargement)
+static GtkWidget* loadingIndicator = nullptr;
+static GtkWidget* webContainer = nullptr;
+
 void RenderingEngine::initializeRendering(GtkWidget *mainContainer) {
-    std::cerr << "[DEBUG RenderingEngine] Début de initializeRendering()" << std::endl;
     if (!mainContainer) {
         std::cerr << "Erreur : mainContainer est null dans initializeRendering" << std::endl;
         return;
     }
     
     // Créer la vue Web seulement maintenant, après que GTK soit complètement initialisé
-    std::cerr << "[DEBUG RenderingEngine] Création de WebView..." << std::endl;
     if (!webView) {
         webView = WEBKIT_WEB_VIEW(webkit_web_view_new());
-        std::cerr << "[DEBUG RenderingEngine] webkit_web_view_new() appelé" << std::endl;
         if (!webView) {
             std::cerr << "Erreur : Impossible de créer WebView" << std::endl;
             return;
         }
-        std::cerr << "[DEBUG RenderingEngine] WebView créé avec succès" << std::endl;
     }
     
     // Vérifier que webView n'est pas déjà dans un container
@@ -93,61 +93,139 @@ void RenderingEngine::initializeRendering(GtkWidget *mainContainer) {
     }
     
     // Créer un container pour la webView (expandable)
-    GtkWidget *container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    if (!container) {
-        std::cerr << "Erreur : Impossible de créer le container" << std::endl;
-        return;
-    }
-    gtk_widget_set_name(container, "container-web");
+    // NOTE: On utilise directement le mainContainer passé en paramètre, pas besoin de créer un nouveau container
+    // Le mainContainer est déjà le webContainer de Browser
+    webContainer = mainContainer;
     
-    // Vérifier que webView n'a pas déjà un parent avant de l'ajouter
-    if (!gtk_widget_get_parent(GTK_WIDGET(webView))) {
-        gtk_box_pack_start(GTK_BOX(container), GTK_WIDGET(webView), TRUE, TRUE, 0);
-        std::cerr << "[DEBUG RenderingEngine] webView ajoutée au container" << std::endl;
-    }
+    // Ne PAS créer d'indicateur de chargement ici - on utilise uniquement le spinner dans la barre d'URL
+    // Cela évite les conflits et les problèmes d'affichage
+    loadingIndicator = nullptr;
     
-    // Vérifier que le container n'est pas déjà dans le container principal
-    std::cerr << "[DEBUG RenderingEngine] Ajout du container au container principal..." << std::endl;
-    if (!gtk_widget_get_parent(container)) {
-        // Ajouter à la fin avec expansion pour prendre tout l'espace restant
-        gtk_box_pack_end(GTK_BOX(mainContainer), container, TRUE, TRUE, 0);
-        // S'assurer que le container est expansible
-        gtk_widget_set_vexpand(container, TRUE);
-        gtk_widget_set_hexpand(container, TRUE);
-        std::cerr << "[DEBUG RenderingEngine] Conteneur ajouté au container principal" << std::endl;
-    }
-    
-    // S'assurer que la webView et le container sont visibles
+    // S'assurer que la webView est correctement configurée
     if (webView) {
-        gtk_widget_set_vexpand(GTK_WIDGET(webView), TRUE);
-        gtk_widget_set_hexpand(GTK_WIDGET(webView), TRUE);
-        // S'assurer que le container est expansible
-        gtk_widget_set_vexpand(container, TRUE);
-        gtk_widget_set_hexpand(container, TRUE);
-        // Afficher tous les widgets
-        gtk_widget_show_all(GTK_WIDGET(webView));
-        gtk_widget_show_all(container);
-        std::cerr << "[DEBUG RenderingEngine] webView et container rendus visibles et expansibles" << std::endl;
+        GtkWidget* webWidget = GTK_WIDGET(webView);
+        
+        // S'assurer que la WebView est expansible
+        gtk_widget_set_vexpand(webWidget, TRUE);
+        gtk_widget_set_hexpand(webWidget, TRUE);
+        
+        // Ne pas définir de taille minimale fixe - laisser GTK gérer automatiquement
+        // Cela permet un meilleur redimensionnement
+        
+        // Afficher la WebView immédiatement (elle sera gérée par les onglets)
+        // Ne pas l'afficher ici car elle sera gérée par Browser::addNewTab
     }
+}
+
+// Fonction helper pour gérer l'état de chargement (définie dans Browser.cpp)
+// Déclaration externe pour éviter la dépendance circulaire
+extern void browser_set_loading_state(bool loading);
+
+// Callback pour masquer l'indicateur de chargement quand la page est chargée
+static void on_load_finished(WebKitWebView* web_view, WebKitLoadEvent load_event, gpointer user_data) {
+    const gchar* uri = webkit_web_view_get_uri(web_view);
+    std::string url = uri ? std::string(uri) : "unknown";
     
-    std::cerr << "[DEBUG RenderingEngine] Fin de initializeRendering()" << std::endl;
+    if (load_event == WEBKIT_LOAD_STARTED) {
+        std::cerr << "[DEBUG] WEBKIT_LOAD_STARTED pour URL: " << url << std::endl;
+        
+        // Afficher uniquement l'indicateur de chargement dans la barre d'URL
+        browser_set_loading_state(true);
+        
+        // NE PAS masquer la WebView - la laisser visible pour un rendu immédiat
+    } else if (load_event == WEBKIT_LOAD_FINISHED) {
+        std::cerr << "[DEBUG] WEBKIT_LOAD_FINISHED pour URL: " << url << std::endl;
+        
+        // Masquer l'indicateur de chargement dans la barre d'URL
+        browser_set_loading_state(false);
+        
+        // S'assurer que la WebView est visible et affichée
+        if (web_view && GTK_IS_WIDGET(web_view)) {
+            GtkWidget* webWidget = GTK_WIDGET(web_view);
+            
+            // Afficher la WebView et tous ses parents
+            GtkWidget* parent = gtk_widget_get_parent(webWidget);
+            while (parent) {
+                gtk_widget_show_all(parent);
+                gtk_widget_set_visible(parent, TRUE);
+                parent = gtk_widget_get_parent(parent);
+            }
+            
+            // Afficher la WebView
+            gtk_widget_show_all(webWidget);
+            gtk_widget_set_visible(webWidget, TRUE);
+            
+            // Forcer le redessinage
+            gtk_widget_queue_draw(webWidget);
+            gtk_widget_queue_resize(webWidget);
+            
+            std::cerr << "[DEBUG] WebView rendue visible après chargement" << std::endl;
+        }
+    } else if (load_event == WEBKIT_LOAD_COMMITTED) {
+        std::cerr << "[DEBUG] WEBKIT_LOAD_COMMITTED pour URL: " << url << std::endl;
+    } else if (load_event == WEBKIT_LOAD_REDIRECTED) {
+        std::cerr << "[DEBUG] WEBKIT_LOAD_REDIRECTED pour URL: " << url << std::endl;
+    } else {
+        std::cerr << "[DEBUG] Événement de chargement inconnu: " << load_event << " pour URL: " << url << std::endl;
+    }
 }
 
 void RenderingEngine::displayPage(const std::string& url) {
-    std::cerr << "[DEBUG RenderingEngine] Début de displayPage(" << url << ")" << std::endl;
-    if (!webView) {
-        std::cerr << "Erreur : WebView non initialisé dans displayPage." << std::endl;
+    std::cerr << "[DEBUG] displayPage() appelé avec URL: '" << url << "'" << std::endl;
+    
+    if (!webView || !WEBKIT_IS_WEB_VIEW(webView)) {
+        std::cerr << "[ERREUR] WebView non initialisé dans displayPage." << std::endl;
         return;
     }
-    std::cout << "Chargement de l'URL : " << url << std::endl;
-    std::cerr << "[DEBUG RenderingEngine] Appel de webkit_web_view_load_uri()..." << std::endl;
-    try {
-        webkit_web_view_load_uri(webView, url.c_str());
-        std::cerr << "[DEBUG RenderingEngine] webkit_web_view_load_uri() terminé" << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Exception lors du chargement de l'URL : " << e.what() << std::endl;
+    
+    std::cerr << "[DEBUG] WebView est valide" << std::endl;
+    
+    // Normaliser l'URL si nécessaire
+    std::string normalizedUrl = url;
+    if (normalizedUrl.empty()) {
+        normalizedUrl = "https://www.duckduckgo.com";
+        std::cerr << "[DEBUG] URL vide, utilisation de la valeur par défaut: " << normalizedUrl << std::endl;
+    } else if (normalizedUrl.find("://") == std::string::npos) {
+        // Si pas de protocole, ajouter https://
+        normalizedUrl = "https://" + normalizedUrl;
+        std::cerr << "[DEBUG] Protocole manquant, URL normalisée: " << normalizedUrl << std::endl;
     }
-    std::cerr << "[DEBUG RenderingEngine] Fin de displayPage()" << std::endl;
+    
+    std::cerr << "[DEBUG] Chargement de l'URL normalisée : " << normalizedUrl << std::endl;
+    
+    // Connecter le signal load-changed pour gérer l'indicateur de chargement
+    static bool signalConnected = false;
+    if (!signalConnected) {
+        g_signal_connect(webView, "load-changed", G_CALLBACK(on_load_finished), nullptr);
+        signalConnected = true;
+    }
+    
+    // S'assurer que le WebView est visible avant de charger
+    GtkWidget* webWidget = GTK_WIDGET(webView);
+    if (webWidget) {
+        // S'assurer que tous les parents sont visibles
+        GtkWidget* parent = gtk_widget_get_parent(webWidget);
+        while (parent) {
+            gtk_widget_show_all(parent);
+            gtk_widget_set_visible(parent, TRUE);
+            parent = gtk_widget_get_parent(parent);
+        }
+        
+        // S'assurer que la WebView est visible et expansible
+        gtk_widget_show_all(webWidget);
+        gtk_widget_set_visible(webWidget, TRUE);
+        gtk_widget_set_vexpand(webWidget, TRUE);
+        gtk_widget_set_hexpand(webWidget, TRUE);
+    }
+    
+    // Charger l'URL
+    webkit_web_view_load_uri(webView, normalizedUrl.c_str());
+    
+    // Forcer le rafraîchissement de l'affichage
+    if (webWidget) {
+        gtk_widget_queue_draw(webWidget);
+        gtk_widget_queue_resize(webWidget);
+    }
 }
 
 

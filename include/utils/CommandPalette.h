@@ -15,6 +15,8 @@ public:
     ~CommandPalette();
     
     void showPalette(GtkWindow* parent);
+    void hidePalette();
+    bool isVisible() const;
     void setCurrentWebView(RenderingEngine* webView);
     void setRequestInterceptor(RequestInterceptor* interceptor);
     void processCommand(const std::string& command);
