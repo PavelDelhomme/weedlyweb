@@ -1,5 +1,7 @@
 # Build directories
 build/
+ui-qt/build/
+ui-gtk/build/
 cmake-build-*/
 out/
 
@@ -115,4 +117,5 @@ backup-*
 
 # Third-party downloads (nlohmann/json will be downloaded if not found)
 third_party/nlohmann/
+nlohmann/
 
