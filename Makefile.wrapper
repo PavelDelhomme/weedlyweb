@@ -1,0 +1,58 @@
+# Makefile wrapper pour WeedlyWeb
+# Ce fichier intercepte "make help" et délègue les autres cibles au Makefile généré par CMake
+
+.PHONY: help project-help
+
+# Cible help personnalisée
+help:
+	@echo ""
+	@echo "🌐 WeedlyWeb - Guide de démarrage"
+	@echo "=================================="
+	@echo ""
+	@echo "📋 Commandes principales :"
+	@echo ""
+	@echo "  make              Compile le projet"
+	@echo "  make clean        Nettoie le répertoire de build"
+	@echo "  make install      Installe l'application"
+	@echo ""
+	@echo "🚀 Pour démarrer rapidement :"
+	@echo ""
+	@echo "  1. Installer les dépendances :"
+	@echo "     ./scripts/install-deps.sh"
+	@echo ""
+	@echo "  2. Configurer CMake (si pas déjà fait) :"
+	@echo "     cmake -B build -S ."
+	@echo ""
+	@echo "  3. Compiler :"
+	@echo "     make"
+	@echo ""
+	@echo "  4. Lancer l'application :"
+	@if [ -f build/WeedlyWeb ]; then \
+		echo "     ./build/WeedlyWeb"; \
+	elif [ -f build/ui-qt/build/WeedlyWebQt ]; then \
+		echo "     ./build/ui-qt/build/WeedlyWebQt"; \
+	else \
+		echo "     ./build/WeedlyWeb (après compilation)"; \
+	fi
+	@echo ""
+	@echo "📚 Documentation :"
+	@echo ""
+	@echo "  - README.md                    Documentation principale"
+	@echo "  - docs/QUICKSTART.md           Guide de démarrage rapide"
+	@echo "  - docs/INSTALL_DEPENDENCIES.md Guide d'installation"
+	@echo ""
+	@echo "💡 Astuce : Consultez README.md pour plus d'informations !"
+	@echo ""
+	@echo "=================================="
+	@echo ""
+
+# Déléguer toutes les autres cibles au Makefile généré par CMake
+%:
+	@if [ -f build/Makefile ]; then \
+		$(MAKE) -C build $@; \
+	else \
+		echo "❌ Erreur: Le répertoire de build n'existe pas."; \
+		echo "💡 Exécutez d'abord: cmake -B build -S ."; \
+		exit 1; \
+	fi
+

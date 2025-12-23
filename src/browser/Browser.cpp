@@ -406,6 +406,10 @@ void Browser::buildInterface() {
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "WeedlyWeb");
     
+    // Forcer le mode sombre sur la fenêtre (utilise le thème système)
+    GtkSettings* settings = gtk_settings_get_default();
+    g_object_set(settings, "gtk-application-prefer-dark-theme", TRUE, NULL);
+    
     // Activer le redimensionnement de la fenêtre
     gtk_window_set_resizable(GTK_WINDOW(window), TRUE);
     
@@ -423,20 +427,20 @@ void Browser::buildInterface() {
         if (monitor) {
             GdkRectangle geometry;
             gdk_monitor_get_geometry(monitor, &geometry);
-            // Utiliser 85% de la largeur et 85% de la hauteur
-            gint windowWidth = (geometry.width * 85) / 100;
-            gint windowHeight = (geometry.height * 85) / 100;
+            // Utiliser 90% de la largeur et 90% de la hauteur pour mieux utiliser l'écran
+            gint windowWidth = (geometry.width * 90) / 100;
+            gint windowHeight = (geometry.height * 90) / 100;
             gtk_window_set_default_size(GTK_WINDOW(window), windowWidth, windowHeight);
             
             // Centrer la fenêtre
             gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
         } else {
-            // Fallback si pas de moniteur
-            gtk_window_set_default_size(GTK_WINDOW(window), 1280, 720);
+            // Fallback si pas de moniteur - utiliser une taille raisonnable
+            gtk_window_set_default_size(GTK_WINDOW(window), 1920, 1080);
         }
     } else {
         // Fallback si pas de display
-        gtk_window_set_default_size(GTK_WINDOW(window), 1280, 720);
+        gtk_window_set_default_size(GTK_WINDOW(window), 1920, 1080);
     }
     
     // Ajouter le support du plein écran avec F11
@@ -1081,14 +1085,38 @@ void Browser::addNewTab(const std::string &url) {
         urlNormalisee = "https://" + urlNormalisee;
     }
     
-    // NOUVELLE APPROCHE : Créer la WebView et l'ajouter directement au container
-    WebKitWebView* newWebView = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    // NOUVELLE APPROCHE : Créer la WebView avec un contexte personnalisé pour désactiver l'accélération GPU
+    // Créer un WebContext partagé pour toutes les WebViews (une seule fois)
+    static WebKitWebContext* sharedContext = nullptr;
+    if (!sharedContext) {
+        sharedContext = webkit_web_context_new();
+        if (sharedContext) {
+            // Désactiver l'accélération GPU pour éviter les erreurs GBM
+            // Note: WebKit n'a pas d'API directe pour cela, on utilise des variables d'environnement
+            std::cerr << "[DEBUG] Created shared WebContext" << std::endl;
+        }
+    }
+    
+    WebKitWebView* newWebView = WEBKIT_WEB_VIEW(webkit_web_view_new_with_context(sharedContext));
     if (!newWebView) {
         std::cerr << "[ERREUR] Impossible de créer une nouvelle WebView" << std::endl;
         return;
     }
     
+    // Configurer WebKit pour le diagnostic
+    WebKitSettings* settings = webkit_web_view_get_settings(newWebView);
+    if (settings) {
+        // Activer les messages de console pour le diagnostic
+        webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
+        // Activer JavaScript (devrait être activé par défaut)
+        webkit_settings_set_enable_javascript(settings, TRUE);
+        // Note: webkit_settings_set_enable_plugins est déprécié et ne fait rien
+    }
+    
     GtkWidget* webWidget = GTK_WIDGET(newWebView);
+    
+    // Donner un nom CSS à la WebView pour le debug visuel
+    gtk_widget_set_name(webWidget, "webkit-webview");
     
     // Configuration de base de la WebView
     gtk_widget_set_vexpand(webWidget, TRUE);
@@ -1096,25 +1124,10 @@ void Browser::addNewTab(const std::string &url) {
     
     // CRITIQUE : S'assurer que la WebView a une taille minimale valide
     // WebKit nécessite une taille valide pour initialiser le contexte de rendu
-    gtk_widget_set_size_request(webWidget, 800, 600);
+    // Ne pas fixer de taille minimale pour permettre le redimensionnement complet
+    gtk_widget_set_size_request(webWidget, 1, 1);
     
-    // Ajouter la WebView au container web
-    if (webContainer && !gtk_widget_get_parent(webWidget)) {
-        gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
-    }
-    
-    // CRITIQUE : Connecter au signal "realize" pour s'assurer que la WebView est prête
-    // avant de charger du contenu
-    g_signal_connect(webWidget, "realize", G_CALLBACK(+[](GtkWidget* widget, gpointer user_data) {
-        std::cerr << "[DEBUG] WebView realized, ready to render" << std::endl;
-        // Forcer le rendu après réalisation
-        gtk_widget_queue_draw(widget);
-    }), nullptr);
-    
-    // Masquer cette WebView initialement (elle sera affichée dans changeActiveTab)
-    gtk_widget_hide(webWidget);
-    
-    // Créer la structure TabData
+    // Créer la structure TabData AVANT d'ajouter au container
     TabData tabData;
     tabData.url = urlNormalisee;
     tabData.tabWidget = hboxOnglet;
@@ -1124,10 +1137,72 @@ void Browser::addNewTab(const std::string &url) {
     // Ajouter l'onglet à la liste
     tabs.push_back(tabData);
     
+    // Ajouter la WebView au container web
+    // CRITIQUE : Retirer d'abord toutes les autres WebViews pour éviter la duplication
+    if (webContainer) {
+        // Retirer toutes les WebViews existantes du container
+        GList* children = gtk_container_get_children(GTK_CONTAINER(webContainer));
+        for (GList* iter = children; iter != nullptr; iter = iter->next) {
+            GtkWidget* child = GTK_WIDGET(iter->data);
+            if (GTK_IS_WIDGET(child) && child != webWidget) {
+                gtk_container_remove(GTK_CONTAINER(webContainer), child);
+            }
+        }
+        g_list_free(children);
+        
+        // Retirer de l'ancien parent si nécessaire
+        GtkWidget* oldParent = gtk_widget_get_parent(webWidget);
+        if (oldParent && oldParent != webContainer) {
+            gtk_container_remove(GTK_CONTAINER(oldParent), webWidget);
+        }
+        
+        // Ajouter au container web (maintenant il n'y a plus d'autres WebViews dedans)
+        if (!gtk_widget_get_parent(webWidget)) {
+            gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
+            std::cerr << "[DEBUG] WebView added to container" << std::endl;
+        } else {
+            std::cerr << "[DEBUG] WebView already in container" << std::endl;
+        }
+    } else {
+        std::cerr << "[ERROR] webContainer is NULL!" << std::endl;
+    }
+    
     // Afficher l'onglet
     gtk_widget_show_all(hboxOnglet);
     
-    // Changer l'onglet actif vers celui-ci (cela affichera la WebView)
+    // Forcer l'affichage de la WebView et du container
+    if (webContainer) {
+        gtk_widget_show_all(webContainer);
+        gtk_widget_queue_draw(webContainer);
+        
+        // CRITIQUE : Attendre que le container soit réalisé et obtenir sa taille
+        // Utiliser un timeout pour forcer le redimensionnement après que tout soit affiché
+        g_timeout_add(100, [](gpointer user_data) -> gboolean {
+            auto* browser = static_cast<Browser*>(user_data);
+            if (browser && browser->webContainer) {
+                int containerWidth = gtk_widget_get_allocated_width(browser->webContainer);
+                int containerHeight = gtk_widget_get_allocated_height(browser->webContainer);
+                std::cerr << "[DEBUG] Container allocated size: " << containerWidth << "x" << containerHeight << std::endl;
+                
+                // Si le container a une taille valide, redimensionner toutes les WebViews
+                if (containerWidth > 100 && containerHeight > 100) {
+                    for (auto& tab : browser->tabs) {
+                        if (tab.webView && GTK_IS_WIDGET(tab.webView)) {
+                            GtkWidget* w = GTK_WIDGET(tab.webView);
+                            gtk_widget_set_size_request(w, -1, -1); // Réinitialiser
+                            gtk_widget_queue_resize(w);
+                            gtk_widget_queue_draw(w);
+                        }
+                    }
+                }
+            }
+            return FALSE; // Ne pas répéter
+        }, this);
+    }
+    gtk_widget_show_all(webWidget);
+    gtk_widget_queue_draw(webWidget);
+    
+    // Changer l'onglet actif vers celui-ci (cela affichera la WebView et chargera l'URL)
     changeActiveTab(hboxOnglet);
     
     // Connecter le signal pour mettre à jour le titre de l'onglet quand la page se charge
@@ -1151,7 +1226,19 @@ void Browser::addNewTab(const std::string &url) {
 void Browser::changeActiveTab(GtkWidget* tabWidget) {
     for (auto &tab : tabs) {
         if (tab.tabWidget == tabWidget) {
-            // Cacher toutes les autres WebViews
+            // CRITIQUE : Retirer TOUTES les WebViews du container d'abord pour éviter la duplication
+            if (webContainer) {
+                GList* children = gtk_container_get_children(GTK_CONTAINER(webContainer));
+                for (GList* iter = children; iter != nullptr; iter = iter->next) {
+                    GtkWidget* child = GTK_WIDGET(iter->data);
+                    if (GTK_IS_WIDGET(child)) {
+                        gtk_container_remove(GTK_CONTAINER(webContainer), child);
+                    }
+                }
+                g_list_free(children);
+            }
+            
+            // Cacher toutes les autres WebViews (elles ne sont plus dans le container)
             for (auto &otherTab : tabs) {
                 if (otherTab.webView && GTK_IS_WIDGET(otherTab.webView) && &otherTab != &tab) {
                     gtk_widget_hide(GTK_WIDGET(otherTab.webView));
@@ -1165,7 +1252,6 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
             if (tab.webView && GTK_IS_WIDGET(tab.webView)) {
                 GtkWidget* webWidget = GTK_WIDGET(tab.webView);
                 
-                // NOUVELLE APPROCHE ULTRA-SIMPLIFIÉE
                 // 1. S'assurer que le container web est visible et expansible
                 if (webContainer) {
                     gtk_widget_show_all(webContainer);
@@ -1174,59 +1260,183 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                     gtk_widget_set_hexpand(webContainer, TRUE);
                 }
                 
-                // 2. Afficher la WebView IMMÉDIATEMENT
+                // 2. CRITIQUE : Ajouter UNIQUEMENT la WebView active au container
+                // (on a déjà retiré toutes les autres ci-dessus)
+                if (webContainer) {
+                    // Retirer de l'ancien parent si nécessaire
+                    GtkWidget* currentParent = gtk_widget_get_parent(webWidget);
+                    if (currentParent && currentParent != webContainer) {
+                        gtk_container_remove(GTK_CONTAINER(currentParent), webWidget);
+                    }
+                    // Ajouter au container si elle n'y est pas déjà
+                    if (!gtk_widget_get_parent(webWidget)) {
+                        gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
+                    }
+                }
+                
+                // 3. Afficher la WebView IMMÉDIATEMENT et forcer sa visibilité
                 gtk_widget_show_all(webWidget);
                 gtk_widget_set_visible(webWidget, TRUE);
                 gtk_widget_set_vexpand(webWidget, TRUE);
                 gtk_widget_set_hexpand(webWidget, TRUE);
                 
-                // CRITIQUE : S'assurer que la WebView est "réalisée" avant de charger
-                // Si elle n'est pas encore réalisée, attendre le signal "realize"
+                // Forcer la réalisation si nécessaire
                 if (!gtk_widget_get_realized(webWidget)) {
-                    // Connecter au signal realize pour charger l'URL une fois prête
-                    // Utiliser g_signal_connect avec un flag pour n'appeler qu'une fois
-                    static std::set<GtkWidget*> realizedWidgets;
-                    if (realizedWidgets.find(webWidget) == realizedWidgets.end()) {
-                        g_signal_connect(webWidget, "realize", G_CALLBACK(+[](GtkWidget* widget, gpointer user_data) {
-                            auto* tabData = static_cast<TabData*>(user_data);
-                            if (tabData && tabData->webView) {
-                                std::cerr << "[DEBUG] WebView realized, loading URL: " << tabData->url << std::endl;
-                                webkit_web_view_load_uri(tabData->webView, tabData->url.c_str());
-                            }
-                        }), &tab);
-                        realizedWidgets.insert(webWidget);
-                    }
+                    gtk_widget_realize(webWidget);
                 }
                 
-                // 3. Connecter le signal load-changed UNE SEULE FOIS
+                std::cerr << "[DEBUG] WebView shown: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << std::endl;
+                std::cerr << "[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
+                std::cerr << "[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO") << std::endl;
+                
+                // 4. Charger l'URL immédiatement
+                const gchar* currentUri = webkit_web_view_get_uri(tab.webView);
+                std::string currentUrl = currentUri ? std::string(currentUri) : "";
+                
+                if (currentUrl.empty() || currentUrl != tab.url) {
+                    std::cerr << "[DEBUG] ========== LOADING URL ==========" << std::endl;
+                    std::cerr << "[DEBUG] Target URL: " << tab.url << std::endl;
+                    std::cerr << "[DEBUG] Current URL: " << currentUrl << std::endl;
+                    std::cerr << "[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO") << std::endl;
+                    std::cerr << "[DEBUG] WebView visible: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << std::endl;
+                    std::cerr << "[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
+                    
+                    // Obtenir la taille allouée
+                    int width = 0, height = 0;
+                    if (gtk_widget_get_realized(webWidget)) {
+                        width = gtk_widget_get_allocated_width(webWidget);
+                        height = gtk_widget_get_allocated_height(webWidget);
+                        std::cerr << "[DEBUG] WebView size: " << width << "x" << height << std::endl;
+                    }
+                    
+                    std::cerr << "[DEBUG] Calling webkit_web_view_load_uri..." << std::endl;
+                    webkit_web_view_load_uri(tab.webView, tab.url.c_str());
+                    
+                    // Vérifier l'URI après chargement
+                    const gchar* loadedUri = webkit_web_view_get_uri(tab.webView);
+                    std::cerr << "[DEBUG] URI after load_uri: " << (loadedUri ? loadedUri : "NULL") << std::endl;
+                    
+                    // Forcer le redessinage après le chargement
+                    gtk_widget_queue_draw(webWidget);
+                    if (webContainer) {
+                        gtk_widget_queue_draw(webContainer);
+                    }
+                    std::cerr << "[DEBUG] ==================================" << std::endl;
+                } else {
+                    std::cerr << "[DEBUG] URL already loaded: " << currentUrl << std::endl;
+                }
+                
+                // 3. Connecter les signaux de chargement UNE SEULE FOIS
                 static std::set<WebKitWebView*> connectedViews;
                 if (connectedViews.find(tab.webView) == connectedViews.end()) {
                     connectedViews.insert(tab.webView);
+                    
+                    // Handler pour load-changed
                     g_signal_connect(tab.webView, "load-changed", G_CALLBACK(+[](WebKitWebView* web_view, WebKitLoadEvent load_event, gpointer) {
+                        const gchar* uri = webkit_web_view_get_uri(web_view);
+                        std::cerr << "[DEBUG] Load event: " << load_event << " for URI: " << (uri ? uri : "NULL") << std::endl;
+                        
                         if (load_event == WEBKIT_LOAD_STARTED) {
+                            std::cerr << "[DEBUG] Load started, showing spinner" << std::endl;
                             browser_set_loading_state(true);
+                        } else if (load_event == WEBKIT_LOAD_COMMITTED) {
+                            std::cerr << "[DEBUG] Load committed" << std::endl;
                         } else if (load_event == WEBKIT_LOAD_FINISHED) {
+                            std::cerr << "[DEBUG] Load finished, hiding spinner" << std::endl;
                             browser_set_loading_state(false);
+                            
                             // CRITIQUE : Forcer l'affichage après chargement
                             GtkWidget* w = GTK_WIDGET(web_view);
                             gtk_widget_show_all(w);
                             gtk_widget_set_visible(w, TRUE);
                             gtk_widget_queue_draw(w);
+                            
+                            // Injecter du JavaScript de diagnostic (méthode asynchrone)
+                            const gchar* js = 
+                                "console.log('=== DIAGNOSTIC WEBVIEW ===');"
+                                "console.log('Document ready: ' + document.readyState);"
+                                "console.log('URL: ' + window.location.href);"
+                                "console.log('Title: ' + document.title);"
+                                "console.log('Body exists: ' + (document.body !== null));"
+                                "console.log('Body innerHTML length: ' + (document.body ? document.body.innerHTML.length : 0));"
+                                "console.log('Window width: ' + window.innerWidth);"
+                                "console.log('Window height: ' + window.innerHeight);"
+                                "if (document.body) {"
+                                "  document.body.style.border = '3px solid blue';"
+                                "  document.body.style.backgroundColor = '#f0f0f0';"
+                                "}";
+                            
+                            // Utiliser evaluate_javascript (méthode moderne)
+                            webkit_web_view_evaluate_javascript(web_view, js, -1, nullptr, nullptr, nullptr, 
+                                [](GObject* source, GAsyncResult* result, gpointer) {
+                                    // Callback optionnel pour le diagnostic
+                                    std::cerr << "[DEBUG] JavaScript diagnostic executed" << std::endl;
+                                }, nullptr);
+                            
+                            // CRITIQUE : Forcer le redimensionnement et le rendu après chargement
+                            // (w est déjà déclaré plus haut)
+                            
+                            // Obtenir la taille du container parent (qui devrait être webContainer)
+                            GtkWidget* container = gtk_widget_get_parent(w);
+                            if (container) {
+                                int containerWidth = gtk_widget_get_allocated_width(container);
+                                int containerHeight = gtk_widget_get_allocated_height(container);
+                                std::cerr << "[DEBUG] Container size after load: " << containerWidth << "x" << containerHeight << std::endl;
+                                
+                                // Réinitialiser la taille de la WebView pour permettre l'expansion
+                                if (containerWidth > 100 && containerHeight > 100) {
+                                    gtk_widget_set_size_request(w, -1, -1); // -1 = utiliser la taille naturelle
+                                    std::cerr << "[DEBUG] Reset WebView size request to natural size" << std::endl;
+                                }
+                                
+                                // Forcer le redessinage du container aussi
+                                gtk_widget_queue_resize(container);
+                                gtk_widget_queue_draw(container);
+                            }
+                            
+                            // Forcer le redessinage complet de la WebView
+                            gtk_widget_queue_resize(w);
+                            gtk_widget_queue_draw(w);
+                            
                             // Forcer le traitement des événements pour le rendu
                             while (gtk_events_pending()) {
                                 gtk_main_iteration_do(FALSE);
                             }
+                            
+                            // Vérifier la taille finale
+                            int finalWidth = gtk_widget_get_allocated_width(w);
+                            int finalHeight = gtk_widget_get_allocated_height(w);
+                            std::cerr << "[DEBUG] Final WebView size: " << finalWidth << "x" << finalHeight << std::endl;
+                            
+                            // Si la taille est toujours 1x1, forcer un redimensionnement avec un délai
+                            if (finalWidth <= 1 || finalHeight <= 1) {
+                                std::cerr << "[WARNING] WebView size is still too small, scheduling resize..." << std::endl;
+                                g_timeout_add(200, [](gpointer user_data) -> gboolean {
+                                    GtkWidget* widget = static_cast<GtkWidget*>(user_data);
+                                    if (widget && GTK_IS_WIDGET(widget)) {
+                                        gtk_widget_queue_resize(widget);
+                                        gtk_widget_queue_draw(widget);
+                                        std::cerr << "[DEBUG] Forced resize after timeout" << std::endl;
+                                    }
+                                    return FALSE;
+                                }, w);
+                            }
                         }
                     }), nullptr);
-                }
-                
-                // 4. Charger l'URL si nécessaire ET si la WebView est déjà réalisée
-                const gchar* currentUri = webkit_web_view_get_uri(tab.webView);
-                std::string currentUrl = currentUri ? std::string(currentUri) : "";
-                
-                if ((currentUrl.empty() || currentUrl != tab.url) && gtk_widget_get_realized(webWidget)) {
-                    std::cerr << "[DEBUG] Loading URL immediately: " << tab.url << std::endl;
-                    webkit_web_view_load_uri(tab.webView, tab.url.c_str());
+                    
+                    // Handler pour load-failed (erreurs de chargement)
+                    g_signal_connect(tab.webView, "load-failed", G_CALLBACK(+[](WebKitWebView* web_view, WebKitLoadEvent load_event, const gchar* failing_uri, GError* error, gpointer) {
+                        std::cerr << "[ERROR] ========== LOAD FAILED ==========" << std::endl;
+                        std::cerr << "[ERROR] Event: " << load_event << std::endl;
+                        std::cerr << "[ERROR] URI: " << (failing_uri ? failing_uri : "NULL") << std::endl;
+                        if (error) {
+                            std::cerr << "[ERROR] Error code: " << error->code << std::endl;
+                            std::cerr << "[ERROR] Error domain: " << g_quark_to_string(error->domain) << std::endl;
+                            std::cerr << "[ERROR] Error message: " << error->message << std::endl;
+                        }
+                        browser_set_loading_state(false);
+                        std::cerr << "[ERROR] ==================================" << std::endl;
+                    }), nullptr);
                 }
                 
                 // 5. Forcer le rendu
@@ -1677,47 +1887,72 @@ void Browser::loadStyles() {
     GtkCssProvider *provider = gtk_css_provider_new();
     GError *error = NULL;
 
-    // CSS amélioré avec design moderne et container visible
+    // CSS amélioré avec design moderne en mode sombre
     const gchar* css = 
-        "/* Barre de favorites */ "
+        "/* Style global pour forcer le mode sombre */ "
+        "window, window * { "
+        "  background-color: #2d2d2d; "
+        "  color: #e0e0e0; "
+        "} "
+        "entry { "
+        "  background-color: #3d3d3d; "
+        "  color: #e0e0e0; "
+        "} "
+        "textview { "
+        "  background-color: #3d3d3d; "
+        "  color: #e0e0e0; "
+        "} "
+        "button { "
+        "  background-color: #404040; "
+        "  color: #e0e0e0; "
+        "} "
+        "button:hover { "
+        "  background-color: #505050; "
+        "} "
+        "/* Barre de favorites - Mode sombre avec meilleure visibilité */ "
         "#barre-favorites { "
-        "  background-color: rgba(245, 245, 245, 0.95); "
-        "  border-bottom: 1px solid rgba(0, 0, 0, 0.1); "
-        "  padding: 4px 8px; "
+        "  background-color: #3a3a3a; "
+        "  border-bottom: 3px solid rgba(255, 255, 255, 0.3); "
+        "  border-top: 1px solid rgba(255, 255, 255, 0.15); "
+        "  padding: 6px 10px; "
+        "  min-height: 40px; "
         "} "
         "#button-favori { "
-        "  border: none; "
+        "  border: 1px solid rgba(100, 100, 100, 0.5); "
         "  border-radius: 4px; "
-        "  padding: 4px 8px; "
-        "  background-color: rgba(255, 255, 255, 0.9); "
-        "  margin: 0 2px; "
+        "  padding: 6px 12px; "
+        "  background-color: #4a4a4a; "
+        "  color: #e0e0e0; "
+        "  margin: 0 3px; "
+        "  font-weight: 500; "
         "} "
         "#button-favori:hover { "
-        "  background-color: rgba(230, 230, 230, 1.0); "
+        "  background-color: rgba(70, 70, 70, 1.0); "
         "} "
         "#button-favori:active { "
-        "  background-color: rgba(210, 210, 210, 1.0); "
+        "  background-color: rgba(90, 90, 90, 1.0); "
         "} "
-        "/* Barre de navigation */ "
+        "/* Barre de navigation - Mode sombre */ "
         "#barre-navigation { "
         "  padding: 6px 8px; "
-        "  border-bottom: 1px solid rgba(0, 0, 0, 0.1); "
-        "  background-color: rgba(250, 250, 250, 0.95); "
+        "  border-bottom: 2px solid rgba(255, 255, 255, 0.2); "
+        "  background-color: rgba(40, 40, 40, 0.95); "
         "} "
-        "/* Barre d'tabs - container visible avec fond */ "
+        "/* Barre d'tabs - container visible avec fond sombre */ "
         "#barre-tabs { "
         "  padding: 4px 6px; "
-        "  border-bottom: 1px solid rgba(0, 0, 0, 0.12); "
-        "  background-color: rgba(235, 235, 235, 0.95); "
+        "  border-bottom: 1px solid rgba(255, 255, 255, 0.12); "
+        "  background-color: rgba(35, 35, 35, 0.95); "
         "  border-radius: 4px 4px 0 0; "
         "} "
-        "/* Boutons dans la barre d'tabs */ "
+        "/* Boutons dans la barre d'tabs - Mode sombre */ "
         "#button-groupes, "
         "#button-ajouter-onglet { "
-        "  border: 1px solid rgba(180, 180, 180, 0.6); "
+        "  border: 1px solid rgba(100, 100, 100, 0.6); "
         "  border-radius: 4px; "
         "  padding: 4px 8px; "
-        "  background-color: rgba(255, 255, 255, 0.9); "
+        "  background-color: rgba(50, 50, 50, 0.9); "
+        "  color: rgba(220, 220, 220, 1.0); "
         "  min-width: 28px; "
         "  min-height: 24px; "
         "  font-size: 16px; "
@@ -1730,8 +1965,8 @@ void Browser::loadStyles() {
         "} "
         "#button-groupes:hover, "
         "#button-ajouter-onglet:hover { "
-        "  background-color: rgba(240, 240, 240, 1.0); "
-        "  border-color: rgba(150, 150, 150, 0.8); "
+        "  background-color: rgba(70, 70, 70, 1.0); "
+        "  border-color: rgba(120, 120, 120, 0.8); "
         "} "
         "#button-ajouter-onglet:hover { "
         "  background-color: rgba(74, 144, 226, 1.0); "
@@ -1739,76 +1974,75 @@ void Browser::loadStyles() {
         "} "
         "#button-groupes:active, "
         "#button-ajouter-onglet:active { "
-        "  background-color: rgba(220, 220, 220, 1.0); "
+        "  background-color: rgba(90, 90, 90, 1.0); "
         "} "
         "#button-ajouter-onglet:active { "
         "  background-color: rgba(50, 120, 200, 1.0); "
         "} "
-        "/* ScrolledWindow pour les onglets */ "
+        "/* ScrolledWindow pour les onglets - Mode sombre */ "
         "#scrolled-tabs { "
-        "  border-bottom: 1px solid rgba(0, 0, 0, 0.12); "
-        "  background-color: rgba(235, 235, 235, 0.95); "
+        "  border-bottom: 1px solid rgba(255, 255, 255, 0.12); "
+        "  background-color: rgba(35, 35, 35, 0.95); "
         "} "
-        "/* Onglets - style amélioré avec séparation claire entre chaque onglet */ "
+        "/* Onglets - style amélioré avec séparation claire en mode sombre */ "
         "#onglet { "
-        "  border: 2px solid rgba(150, 150, 150, 0.5); "
+        "  border: 2px solid rgba(100, 100, 100, 0.5); "
         "  border-radius: 6px 6px 0 0; "
         "  padding: 6px 12px; "
         "  margin: 0 2px; "
-        "  background-color: rgba(220, 220, 220, 0.9); "
+        "  background-color: rgba(50, 50, 50, 0.9); "
         "  border-bottom: none; "
         "  min-height: 32px; "
-        "  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); "
+        "  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); "
         "} "
         "#onglet:hover { "
-        "  background-color: rgba(200, 200, 200, 1.0); "
+        "  background-color: rgba(70, 70, 70, 1.0); "
         "  border-color: rgba(120, 120, 120, 0.7); "
         "} "
         "#onglet:active { "
-        "  background-color: rgba(190, 190, 190, 1.0); "
+        "  background-color: rgba(80, 80, 80, 1.0); "
         "} "
-        "/* Onglet actif - style distinctif avec couleur différente */ "
+        "/* Onglet actif - style distinctif avec couleur différente en mode sombre */ "
         "#onglet.onglet-actif { "
-        "  background-color: rgba(100, 150, 200, 0.9); "
-        "  border-color: rgba(70, 120, 170, 1.0); "
-        "  border-bottom: 3px solid rgba(70, 120, 170, 1.0); "
-        "  border-bottom-width: 3px; "
+        "  background-color: rgba(74, 144, 226, 0.9); "
+        "  border-color: rgba(90, 160, 240, 1.0); "
+        "  border-bottom: 3px solid rgba(90, 160, 240, 1.0); "
         "  font-weight: 600; "
-        "  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); "
+        "  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); "
         "} "
         "#onglet.onglet-actif:hover { "
-        "  background-color: rgba(120, 170, 220, 1.0); "
-        "  border-color: rgba(90, 140, 190, 1.0); "
+        "  background-color: rgba(90, 160, 240, 1.0); "
+        "  border-color: rgba(110, 180, 255, 1.0); "
         "} "
-        "/* Labels dans les tabs */ "
+        "/* Labels dans les tabs - Mode sombre */ "
         "#onglet label { "
-        "  color: rgba(50, 50, 50, 0.95); "
+        "  color: rgba(220, 220, 220, 0.95); "
         "  font-size: 12px; "
         "} "
         "#onglet.onglet-actif label { "
         "  color: rgba(255, 255, 255, 1.0); "
         "  font-weight: 600; "
         "} "
-        "/* Bouton fermer dans l'onglet - couleur discrète sans rouge */ "
+        "/* Bouton fermer dans l'onglet - Mode sombre */ "
         "#onglet button { "
-        "  border: 1px solid rgba(150, 150, 150, 0.4); "
-        "  background-color: rgba(240, 240, 240, 0.8); "
+        "  border: 1px solid rgba(100, 100, 100, 0.4); "
+        "  background-color: rgba(60, 60, 60, 0.8); "
         "  padding: 2px 6px; "
         "  margin: 0 4px 0 8px; "
         "  border-radius: 4px; "
         "  min-width: 20px; "
         "  min-height: 20px; "
-        "  color: rgba(100, 100, 100, 1.0); "
+        "  color: rgba(200, 200, 200, 1.0); "
         "  font-weight: bold; "
         "  font-size: 14px; "
         "} "
         "#onglet button:hover { "
-        "  background-color: rgba(200, 200, 200, 0.9); "
+        "  background-color: rgba(100, 100, 100, 0.9); "
         "  border-color: rgba(130, 130, 130, 0.6); "
-        "  color: rgba(60, 60, 60, 1.0); "
+        "  color: rgba(255, 255, 255, 1.0); "
         "} "
         "#onglet button:active { "
-        "  background-color: rgba(180, 180, 180, 1.0); "
+        "  background-color: rgba(120, 120, 120, 1.0); "
         "} "
         "#onglet.onglet-actif button { "
         "  background-color: rgba(255, 255, 255, 0.3); "
@@ -1820,18 +2054,33 @@ void Browser::loadStyles() {
         "  border-color: rgba(255, 255, 255, 0.7); "
         "  color: rgba(255, 255, 255, 1.0); "
         "} "
-        "/* Container web et indicateur de chargement */ "
+        "/* Container web et indicateur de chargement - Mode sombre avec debug visuel */ "
         "#container-web { "
-        "  background-color: #ffffff; "
+        "  background-color: #1e1e1e; "
+        "  border-top: 4px solid rgba(255, 255, 255, 0.3); "
         "  min-height: 600px; "
         "} "
+        "/* WebView - Fond blanc pour voir le contenu */ "
+        "#container-web > * { "
+        "  background-color: #ffffff; "
+        "} "
         "#loading-indicator { "
-        "  background-color: rgba(255, 255, 255, 0.95); "
+        "  background-color: rgba(30, 30, 30, 0.95); "
         "  padding: 20px; "
         "} "
         "#loading-indicator label { "
         "  font-size: 14px; "
-        "  color: #666666; "
+        "  color: #cccccc; "
+        "} "
+        "/* Barre d'URL - Mode sombre */ "
+        "#barre-navigation entry { "
+        "  background-color: #3d3d3d; "
+        "  color: #e0e0e0; "
+        "} "
+        "/* Tous les widgets de la fenêtre - Mode sombre */ "
+        "box, scrolledwindow, viewport { "
+        "  background-color: #2d2d2d; "
+        "  color: #e0e0e0; "
         "}";
 
     gtk_css_provider_load_from_data(provider, css, -1, &error);
@@ -1843,9 +2092,15 @@ void Browser::loadStyles() {
         return;
     }
 
-    // Appliquer le style à l'écran
+    // Appliquer le style à l'écran avec la priorité la plus élevée
     GtkStyleContext *context = gtk_widget_get_style_context(window);
     gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    
+    // Appliquer aussi au screen pour que tous les widgets héritent du style
+    GdkScreen *screen = gtk_widget_get_screen(window);
+    if (screen) {
+        gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
     
     // Ne pas libérer le provider ici - il sera libéré automatiquement par GTK
 

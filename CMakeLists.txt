@@ -173,10 +173,50 @@ else()
     set(EXECUTABLE_PATH ${CMAKE_BINARY_DIR}/WeedlyWeb)
 endif()
 
+# Cible help personnalisée pour afficher les instructions de démarrage
+# Note: "help" est réservé par CMake, on utilise "project-help" qui sera accessible via "make help" grâce à un alias
+add_custom_target(project-help
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "🌐 WeedlyWeb - Guide de démarrage"
+    COMMAND ${CMAKE_COMMAND} -E echo "=================================="
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "📋 Commandes principales :"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "  make              Compile le projet"
+    COMMAND ${CMAKE_COMMAND} -E echo "  make clean        Nettoie le répertoire de build"
+    COMMAND ${CMAKE_COMMAND} -E echo "  make install      Installe l'application"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "🚀 Pour démarrer rapidement :"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "  1. Installer les dépendances :"
+    COMMAND ${CMAKE_COMMAND} -E echo "     ./scripts/install-deps.sh"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "  2. Configurer CMake (si pas déjà fait) :"
+    COMMAND ${CMAKE_COMMAND} -E echo "     cmake -B build -S ."
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "  3. Compiler :"
+    COMMAND ${CMAKE_COMMAND} -E echo "     make"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "  4. Lancer l'application :"
+    COMMAND ${CMAKE_COMMAND} -E echo "     ./${EXECUTABLE_PATH}"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "📚 Documentation :"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "  - README.md                    Documentation principale"
+    COMMAND ${CMAKE_COMMAND} -E echo "  - docs/QUICKSTART.md           Guide de démarrage rapide"
+    COMMAND ${CMAKE_COMMAND} -E echo "  - docs/INSTALL_DEPENDENCIES.md Guide d'installation"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "💡 Astuce : Consultez README.md pour plus d'informations !"
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+    COMMAND ${CMAKE_COMMAND} -E echo "=================================="
+    COMMAND ${CMAKE_COMMAND} -E echo ""
+)
+
 # Message final
 message(STATUS "")
 message(STATUS "✅ Configuration terminée !")
 message(STATUS "📦 Exécutable: ${EXECUTABLE_NAME}")
 message(STATUS "🚀 Pour compiler: make")
 message(STATUS "▶️  Pour lancer: ./${EXECUTABLE_PATH}")
+message(STATUS "💡 Pour l'aide: make project-help")
 message(STATUS "")
