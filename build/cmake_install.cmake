@@ -1,4 +1,4 @@
-# Install script for directory: /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb
+# Install script for directory: /home/pactivisme/Documents/Dev/Perso/weedlyweb
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -57,7 +57,7 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/usr/local/bin" TYPE EXECUTABLE FILES "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/WeedlyWeb")
+  file(INSTALL DESTINATION "/usr/local/bin" TYPE EXECUTABLE FILES "/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/WeedlyWeb")
   if(EXISTS "$ENV{DESTDIR}/usr/local/bin/WeedlyWeb" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/bin/WeedlyWeb")
     if(CMAKE_INSTALL_DO_STRIP)
@@ -76,17 +76,17 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   file(INSTALL DESTINATION "/usr/local/share/WeedlyWeb" TYPE FILE FILES
-    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/settings/config.json"
-    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/datas/favorites.json"
-    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/styles/style.css"
-    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/assets/help/help.html"
+    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/settings/config.json"
+    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/datas/favorites.json"
+    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/styles/style.css"
+    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/help/help.html"
     )
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/install_local_manifest.txt"
+  file(WRITE "/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
 if(CMAKE_INSTALL_COMPONENT)
@@ -102,6 +102,6 @@ else()
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "/home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/build/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

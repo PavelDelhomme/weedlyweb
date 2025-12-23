@@ -1,7 +1,7 @@
 CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o: \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/RequestInterceptor.cpp \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/src/utils/RequestInterceptor.cpp \
  /usr/include/stdc-predef.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/utils/RequestInterceptor.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/include/utils/RequestInterceptor.h \
  /usr/include/webkitgtk-4.1/webkit2/webkit2.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitApplicationInfo.h \
  /usr/include/glib-2.0/glib-object.h \

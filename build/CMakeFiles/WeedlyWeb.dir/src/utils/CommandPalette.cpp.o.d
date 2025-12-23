@@ -1,7 +1,7 @@
 CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o: \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/utils/CommandPalette.cpp \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/src/utils/CommandPalette.cpp \
  /usr/include/stdc-predef.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/utils/CommandPalette.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/include/utils/CommandPalette.h \
  /usr/include/gtk-3.0/gtk/gtk.h /usr/include/gtk-3.0/gdk/gdk.h \
  /usr/include/gtk-3.0/gdk/gdkconfig.h /usr/include/glib-2.0/glib.h \
  /usr/include/glib-2.0/glib/galloca.h /usr/include/glib-2.0/glib/gtypes.h \
@@ -780,7 +780,7 @@ CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o: \
  /usr/include/c++/15.2.1/bits/node_handle.h \
  /usr/include/c++/15.2.1/bits/erase_if.h /usr/include/c++/15.2.1/array \
  /usr/include/c++/15.2.1/compare \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/rendering/RenderingEngine.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/include/rendering/RenderingEngine.h \
  /usr/include/webkitgtk-4.1/webkit2/webkit2.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitApplicationInfo.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitDefines.h \
@@ -913,11 +913,11 @@ CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o: \
  /usr/include/webkitgtk-4.1/webkit/WebKitWebExtensionMatchPattern.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitWebsiteDataAccessPermissionRequest.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitAutocleanups.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/utils/RequestInterceptor.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/include/utils/RequestInterceptor.h \
  /usr/include/c++/15.2.1/map /usr/include/c++/15.2.1/bits/stl_tree.h \
  /usr/include/c++/15.2.1/bits/stl_map.h \
  /usr/include/c++/15.2.1/bits/stl_multimap.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/utils/CVEAnalyzer.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/include/utils/CVEAnalyzer.h \
  /usr/include/c++/15.2.1/regex /usr/include/c++/15.2.1/bitset \
  /usr/include/c++/15.2.1/locale \
  /usr/include/c++/15.2.1/bits/locale_classes.h \

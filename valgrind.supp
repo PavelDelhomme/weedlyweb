@@ -1,0 +1,6 @@
+# Fichier de suppression Valgrind pour WeedlyWeb
+# Supprime les faux positifs et les warnings connus de GTK/WebKit
+
+# Note: Le syscall 317 (memfd_create) génère un warning mais n'est pas critique
+# Valgrind continue l'analyse normalement malgré ce warning
+# Ce fichier peut être vide ou contenir des suppressions spécifiques si nécessaire

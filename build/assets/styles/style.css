@@ -1,11 +1,12 @@
+/* Mode sombre par défaut */
 #onglet-actif {
-    background-color: #cccccc; /* Couleur de surbrillance */
+    background-color: #4a90e2; /* Couleur de surbrillance - bleu en mode sombre */
 }
 
 #onglet-inactif {
-    background-color: #eeeeee; /* Couleur normale */
+    background-color: #323232; /* Couleur normale - gris foncé */
 }
 
 #barre-favoris {
-    background-color: red;
+    background-color: #2d2d2d; /* Fond sombre */
 }

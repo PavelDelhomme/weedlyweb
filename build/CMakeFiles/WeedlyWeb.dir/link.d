@@ -88,6 +88,7 @@ WeedlyWeb: \
   /usr/lib/libexpat.so.1 \
   /usr/lib32/libicui18n.so.78 \
   /usr/lib/libicui18n.so.78 \
+  /usr/lib32/libsystemd.so.0 \
   /usr/lib/libsystemd.so.0 \
   /usr/lib/libjpeg.so.8 \
   /usr/lib32/libpng16.so.16 \
@@ -99,6 +100,7 @@ WeedlyWeb: \
   /usr/lib/libxslt.so.1 \
   /usr/lib/liblcms2.so.2 \
   /usr/lib/libwoff2dec.so.1.0.2 \
+  /usr/lib32/libgcrypt.so.20 \
   /usr/lib/libgcrypt.so.20 \
   /usr/lib/libgstallocators-1.0.so.0 \
   /usr/lib/libgstapp-1.0.so.0 \
@@ -117,6 +119,7 @@ WeedlyWeb: \
   /usr/lib/libharfbuzz-icu.so.0 \
   /usr/lib/libenchant-2.so.2 \
   /usr/lib/libsecret-1.so.0 \
+  /usr/lib32/libtasn1.so.6 \
   /usr/lib/libtasn1.so.6 \
   /usr/lib/libhyphen.so.0 \
   /usr/lib32/libX11.so.6 \
@@ -138,7 +141,6 @@ WeedlyWeb: \
   /usr/lib/libatk-bridge-2.0.so.0 \
   /usr/lib/libcloudproviders.so.0 \
   /usr/lib/libtinysparql-3.0.so.0 \
-  /usr/lib32/libXfixes.so.3 \
   /usr/lib/libXfixes.so.3 \
   /usr/lib/libxkbcommon.so.0 \
   /usr/lib32/libwayland-cursor.so.0 \
@@ -171,11 +173,13 @@ WeedlyWeb: \
   /usr/lib/libgssapi_krb5.so.2 \
   /usr/lib32/libnghttp2.so.14 \
   /usr/lib/libnghttp2.so.14 \
+  /usr/lib32/libmount.so.1 \
   /usr/lib/libmount.so.1 \
   /usr/lib32/libatomic.so.1 \
   /usr/lib/libatomic.so.1 \
   /usr/lib32/libffi.so.8 \
   /usr/lib/libffi.so.8 \
+  /usr/lib32/libpcre2-8.so.0 \
   /usr/lib/libpcre2-8.so.0 \
   /usr/lib32/libnghttp3.so.9 \
   /usr/lib/libnghttp3.so.9 \
@@ -191,10 +195,12 @@ WeedlyWeb: \
   /usr/lib/libzstd.so.1 \
   /usr/lib32/libbz2.so.1.0 \
   /usr/lib/libbz2.so.1.0 \
+  /usr/lib32/libcap.so.2 \
   /usr/lib/libcap.so.2 \
   /usr/lib32/libicudata.so.78 \
   /usr/lib/libicudata.so.78 \
   /usr/lib/libwoff2common.so.1.0.2 \
+  /usr/lib32/libgpg-error.so.0 \
   /usr/lib/libgpg-error.so.0 \
   /usr/lib/libunwind.so.8 \
   /usr/lib32/libdw.so.1 \
@@ -224,6 +230,7 @@ WeedlyWeb: \
   /usr/lib/libhidapi-hidraw.so.0 \
   /usr/lib/libevdev.so.2 \
   /usr/lib/libatspi.so.0 \
+  /usr/lib32/libdbus-1.so.3 \
   /usr/lib/libdbus-1.so.3 \
   /usr/lib/libjson-glib-1.0.so.0 \
   /usr/lib/libdatrie.so.1 \
@@ -247,6 +254,7 @@ WeedlyWeb: \
   /usr/lib/libkeyutils.so.1 \
   /usr/lib32/libresolv.so.2 \
   /usr/lib/libresolv.so.2 \
+  /usr/lib32/libblkid.so.1 \
   /usr/lib/libblkid.so.1 \
   /usr/lib32/liblzma.so.5 \
   /usr/lib/liblzma.so.5 \
@@ -254,6 +262,7 @@ WeedlyWeb: \
   /usr/lib/libelf.so.1 \
   /usr/lib32/libGLdispatch.so.0 \
   /usr/lib/libGLdispatch.so.0 \
+  /usr/lib32/libudev.so.1 \
   /usr/lib/libudev.so.1 \
   /usr/lib/libtss2-sys.so.1
 
@@ -435,6 +444,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libicui18n.so.78:
 
+/usr/lib32/libsystemd.so.0:
+
 /usr/lib/libsystemd.so.0:
 
 /usr/lib/libjpeg.so.8:
@@ -456,6 +467,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib/liblcms2.so.2:
 
 /usr/lib/libwoff2dec.so.1.0.2:
+
+/usr/lib32/libgcrypt.so.20:
 
 /usr/lib/libgcrypt.so.20:
 
@@ -492,6 +505,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib/libenchant-2.so.2:
 
 /usr/lib/libsecret-1.so.0:
+
+/usr/lib32/libtasn1.so.6:
 
 /usr/lib/libtasn1.so.6:
 
@@ -534,8 +549,6 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib/libcloudproviders.so.0:
 
 /usr/lib/libtinysparql-3.0.so.0:
-
-/usr/lib32/libXfixes.so.3:
 
 /usr/lib/libXfixes.so.3:
 
@@ -601,6 +614,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libnghttp2.so.14:
 
+/usr/lib32/libmount.so.1:
+
 /usr/lib/libmount.so.1:
 
 /usr/lib32/libatomic.so.1:
@@ -610,6 +625,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib32/libffi.so.8:
 
 /usr/lib/libffi.so.8:
+
+/usr/lib32/libpcre2-8.so.0:
 
 /usr/lib/libpcre2-8.so.0:
 
@@ -641,6 +658,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libbz2.so.1.0:
 
+/usr/lib32/libcap.so.2:
+
 /usr/lib/libcap.so.2:
 
 /usr/lib32/libicudata.so.78:
@@ -648,6 +667,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib/libicudata.so.78:
 
 /usr/lib/libwoff2common.so.1.0.2:
+
+/usr/lib32/libgpg-error.so.0:
 
 /usr/lib/libgpg-error.so.0:
 
@@ -707,6 +728,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libatspi.so.0:
 
+/usr/lib32/libdbus-1.so.3:
+
 /usr/lib/libdbus-1.so.3:
 
 /usr/lib/libjson-glib-1.0.so.0:
@@ -753,6 +776,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libresolv.so.2:
 
+/usr/lib32/libblkid.so.1:
+
 /usr/lib/libblkid.so.1:
 
 /usr/lib32/liblzma.so.5:
@@ -766,6 +791,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib32/libGLdispatch.so.0:
 
 /usr/lib/libGLdispatch.so.0:
+
+/usr/lib32/libudev.so.1:
 
 /usr/lib/libudev.so.1:
 

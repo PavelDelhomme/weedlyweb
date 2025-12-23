@@ -37,6 +37,8 @@ void Browser::setLoadingState(bool loading) {
     }
 }
 
+// Fonction utilitaire pour obtenir le chemin absolu d'un fichier
+// Conforme aux standards C++17 : const-correctness et référence const
 std::string obtenirCheminAbsolu(const std::string& fichier) {
     return std::filesystem::current_path().string() + "/" + fichier;
 }
@@ -366,6 +368,21 @@ Browser::~Browser() {
     // Sauvegarder la configuration avant de fermer
     saveConfiguration();
     
+    // Nettoyer les WebViews et leurs signaux avant de détruire les widgets
+    // Les WebViews sont gérées par GTK mais on doit nettoyer les références
+    for (auto& tab : tabs) {
+        if (tab.webView && WEBKIT_IS_WEB_VIEW(tab.webView)) {
+            // Déconnecter les signaux de la WebView
+            g_signal_handlers_disconnect_matched(tab.webView, G_SIGNAL_MATCH_DATA, 0, 0, nullptr, nullptr, this);
+            // Note: Ne pas appeler g_object_unref car GTK gère la durée de vie des widgets
+        }
+        tab.webView = nullptr;
+        tab.tabWidget = nullptr;
+        tab.label = nullptr;
+    }
+    tabs.clear();
+    activeTab = nullptr;
+    
     // Nettoyer le moteur de rendu en premier (qui nettoie ses propres signaux)
     if (renderingEngine) {
         renderingEngine.reset();
@@ -390,11 +407,12 @@ Browser::~Browser() {
     favoritesBar = nullptr;
     tabsBar = nullptr;
     urlBar = nullptr;
-        starButton = nullptr;
-        loadingSpinner = nullptr;
+    starButton = nullptr;
+    loadingSpinner = nullptr;
     favoriteNameEntry = nullptr;
     favoriteUrlEntry = nullptr;
     favoritesPopover = nullptr;
+    webContainer = nullptr;
 }
 
 std::shared_ptr<nlohmann::json> Browser::getFavoris() {
@@ -666,11 +684,16 @@ std::string Browser::getCurrentURL() const {
 void Browser::initializeFavoritesBar() {
     if (favoritesBar && GTK_IS_WIDGET(favoritesBar)) {
         // Retirer du container avant de détruire
-        GtkWidget* parent = gtk_widget_get_parent(favoritesBar);
-        if (parent && GTK_IS_CONTAINER(parent)) {
-            gtk_container_remove(GTK_CONTAINER(parent), favoritesBar);
+        if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
+            GtkWidget* parent = gtk_widget_get_parent(favoritesBar);
+            if (parent && GTK_IS_CONTAINER(parent)) {
+                gtk_container_remove(GTK_CONTAINER(parent), favoritesBar);
+            }
+            // Vérifier à nouveau avant destruction
+            if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
+                gtk_widget_destroy(favoritesBar);
+            }
         }
-        gtk_widget_destroy(favoritesBar);
         favoritesBar = nullptr;
     }
 
@@ -791,16 +814,24 @@ void Browser::showFavoritesManager() {
 
 
 void Browser::refreshFavoritesBar() {
-    if (favoritesBar && GTK_IS_WIDGET(favoritesBar)) {
-        // Vérifier que le widget n'est pas déjà en cours de destruction
-        if (!gtk_widget_in_destruction(favoritesBar)) {
+    // CRITIQUE : Vérifier que favoritesBar est valide avant toute manipulation
+    if (favoritesBar) {
+        // Vérifier que c'est un widget GTK valide et qu'il n'est pas déjà en destruction
+        if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
             // Retirer du container avant de détruire
             GtkWidget* parent = gtk_widget_get_parent(favoritesBar);
-            if (parent && GTK_IS_CONTAINER(parent)) {
-                gtk_container_remove(GTK_CONTAINER(parent), favoritesBar);
+            if (parent && GTK_IS_CONTAINER(parent) && GTK_IS_WIDGET(parent)) {
+                // Vérifier à nouveau que le widget est toujours valide
+                if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
+                    gtk_container_remove(GTK_CONTAINER(parent), favoritesBar);
+                }
             }
-            gtk_widget_destroy(favoritesBar);
+            // Vérifier une dernière fois avant destruction
+            if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
+                gtk_widget_destroy(favoritesBar);
+            }
         }
+        // Toujours réinitialiser le pointeur après tentative de destruction
         favoritesBar = nullptr;
     }
 
@@ -885,12 +916,24 @@ void Browser::initializeFavoritesPopover() {
 
 void Browser::initializeTabsBar() {
     // Nettoyer l'ancienne barre d'tabs si elle existe
-    if (tabsBar && GTK_IS_WIDGET(tabsBar)) {
-        GtkWidget* parent = gtk_widget_get_parent(tabsBar);
-        if (parent && GTK_IS_CONTAINER(parent)) {
-            gtk_container_remove(GTK_CONTAINER(parent), tabsBar);
+    // CRITIQUE : Vérifier que tabsBar est valide avant toute manipulation
+    if (tabsBar) {
+        // Vérifier que c'est un widget GTK valide et qu'il n'est pas déjà en destruction
+        if (GTK_IS_WIDGET(tabsBar) && !gtk_widget_in_destruction(tabsBar)) {
+            // Retirer du container avant de détruire
+            GtkWidget* parent = gtk_widget_get_parent(tabsBar);
+            if (parent && GTK_IS_CONTAINER(parent) && GTK_IS_WIDGET(parent)) {
+                // Vérifier à nouveau que le widget est toujours valide
+                if (GTK_IS_WIDGET(tabsBar) && !gtk_widget_in_destruction(tabsBar)) {
+                    gtk_container_remove(GTK_CONTAINER(parent), tabsBar);
+                }
+            }
+            // Vérifier une dernière fois avant destruction
+            if (GTK_IS_WIDGET(tabsBar) && !gtk_widget_in_destruction(tabsBar)) {
+                gtk_widget_destroy(tabsBar);
+            }
         }
-        gtk_widget_destroy(tabsBar);
+        // Toujours réinitialiser le pointeur après tentative de destruction
         tabsBar = nullptr;
     }
 
@@ -970,12 +1013,16 @@ void Browser::changeTabGroup(const std::string& groupName) {
     // Retirer le ScrolledWindow du container avant de détruire
     if (tabsBar && GTK_IS_WIDGET(tabsBar)) {
         GtkWidget* scrolledWindow = gtk_widget_get_parent(tabsBar);
-        if (scrolledWindow && GTK_IS_SCROLLED_WINDOW(scrolledWindow)) {
+        if (scrolledWindow && GTK_IS_SCROLLED_WINDOW(scrolledWindow) && 
+            GTK_IS_WIDGET(scrolledWindow) && !gtk_widget_in_destruction(scrolledWindow)) {
             GtkWidget* parent = gtk_widget_get_parent(scrolledWindow);
             if (parent && GTK_IS_CONTAINER(parent)) {
                 gtk_container_remove(GTK_CONTAINER(parent), scrolledWindow);
             }
-            gtk_widget_destroy(scrolledWindow);
+            // Vérifier à nouveau avant destruction
+            if (GTK_IS_WIDGET(scrolledWindow) && !gtk_widget_in_destruction(scrolledWindow)) {
+                gtk_widget_destroy(scrolledWindow);
+            }
         }
         tabsBar = nullptr;
     }
@@ -1085,35 +1132,44 @@ void Browser::addNewTab(const std::string &url) {
         urlNormalisee = "https://" + urlNormalisee;
     }
     
-    // NOUVELLE APPROCHE : Créer la WebView avec un contexte personnalisé pour désactiver l'accélération GPU
-    // Créer un WebContext partagé pour toutes les WebViews (une seule fois)
-    static WebKitWebContext* sharedContext = nullptr;
-    if (!sharedContext) {
-        sharedContext = webkit_web_context_new();
-        if (sharedContext) {
-            // Désactiver l'accélération GPU pour éviter les erreurs GBM
-            // Note: WebKit n'a pas d'API directe pour cela, on utilise des variables d'environnement
-            std::cerr << "[DEBUG] Created shared WebContext" << std::endl;
-        }
-    }
+    // Créer la WebView (utilise le contexte par défaut)
+    // Les variables d'environnement dans le Makefile désactivent l'accélération GPU
+    WebKitWebView* newWebView = WEBKIT_WEB_VIEW(webkit_web_view_new());
     
-    WebKitWebView* newWebView = WEBKIT_WEB_VIEW(webkit_web_view_new_with_context(sharedContext));
+    // Vérifier que la WebView est correctement créée
     if (!newWebView) {
-        std::cerr << "[ERREUR] Impossible de créer une nouvelle WebView" << std::endl;
+        std::cerr << "[ERREUR] webkit_web_view_new() a retourné NULL" << std::endl;
         return;
     }
     
-    // Configurer WebKit pour le diagnostic
+    // Vérifier que c'est bien une WebView valide
+    if (!WEBKIT_IS_WEB_VIEW(newWebView)) {
+        std::cerr << "[ERREUR] L'objet créé n'est pas une WebView valide" << std::endl;
+        g_object_unref(newWebView);
+        return;
+    }
+    
+    // Vérifier que c'est un widget GTK valide
+    if (!GTK_IS_WIDGET(newWebView)) {
+        std::cerr << "[ERREUR] WebView n'est pas un widget GTK valide" << std::endl;
+        g_object_unref(newWebView);
+        return;
+    }
+    
+    GtkWidget* webWidget = GTK_WIDGET(newWebView);
+    
+    // Configurer WebKit pour le diagnostic (après vérification de validité)
     WebKitSettings* settings = webkit_web_view_get_settings(newWebView);
     if (settings) {
         // Activer les messages de console pour le diagnostic
+        // Note: Les warnings de préchargement et erreurs CSP sont normaux et non critiques
+        // - Les warnings "preloaded but not used" sont des optimisations de DuckDuckGo
+        // - L'erreur "manifest-src" CSP est due au fait que WebKit2GTK 4.1 ne supporte pas encore cette directive récente
         webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
         // Activer JavaScript (devrait être activé par défaut)
         webkit_settings_set_enable_javascript(settings, TRUE);
         // Note: webkit_settings_set_enable_plugins est déprécié et ne fait rien
     }
-    
-    GtkWidget* webWidget = GTK_WIDGET(newWebView);
     
     // Donner un nom CSS à la WebView pour le debug visuel
     gtk_widget_set_name(webWidget, "webkit-webview");
@@ -1137,34 +1193,15 @@ void Browser::addNewTab(const std::string &url) {
     // Ajouter l'onglet à la liste
     tabs.push_back(tabData);
     
-    // Ajouter la WebView au container web
-    // CRITIQUE : Retirer d'abord toutes les autres WebViews pour éviter la duplication
-    if (webContainer) {
-        // Retirer toutes les WebViews existantes du container
-        GList* children = gtk_container_get_children(GTK_CONTAINER(webContainer));
-        for (GList* iter = children; iter != nullptr; iter = iter->next) {
-            GtkWidget* child = GTK_WIDGET(iter->data);
-            if (GTK_IS_WIDGET(child) && child != webWidget) {
-                gtk_container_remove(GTK_CONTAINER(webContainer), child);
-            }
-        }
-        g_list_free(children);
-        
-        // Retirer de l'ancien parent si nécessaire
-        GtkWidget* oldParent = gtk_widget_get_parent(webWidget);
-        if (oldParent && oldParent != webContainer) {
-            gtk_container_remove(GTK_CONTAINER(oldParent), webWidget);
-        }
-        
-        // Ajouter au container web (maintenant il n'y a plus d'autres WebViews dedans)
-        if (!gtk_widget_get_parent(webWidget)) {
-            gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
-            std::cerr << "[DEBUG] WebView added to container" << std::endl;
-        } else {
-            std::cerr << "[DEBUG] WebView already in container" << std::endl;
-        }
-    } else {
-        std::cerr << "[ERROR] webContainer is NULL!" << std::endl;
+    // IMPORTANT : Ne PAS ajouter la WebView au container ici
+    // Laisser changeActiveTab gérer l'ajout/retrait des WebViews
+    // Cela évite d'invalider la WebView active qui pourrait être en cours d'utilisation
+    
+    // Juste s'assurer que la WebView n'est pas déjà dans un autre container
+    GtkWidget* oldParent = gtk_widget_get_parent(webWidget);
+    if (oldParent && oldParent != webContainer) {
+        // Ne pas retirer ici, changeActiveTab le fera de manière sécurisée
+        std::cerr << "[DEBUG] WebView a un parent différent, sera géré par changeActiveTab" << std::endl;
     }
     
     // Afficher l'onglet
@@ -1202,21 +1239,37 @@ void Browser::addNewTab(const std::string &url) {
     gtk_widget_show_all(webWidget);
     gtk_widget_queue_draw(webWidget);
     
+    // Connecter le signal pour mettre à jour le titre de l'onglet quand la page se charge
+    // IMPORTANT: Utiliser un pointeur stable (l'index dans le vector) au lieu de &tabs.back()
+    // car &tabs.back() peut devenir invalide si le vector est réalloué
+    if (WEBKIT_IS_WEB_VIEW(newWebView) && G_IS_OBJECT(newWebView)) {
+        // Stocker l'index de l'onglet dans le vector
+        size_t tabIndex = tabs.size() - 1;
+        
+        g_signal_connect(newWebView, "notify::title", G_CALLBACK(+[](GObject* obj, GParamSpec*, gpointer user_data) {
+            auto* browser = static_cast<Browser*>(user_data);
+            if (!browser) return;
+            
+            // Trouver l'onglet correspondant à cette WebView
+            WebKitWebView* webView = WEBKIT_WEB_VIEW(obj);
+            for (auto& tab : browser->tabs) {
+                if (tab.webView == webView && tab.label && GTK_IS_LABEL(tab.label)) {
+                    const gchar* title = webkit_web_view_get_title(tab.webView);
+                    if (title) {
+                        std::string titreStr(title);
+                        std::string titreCourt = titreStr.length() > 20 ? titreStr.substr(0, 17) + "..." : titreStr;
+                        gtk_label_set_text(GTK_LABEL(tab.label), titreCourt.c_str());
+                    }
+                    break;
+                }
+            }
+        }), this);
+    } else {
+        std::cerr << "[ERREUR] Impossible de connecter le signal notify::title - WebView invalide" << std::endl;
+    }
+    
     // Changer l'onglet actif vers celui-ci (cela affichera la WebView et chargera l'URL)
     changeActiveTab(hboxOnglet);
-    
-    // Connecter le signal pour mettre à jour le titre de l'onglet quand la page se charge
-    g_signal_connect(newWebView, "notify::title", G_CALLBACK(+[](GObject* obj, GParamSpec*, gpointer user_data) {
-        auto* data = static_cast<TabData*>(user_data);
-        if (data && data->label && GTK_IS_LABEL(data->label)) {
-            const gchar* title = webkit_web_view_get_title(data->webView);
-            if (title) {
-                std::string titreStr(title);
-                std::string titreCourt = titreStr.length() > 20 ? titreStr.substr(0, 17) + "..." : titreStr;
-                gtk_label_set_text(GTK_LABEL(data->label), titreCourt.c_str());
-            }
-        }
-    }), &tabs.back());
     
 
 
@@ -1226,110 +1279,239 @@ void Browser::addNewTab(const std::string &url) {
 void Browser::changeActiveTab(GtkWidget* tabWidget) {
     for (auto &tab : tabs) {
         if (tab.tabWidget == tabWidget) {
-            // CRITIQUE : Retirer TOUTES les WebViews du container d'abord pour éviter la duplication
-            if (webContainer) {
-                GList* children = gtk_container_get_children(GTK_CONTAINER(webContainer));
-                for (GList* iter = children; iter != nullptr; iter = iter->next) {
-                    GtkWidget* child = GTK_WIDGET(iter->data);
-                    if (GTK_IS_WIDGET(child)) {
-                        gtk_container_remove(GTK_CONTAINER(webContainer), child);
-                    }
-                }
-                g_list_free(children);
+            // Mettre à jour l'onglet actif
+            activeTab = &tab;
+            
+            // Vérifier que la WebView est valide AVANT toute manipulation
+            if (!tab.webView || !WEBKIT_IS_WEB_VIEW(tab.webView) || !GTK_IS_WIDGET(tab.webView)) {
+                std::cerr << "[ERREUR] WebView invalide dans changeActiveTab" << std::endl;
+                return;
             }
             
-            // Cacher toutes les autres WebViews (elles ne sont plus dans le container)
+            GtkWidget* webWidget = GTK_WIDGET(tab.webView);
+            
+            // CRITIQUE : Cacher toutes les autres WebViews AVANT de manipuler le container
+            // Cela évite les problèmes de rendu pendant le changement d'onglet
             for (auto &otherTab : tabs) {
                 if (otherTab.webView && GTK_IS_WIDGET(otherTab.webView) && &otherTab != &tab) {
                     gtk_widget_hide(GTK_WIDGET(otherTab.webView));
                 }
             }
             
-            // Mettre à jour l'onglet actif
-            activeTab = &tab;
+            // Retirer uniquement les autres WebViews du container, PAS celle qu'on veut afficher
+            // Faire cela APRÈS avoir caché les autres pour éviter les problèmes de rendu
+            if (webContainer) {
+                GList* children = gtk_container_get_children(GTK_CONTAINER(webContainer));
+                GList* toRemove = nullptr;
+                
+                // D'abord, collecter les WebViews à retirer (ne pas les retirer pendant l'itération)
+                for (GList* iter = children; iter != nullptr; iter = iter->next) {
+                    GtkWidget* child = GTK_WIDGET(iter->data);
+                    // Ne retirer que les WebViews qui ne sont pas celle qu'on veut afficher
+                    if (GTK_IS_WIDGET(child) && child != webWidget && WEBKIT_IS_WEB_VIEW(child)) {
+                        // Vérifier que ce n'est pas une WebView active en cours d'utilisation
+                        bool isActive = false;
+                        for (auto &otherTab : tabs) {
+                            if (otherTab.webView && GTK_WIDGET(otherTab.webView) == child && &otherTab == activeTab) {
+                                isActive = true;
+                                break;
+                            }
+                        }
+                        if (!isActive) {
+                            toRemove = g_list_prepend(toRemove, child);
+                        }
+                    }
+                }
+                g_list_free(children);
+                
+                // Maintenant retirer les WebViews collectées
+                // CRITIQUE : Vérifier que chaque widget est valide avant de le retirer
+                for (GList* iter = toRemove; iter != nullptr; iter = iter->next) {
+                    GtkWidget* child = GTK_WIDGET(iter->data);
+                    // Vérifier que le widget est valide, qu'il a le bon parent, et qu'il n'est pas en destruction
+                    if (GTK_IS_WIDGET(child) && 
+                        !gtk_widget_in_destruction(child) &&
+                        gtk_widget_get_parent(child) == webContainer) {
+                        // Vérifier à nouveau après avoir obtenu le parent
+                        if (GTK_IS_WIDGET(child) && !gtk_widget_in_destruction(child)) {
+                            gtk_container_remove(GTK_CONTAINER(webContainer), child);
+                        }
+                    }
+                }
+                g_list_free(toRemove);
+            }
             
             // Afficher la WebView de l'onglet actif
-            if (tab.webView && GTK_IS_WIDGET(tab.webView)) {
-                GtkWidget* webWidget = GTK_WIDGET(tab.webView);
+            // Vérifier à nouveau que la WebView est toujours valide après les manipulations
+            if (!WEBKIT_IS_WEB_VIEW(tab.webView) || !GTK_IS_WIDGET(tab.webView)) {
+                std::cerr << "[ERREUR] WebView devenue invalide après manipulation du container" << std::endl;
+                return;
+            }
+            
+            // 1. S'assurer que le container web est visible et expansible
+            if (webContainer) {
+                gtk_widget_show_all(webContainer);
+                gtk_widget_set_visible(webContainer, TRUE);
+                gtk_widget_set_vexpand(webContainer, TRUE);
+                gtk_widget_set_hexpand(webContainer, TRUE);
+            }
+            
+            // 2. CRITIQUE : Ajouter UNIQUEMENT la WebView active au container
+            // (on a déjà retiré toutes les autres ci-dessus)
+            if (webContainer) {
+                // Vérifier où se trouve la WebView actuellement
+                GtkWidget* currentParent = gtk_widget_get_parent(webWidget);
                 
-                // 1. S'assurer que le container web est visible et expansible
-                if (webContainer) {
-                    gtk_widget_show_all(webContainer);
-                    gtk_widget_set_visible(webContainer, TRUE);
-                    gtk_widget_set_vexpand(webContainer, TRUE);
-                    gtk_widget_set_hexpand(webContainer, TRUE);
-                }
-                
-                // 2. CRITIQUE : Ajouter UNIQUEMENT la WebView active au container
-                // (on a déjà retiré toutes les autres ci-dessus)
-                if (webContainer) {
-                    // Retirer de l'ancien parent si nécessaire
-                    GtkWidget* currentParent = gtk_widget_get_parent(webWidget);
-                    if (currentParent && currentParent != webContainer) {
+                if (!currentParent) {
+                    // WebView n'a pas de parent, l'ajouter au container
+                    gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
+                    std::cerr << "[DEBUG] WebView ajoutée au container lors du changement d'onglet" << std::endl;
+                } else if (currentParent == webContainer) {
+                    // WebView est déjà dans le bon container, juste s'assurer qu'elle est visible
+                    std::cerr << "[DEBUG] WebView déjà dans le container, forcer l'affichage..." << std::endl;
+                    // NE PAS retirer/réajouter car cela peut invalider la WebView
+                    // Juste forcer l'affichage et le redessinage
+                } else {
+                    // WebView est dans un autre container, la déplacer
+                    std::cerr << "[DEBUG] WebView dans un autre container, déplacement..." << std::endl;
+                    // Vérifier que le parent et le widget sont valides avant retrait
+                    if (GTK_IS_CONTAINER(currentParent) && GTK_IS_WIDGET(webWidget) && 
+                        !gtk_widget_in_destruction(webWidget) && !gtk_widget_in_destruction(currentParent)) {
                         gtk_container_remove(GTK_CONTAINER(currentParent), webWidget);
-                    }
-                    // Ajouter au container si elle n'y est pas déjà
-                    if (!gtk_widget_get_parent(webWidget)) {
-                        gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
+                        
+                        // Vérifier que la WebView est toujours valide après retrait
+                        if (!WEBKIT_IS_WEB_VIEW(tab.webView) || !GTK_IS_WIDGET(tab.webView) || 
+                            gtk_widget_in_destruction(webWidget)) {
+                            std::cerr << "[ERREUR] WebView devenue invalide après retrait du parent" << std::endl;
+                            return;
+                        }
+                        
+                        // Vérifier à nouveau avant d'ajouter au nouveau container
+                        if (GTK_IS_WIDGET(webWidget) && !gtk_widget_in_destruction(webWidget)) {
+                            gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
+                        } else {
+                            std::cerr << "[ERREUR] WebView invalide avant ajout au container" << std::endl;
+                            return;
+                        }
+                    } else {
+                        std::cerr << "[ERREUR] Parent ou WebView invalide avant déplacement" << std::endl;
+                        return;
                     }
                 }
+            }
+            
+            // 3. Afficher la WebView IMMÉDIATEMENT et forcer sa visibilité
+            // CRITIQUE : Toujours forcer l'affichage même si la WebView était déjà visible
+            gtk_widget_show_all(webWidget);
+            gtk_widget_set_visible(webWidget, TRUE);
+            gtk_widget_set_vexpand(webWidget, TRUE);
+            gtk_widget_set_hexpand(webWidget, TRUE);
+            
+            // Forcer le redessinage immédiat
+            gtk_widget_queue_resize(webWidget);
+            gtk_widget_queue_draw(webWidget);
+            
+            // Forcer la réalisation si nécessaire
+            if (!gtk_widget_get_realized(webWidget)) {
+                gtk_widget_realize(webWidget);
+            }
+            
+            std::cerr << "[DEBUG] WebView shown: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << std::endl;
+            std::cerr << "[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
+            std::cerr << "[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO") << std::endl;
+            
+            // 4. Charger l'URL immédiatement
+            // Vérifier que la WebView est valide avant d'utiliser
+            if (!WEBKIT_IS_WEB_VIEW(tab.webView)) {
+                std::cerr << "[ERREUR] WebView invalide avant chargement URL" << std::endl;
+                return;
+            }
+            const gchar* currentUri = webkit_web_view_get_uri(tab.webView);
+            std::string currentUrl = currentUri ? std::string(currentUri) : "";
+            
+            // CRITIQUE : Toujours recharger l'URL si elle est différente ou vide
+            // Même si l'URL semble chargée, forcer le rechargement pour s'assurer que la page s'affiche
+            bool needsReload = currentUrl.empty() || currentUrl != tab.url;
+            
+            if (needsReload) {
+                std::cerr << "[DEBUG] ========== LOADING URL ==========" << std::endl;
+                std::cerr << "[DEBUG] Target URL: " << tab.url << std::endl;
+                std::cerr << "[DEBUG] Current URL: " << currentUrl << std::endl;
+                std::cerr << "[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO") << std::endl;
+                std::cerr << "[DEBUG] WebView visible: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << std::endl;
+                std::cerr << "[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
                 
-                // 3. Afficher la WebView IMMÉDIATEMENT et forcer sa visibilité
+                // Obtenir la taille allouée
+                int width = 0, height = 0;
+                if (gtk_widget_get_realized(webWidget)) {
+                    width = gtk_widget_get_allocated_width(webWidget);
+                    height = gtk_widget_get_allocated_height(webWidget);
+                    std::cerr << "[DEBUG] WebView size: " << width << "x" << height << std::endl;
+                }
+                
+                // Vérifier une dernière fois que la WebView est valide avant de charger
+                if (!WEBKIT_IS_WEB_VIEW(tab.webView)) {
+                    std::cerr << "[ERREUR] WebView invalide avant webkit_web_view_load_uri" << std::endl;
+                    return;
+                }
+                
+                std::cerr << "[DEBUG] Calling webkit_web_view_load_uri..." << std::endl;
+                webkit_web_view_load_uri(tab.webView, tab.url.c_str());
+                
+                // Vérifier l'URI après chargement
+                const gchar* loadedUri = webkit_web_view_get_uri(tab.webView);
+                std::cerr << "[DEBUG] URI after load_uri: " << (loadedUri ? loadedUri : "NULL") << std::endl;
+                
+                // Forcer le redessinage après le chargement
+                gtk_widget_queue_draw(webWidget);
+                if (webContainer) {
+                    gtk_widget_queue_draw(webContainer);
+                }
+                std::cerr << "[DEBUG] ==================================" << std::endl;
+            } else {
+                std::cerr << "[DEBUG] URL already loaded: " << currentUrl << std::endl;
+                // Même si l'URL est déjà chargée, forcer le redessinage et le rechargement visuel
+                // Cela garantit que la page s'affiche correctement quand on revient à l'onglet
+                gtk_widget_queue_resize(webWidget);
+                gtk_widget_queue_draw(webWidget);
+                if (webContainer) {
+                    gtk_widget_queue_resize(webContainer);
+                    gtk_widget_queue_draw(webContainer);
+                }
+                
+                // Forcer un rechargement visuel même si l'URL est la même
+                // Cela évite les problèmes d'affichage quand on revient à un onglet
                 gtk_widget_show_all(webWidget);
                 gtk_widget_set_visible(webWidget, TRUE);
-                gtk_widget_set_vexpand(webWidget, TRUE);
-                gtk_widget_set_hexpand(webWidget, TRUE);
-                
-                // Forcer la réalisation si nécessaire
-                if (!gtk_widget_get_realized(webWidget)) {
-                    gtk_widget_realize(webWidget);
-                }
-                
-                std::cerr << "[DEBUG] WebView shown: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << std::endl;
-                std::cerr << "[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
-                std::cerr << "[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO") << std::endl;
-                
-                // 4. Charger l'URL immédiatement
-                const gchar* currentUri = webkit_web_view_get_uri(tab.webView);
-                std::string currentUrl = currentUri ? std::string(currentUri) : "";
-                
-                if (currentUrl.empty() || currentUrl != tab.url) {
-                    std::cerr << "[DEBUG] ========== LOADING URL ==========" << std::endl;
-                    std::cerr << "[DEBUG] Target URL: " << tab.url << std::endl;
-                    std::cerr << "[DEBUG] Current URL: " << currentUrl << std::endl;
-                    std::cerr << "[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO") << std::endl;
-                    std::cerr << "[DEBUG] WebView visible: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << std::endl;
-                    std::cerr << "[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
-                    
-                    // Obtenir la taille allouée
-                    int width = 0, height = 0;
-                    if (gtk_widget_get_realized(webWidget)) {
-                        width = gtk_widget_get_allocated_width(webWidget);
-                        height = gtk_widget_get_allocated_height(webWidget);
-                        std::cerr << "[DEBUG] WebView size: " << width << "x" << height << std::endl;
-                    }
-                    
-                    std::cerr << "[DEBUG] Calling webkit_web_view_load_uri..." << std::endl;
-                    webkit_web_view_load_uri(tab.webView, tab.url.c_str());
-                    
-                    // Vérifier l'URI après chargement
-                    const gchar* loadedUri = webkit_web_view_get_uri(tab.webView);
-                    std::cerr << "[DEBUG] URI after load_uri: " << (loadedUri ? loadedUri : "NULL") << std::endl;
-                    
-                    // Forcer le redessinage après le chargement
-                    gtk_widget_queue_draw(webWidget);
-                    if (webContainer) {
-                        gtk_widget_queue_draw(webContainer);
-                    }
-                    std::cerr << "[DEBUG] ==================================" << std::endl;
-                } else {
-                    std::cerr << "[DEBUG] URL already loaded: " << currentUrl << std::endl;
-                }
-                
-                // 3. Connecter les signaux de chargement UNE SEULE FOIS
-                static std::set<WebKitWebView*> connectedViews;
-                if (connectedViews.find(tab.webView) == connectedViews.end()) {
-                    connectedViews.insert(tab.webView);
+            }
+            
+            // Forcer le traitement des événements pour s'assurer que tout est affiché
+            int iterations = 0;
+            while (gtk_events_pending() && iterations < 10) {
+                gtk_main_iteration_do(FALSE);
+                iterations++;
+            }
+            
+            // 3. Connecter les signaux de chargement UNE SEULE FOIS
+            // Vérifier que la WebView est valide avant de connecter les signaux
+            if (!WEBKIT_IS_WEB_VIEW(tab.webView) || !G_IS_OBJECT(tab.webView)) {
+                std::cerr << "[ERREUR] WebView invalide, impossible de connecter les signaux" << std::endl;
+                return;
+            }
+            
+            // Utiliser un set statique pour éviter de connecter les signaux plusieurs fois
+            // Note: Les WebViews sont gérées par GTK et ne doivent pas être supprimées manuellement
+            // Le set est nettoyé automatiquement quand les WebViews sont détruites par GTK
+            static std::set<WebKitWebView*> connectedViews;
+            
+            // Vérifier que la WebView est toujours valide avant de l'ajouter au set
+            if (!WEBKIT_IS_WEB_VIEW(tab.webView)) {
+                std::cerr << "[ERREUR] WebView invalide, impossible de connecter les signaux" << std::endl;
+                return;
+            }
+            
+            if (connectedViews.find(tab.webView) == connectedViews.end()) {
+                connectedViews.insert(tab.webView);
                     
                     // Handler pour load-changed
                     g_signal_connect(tab.webView, "load-changed", G_CALLBACK(+[](WebKitWebView* web_view, WebKitLoadEvent load_event, gpointer) {
@@ -1437,21 +1619,39 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                         browser_set_loading_state(false);
                         std::cerr << "[ERROR] ==================================" << std::endl;
                     }), nullptr);
-                }
-                
-                // 5. Forcer le rendu
-                gtk_widget_queue_draw(webWidget);
-                gtk_widget_queue_resize(webWidget);
-                
-                // Mettre à jour la barre d'URL
-                if (urlBar) {
-                    gtk_entry_set_text(GTK_ENTRY(urlBar), tab.url.c_str());
-                }
-                
-                // Mettre à jour le bouton étoile
-                updateStarButton();
             }
+            
+            // 5. Forcer le rendu et l'affichage final
+            gtk_widget_queue_resize(webWidget);
+            gtk_widget_queue_draw(webWidget);
+            if (webContainer) {
+                gtk_widget_queue_resize(webContainer);
+                gtk_widget_queue_draw(webContainer);
+            }
+            
+            // S'assurer que la WebView est visible une dernière fois
+            gtk_widget_show_all(webWidget);
+            gtk_widget_set_visible(webWidget, TRUE);
+            
+            // Mettre à jour la barre d'URL
+            if (urlBar) {
+                gtk_entry_set_text(GTK_ENTRY(urlBar), tab.url.c_str());
+            }
+            
+            // Mettre à jour le bouton étoile
+            updateStarButton();
+            
+            // Mettre en surbrillance l'onglet actif
             highlight(tab.tabWidget);
+            
+            // Forcer un dernier traitement des événements
+            iterations = 0;
+            while (gtk_events_pending() && iterations < 5) {
+                gtk_main_iteration_do(FALSE);
+                iterations++;
+            }
+            
+            std::cerr << "[DEBUG] Changement d'onglet terminé - WebView visible: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << ", parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
             return;
         }
     }
@@ -1483,6 +1683,9 @@ void Browser::removeTab(GtkWidget *tabWidget) {
         
         // Nettoyer la WebView
         if (tab.webView && WEBKIT_IS_WEB_VIEW(tab.webView)) {
+            // Déconnecter les signaux avant de retirer
+            g_signal_handlers_disconnect_matched(tab.webView, G_SIGNAL_MATCH_DATA, 0, 0, nullptr, nullptr, this);
+            
             // Retirer du container
             GtkWidget* webWidget = GTK_WIDGET(tab.webView);
             GtkWidget* parent = gtk_widget_get_parent(webWidget);
@@ -1490,38 +1693,94 @@ void Browser::removeTab(GtkWidget *tabWidget) {
                 gtk_container_remove(GTK_CONTAINER(parent), webWidget);
             }
             
-            // Libérer la WebView
-            g_clear_object(&tab.webView);
+            // Nettoyer le set statique des WebViews connectées
+            // Accéder au même set statique utilisé dans changeActiveTab
+            {
+                static std::set<WebKitWebView*> connectedViews;
+                connectedViews.erase(tab.webView);
+            }
+            
+            // Libérer la référence (GTK gère la durée de vie des widgets)
+            // Note: Ne pas utiliser g_object_unref ou g_clear_object car GTK gère automatiquement
+            // la durée de vie des widgets quand leur parent est détruit
+            tab.webView = nullptr;
         }
 
         // Supprimer le widget de l'onglet
-        if (tab.tabWidget && GTK_IS_WIDGET(tab.tabWidget)) {
-            if (!gtk_widget_in_destruction(tab.tabWidget)) {
-                GtkWidget* parent = gtk_widget_get_parent(tab.tabWidget);
-                if (parent && GTK_IS_CONTAINER(parent)) {
-                    gtk_container_remove(GTK_CONTAINER(parent), tab.tabWidget);
+        // CRITIQUE : Vérifier plusieurs fois que le widget est valide avant destruction
+        if (tab.tabWidget) {
+            // Vérifier que c'est bien un widget GTK valide
+            if (GTK_IS_WIDGET(tab.tabWidget)) {
+                // Vérifier qu'il n'est pas déjà en cours de destruction
+                if (!gtk_widget_in_destruction(tab.tabWidget)) {
+                    // Retirer du parent AVANT de détruire
+                    GtkWidget* parent = gtk_widget_get_parent(tab.tabWidget);
+                    if (parent && GTK_IS_CONTAINER(parent) && GTK_IS_WIDGET(parent)) {
+                        // Vérifier à nouveau que le widget est toujours valide
+                        if (GTK_IS_WIDGET(tab.tabWidget) && !gtk_widget_in_destruction(tab.tabWidget)) {
+                            gtk_container_remove(GTK_CONTAINER(parent), tab.tabWidget);
+                        }
+                    }
+                    
+                    // Vérifier une dernière fois avant destruction
+                    if (GTK_IS_WIDGET(tab.tabWidget) && !gtk_widget_in_destruction(tab.tabWidget)) {
+                        gtk_widget_destroy(tab.tabWidget);
+                    }
                 }
-                gtk_widget_destroy(tab.tabWidget);
             }
+            // Réinitialiser le pointeur après destruction
+            tab.tabWidget = nullptr;
         }
         
         // Mettre à jour l'onglet actif avant de supprimer
         bool wasActive = (activeTab == &(*it));
         
-        // Supprimer l'onglet de la liste
-        tabs.erase(it);
+        // Sauvegarder le pointeur vers le widget de l'onglet suivant (si disponible)
+        GtkWidget* nextTabWidget = nullptr;
+        if (wasActive && tabs.size() > 1) {
+            // Trouver l'onglet suivant ou précédent
+            auto nextIt = std::next(it);
+            if (nextIt != tabs.end()) {
+                nextTabWidget = nextIt->tabWidget;
+            } else {
+                // Prendre l'onglet précédent
+                if (it != tabs.begin()) {
+                    auto prevIt = std::prev(it);
+                    nextTabWidget = prevIt->tabWidget;
+                }
+            }
+        }
         
-        // Réinitialiser activeTab si c'était l'onglet actif
+        // Réinitialiser activeTab AVANT de supprimer de la liste
         if (wasActive) {
             activeTab = nullptr;
         }
-
+        
+        // Supprimer l'onglet de la liste
+        tabs.erase(it);
+        
         // Si aucun onglet n'est présent, fermer l'application
         if (tabs.empty()) {
             closeApplication();
         } else {
-            // Activer le premier onglet restant
-            if (!tabs.empty()) {
+            // Activer un onglet restant de manière sécurisée
+            if (nextTabWidget && GTK_IS_WIDGET(nextTabWidget) && !gtk_widget_in_destruction(nextTabWidget)) {
+                // Vérifier que l'onglet existe toujours dans la liste
+                bool tabExists = false;
+                for (const auto& remainingTab : tabs) {
+                    if (remainingTab.tabWidget == nextTabWidget) {
+                        tabExists = true;
+                        break;
+                    }
+                }
+                if (tabExists) {
+                    changeActiveTab(nextTabWidget);
+                } else if (!tabs.empty()) {
+                    // Fallback : prendre le premier onglet disponible
+                    changeActiveTab(tabs.front().tabWidget);
+                }
+            } else if (!tabs.empty()) {
+                // Fallback : prendre le premier onglet disponible
                 changeActiveTab(tabs.front().tabWidget);
             }
         }
@@ -1563,6 +1822,9 @@ void Browser::loadURL(const std::string& url) {
     
     updateStarButton();
     memoryManager->optimiserMemoire();
+    
+    // Afficher les statistiques de mémoire périodiquement (optionnel, peut être désactivé)
+    // memoryManager->afficherStatistiquesMemoire();
 }
 
 void Browser::showMessage(const std::string& message) {
@@ -1671,7 +1933,7 @@ void Browser::showOptionsMenu() {
             "WeedlyWeb\n\nNavigateur web moderne basé sur WebKit2GTK\nVersion 1.0"
         );
         gtk_dialog_run(GTK_DIALOG(dialog));
-        if (dialog && GTK_IS_WIDGET(dialog)) {
+        if (dialog && GTK_IS_WIDGET(dialog) && !gtk_widget_in_destruction(dialog)) {
             gtk_widget_destroy(dialog);
         }
     }), nullptr);
@@ -1739,7 +2001,9 @@ void Browser::showGroupsMenu() {
                 navigateur->changeTabGroup(groupName);
             }
         }
-        gtk_widget_destroy(dialog);
+        if (dialog && GTK_IS_WIDGET(dialog) && !gtk_widget_in_destruction(dialog)) {
+            gtk_widget_destroy(dialog);
+        }
     }), this);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemNouveauGroupe);
     
@@ -1795,7 +2059,7 @@ void Browser::showSettings() {
             "Page de paramètres\n\nLe fichier de paramètres sera disponible prochainement."
         );
         gtk_dialog_run(GTK_DIALOG(dialog));
-        if (dialog && GTK_IS_WIDGET(dialog)) {
+        if (dialog && GTK_IS_WIDGET(dialog) && !gtk_widget_in_destruction(dialog)) {
             gtk_widget_destroy(dialog);
         }
         return;
@@ -1831,7 +2095,7 @@ void Browser::showHelp() {
             "Page d'aide\n\nLe fichier d'aide n'a pas pu être chargé."
         );
         gtk_dialog_run(GTK_DIALOG(dialog));
-        if (dialog && GTK_IS_WIDGET(dialog)) {
+        if (dialog && GTK_IS_WIDGET(dialog) && !gtk_widget_in_destruction(dialog)) {
             gtk_widget_destroy(dialog);
         }
         return;

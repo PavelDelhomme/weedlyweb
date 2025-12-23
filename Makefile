@@ -1,7 +1,7 @@
 # Makefile wrapper pour WeedlyWeb
 # Ce fichier intercepte "make help" et délègue les autres cibles au Makefile généré par CMake
 
-.PHONY: help project-help run run-debug
+.PHONY: help project-help run run-debug analyze-memory valgrind stop
 
 # Cible help personnalisée
 help:
@@ -16,6 +16,9 @@ help:
 	@echo "  make run-debug    Compile en mode debug et lance l'application"
 	@echo "  make clean        Nettoie le répertoire de build"
 	@echo "  make install      Installe l'application"
+	@echo "  make analyze-memory  Analyse l'utilisation mémoire du projet"
+	@echo "  make valgrind       Lance l'application avec Valgrind (détection de fuites)"
+	@echo "  make stop           Arrête tous les processus WeedlyWeb"
 	@echo ""
 	@echo "🚀 Pour démarrer rapidement :"
 	@echo ""
@@ -146,6 +149,32 @@ run-debug: build/Makefile
 				exit $$X11_EXIT; \
 			fi; \
 		fi; \
+	fi
+
+# Cible pour analyser la mémoire
+analyze-memory:
+	@if [ -f scripts/analyze-memory.sh ]; then \
+		./scripts/analyze-memory.sh; \
+	else \
+		echo "❌ Script d'analyse mémoire non trouvé"; \
+	fi
+
+# Cible pour lancer avec Valgrind
+valgrind:
+	@if [ -f scripts/run-valgrind.sh ]; then \
+		./scripts/run-valgrind.sh; \
+	else \
+		echo "❌ Script Valgrind non trouvé"; \
+		echo "💡 Utilisez: valgrind --leak-check=full --show-leak-kinds=all ./build/WeedlyWeb"; \
+	fi
+
+# Cible pour arrêter tous les processus WeedlyWeb
+stop:
+	@if [ -f scripts/stop-weedlyweb.sh ]; then \
+		./scripts/stop-weedlyweb.sh; \
+	else \
+		echo "❌ Script d'arrêt non trouvé"; \
+		echo "💡 Utilisez: pkill -f WeedlyWeb"; \
 	fi
 
 # Déléguer toutes les autres cibles au Makefile généré par CMake

@@ -22,7 +22,7 @@ CMAKE_AR:FILEPATH=/usr/bin/ar
 
 //Choose the type of build, options are: None Debug Release RelWithDebInfo
 // MinSizeRel ...
-CMAKE_BUILD_TYPE:STRING=
+CMAKE_BUILD_TYPE:STRING=Debug
 
 //Enable/Disable color output during build.
 CMAKE_COLOR_MAKEFILE:BOOL=ON
@@ -257,7 +257,7 @@ PKG_CONFIG_ARGN:STRING=
 //pkg-config executable
 PKG_CONFIG_EXECUTABLE:FILEPATH=/usr/bin/pkg-config
 
-//Utiliser Qt6
+//Utiliser Qt6 au lieu de GTK
 USE_QT:BOOL=OFF
 
 //Value Computed by CMake
@@ -683,5 +683,5 @@ pkgcfg_lib_WEBKIT2GTK_soup-3.0-ADVANCED:INTERNAL=1
 pkgcfg_lib_WEBKIT2GTK_webkit2gtk-4.1-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_WEBKIT2GTK_z
 pkgcfg_lib_WEBKIT2GTK_z-ADVANCED:INTERNAL=1
-prefix_result:INTERNAL=/usr/lib
+prefix_result:INTERNAL=alt-svc;AsynchDNS;brotli;GSS-API;HSTS;HTTP2;HTTP3;HTTPS-proxy;IDN;IPv6;Kerberos;Largefile;libz;NTLM;PSL;SPNEGO;SSL;threadsafe;TLS-SRP;UnixSockets;zstd
 

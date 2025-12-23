@@ -174,7 +174,8 @@ else()
 endif()
 
 # Cible help personnalisée pour afficher les instructions de démarrage
-# Note: "help" est réservé par CMake, on utilise "project-help" qui sera accessible via "make help" grâce à un alias
+# Note: "help" est réservé par CMake, on utilise "project-help" en interne
+# mais le Makefile wrapper intercepte "make help" pour afficher cette aide
 add_custom_target(project-help
     COMMAND ${CMAKE_COMMAND} -E echo ""
     COMMAND ${CMAKE_COMMAND} -E echo "🌐 WeedlyWeb - Guide de démarrage"
@@ -218,5 +219,5 @@ message(STATUS "✅ Configuration terminée !")
 message(STATUS "📦 Exécutable: ${EXECUTABLE_NAME}")
 message(STATUS "🚀 Pour compiler: make")
 message(STATUS "▶️  Pour lancer: ./${EXECUTABLE_PATH}")
-message(STATUS "💡 Pour l'aide: make project-help")
+message(STATUS "💡 Pour l'aide: make help")
 message(STATUS "")

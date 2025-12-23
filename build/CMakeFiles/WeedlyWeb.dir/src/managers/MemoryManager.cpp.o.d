@@ -1,7 +1,7 @@
 CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o: \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/MemoryManager.cpp \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/src/managers/MemoryManager.cpp \
  /usr/include/stdc-predef.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/managers/MemoryManager.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/include/managers/MemoryManager.h \
  /usr/include/webkitgtk-4.1/webkit2/webkit2.h \
  /usr/include/webkitgtk-4.1/webkit/WebKitApplicationInfo.h \
  /usr/include/glib-2.0/glib-object.h \
@@ -926,7 +926,21 @@ CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o: \
  /usr/include/c++/15.2.1/bits/locale_facets.tcc \
  /usr/include/c++/15.2.1/bits/basic_ios.tcc \
  /usr/include/c++/15.2.1/bits/ostream.tcc /usr/include/c++/15.2.1/istream \
- /usr/include/c++/15.2.1/bits/istream.tcc /usr/include/sys/sysinfo.h \
+ /usr/include/c++/15.2.1/bits/istream.tcc /usr/include/c++/15.2.1/fstream \
+ /usr/include/c++/15.2.1/bits/codecvt.h \
+ /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/basic_file.h \
+ /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/c++io.h \
+ /usr/include/c++/15.2.1/bits/fstream.tcc /usr/include/c++/15.2.1/sstream \
+ /usr/include/c++/15.2.1/bits/sstream.tcc /usr/include/c++/15.2.1/iomanip \
+ /usr/include/c++/15.2.1/locale \
+ /usr/include/c++/15.2.1/bits/locale_facets_nonio.h \
+ /usr/include/c++/15.2.1/ctime \
+ /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/time_members.h \
+ /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/messages_members.h \
+ /usr/include/libintl.h \
+ /usr/include/c++/15.2.1/bits/locale_facets_nonio.tcc \
+ /usr/include/c++/15.2.1/bits/locale_conv.h \
+ /usr/include/c++/15.2.1/bits/quoted_string.h /usr/include/sys/sysinfo.h \
  /usr/include/linux/kernel.h /usr/include/linux/sysinfo.h \
  /usr/include/linux/const.h /usr/include/c++/15.2.1/thread \
  /usr/include/c++/15.2.1/bits/std_thread.h \
@@ -934,5 +948,4 @@ CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o: \
  /usr/include/c++/15.2.1/bits/this_thread_sleep.h \
  /usr/include/c++/15.2.1/bits/chrono.h /usr/include/c++/15.2.1/ratio \
  /usr/include/c++/15.2.1/cstdint /usr/include/c++/15.2.1/limits \
- /usr/include/c++/15.2.1/ctime \
  /usr/include/c++/15.2.1/bits/parse_numbers.h

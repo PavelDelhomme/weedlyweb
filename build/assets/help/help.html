@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aide - WeedlyWeb</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        section {
+            margin-bottom: 40px;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        h3 {
+            color: #764ba2;
+            font-size: 1.3em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        .shortcut-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .shortcut-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .shortcut-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .shortcut-key {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .description {
+            flex: 1;
+            margin-right: 20px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .feature-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #764ba2;
+        }
+        
+        .feature-item::before {
+            content: "✓ ";
+            color: #764ba2;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .command-palette-info {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+            margin-top: 20px;
+        }
+        
+        .command-palette-info h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        
+        .command-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+        
+        .command-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border-left: 3px solid #667eea;
+        }
+        
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #ddd;
+        }
+        
+        .version {
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 WeedlyWeb</h1>
+            <p>Guide d'utilisation et raccourcis clavier</p>
+        </header>
+        
+        <div class="content">
+            <section>
+                <h2>⌨️ Raccourcis clavier</h2>
+                
+                <h3>Navigation générale</h3>
+                <ul class="shortcut-list">
+                    <li class="shortcut-item">
+                        <span class="description">Ouvrir un nouvel onglet</span>
+                        <span class="shortcut-key">Ctrl + T</span>
+                    </li>
+                    <li class="shortcut-item">
+                        <span class="description">Fermer l'onglet actuel</span>
+                        <span class="shortcut-key">Ctrl + W</span>
+                    </li>
+                    <li class="shortcut-item">
+                        <span class="description">Dupliquer l'onglet actuel</span>
+                        <span class="shortcut-key">Ctrl + Shift + D</span>
+                    </li>
+                    <li class="shortcut-item">
+                        <span class="description">Focus sur la barre d'URL</span>
+                        <span class="shortcut-key">Ctrl + E</span>
+                    </li>
+                    <li class="shortcut-item">
+                        <span class="description">Afficher/masquer la palette de commandes</span>
+                        <span class="shortcut-key">Ctrl + Shift + C</span>
+                    </li>
+                    <li class="shortcut-item">
+                        <span class="description">Afficher cette page d'aide</span>
+                        <span class="shortcut-key">Ctrl + H</span>
+                    </li>
+                </ul>
+                
+                <h3>Favoris</h3>
+                <ul class="shortcut-list">
+                    <li class="shortcut-item">
+                        <span class="description">Ajouter la page actuelle aux favoris</span>
+                        <span class="shortcut-key">Ctrl + D</span>
+                    </li>
+                </ul>
+                
+                <h3>Navigation web</h3>
+                <ul class="shortcut-list">
+                    <li class="shortcut-item">
+                        <span class="description">Recharger la page</span>
+                        <span class="shortcut-key">F5</span>
+                    </li>
+                    <li class="shortcut-item">
+                        <span class="description">Aller à la page d'accueil</span>
+                        <span class="shortcut-key">Bouton Accueil</span>
+                    </li>
+                </ul>
+            </section>
+            
+            <section>
+                <h2>🎯 Fonctionnalités principales</h2>
+                
+                <h3>Gestion des onglets</h3>
+                <ul class="feature-list">
+                    <li class="feature-item">Création et fermeture d'onglets multiples</li>
+                    <li class="feature-item">Groupes d'onglets pour organiser votre navigation</li>
+                    <li class="feature-item">Défilement horizontal des onglets avec la molette de la souris</li>
+                    <li class="feature-item">Chaque onglet a sa propre session de navigation indépendante</li>
+                </ul>
+                
+                <h3>Gestion des favoris</h3>
+                <ul class="feature-list">
+                    <li class="feature-item">Ajout rapide de favoris avec Ctrl + D</li>
+                    <li class="feature-item">Barre de favoris accessible sous la barre d'URL</li>
+                    <li class="feature-item">Gestionnaire de favoris complet avec organisation par groupes</li>
+                    <li class="feature-item">Clic droit sur les favoris pour plus d'options</li>
+                </ul>
+                
+                <h3>Palette de commandes</h3>
+                <div class="command-palette-info">
+                    <h3>🎨 Palette de commandes (Ctrl + Shift + C)</h3>
+                    <p>La palette de commandes vous permet d'accéder rapidement à des fonctionnalités avancées :</p>
+                    <ul class="command-list">
+                        <li class="command-item">/cve - Analyser les CVE (Common Vulnerabilities and Exposures) sur la page actuelle</li>
+                        <li class="command-item">/request - Envoyer des requêtes HTTP personnalisées</li>
+                        <li class="command-item">/analyze - Afficher l'analyseur de requêtes réseau</li>
+                        <li class="command-item">/history - Afficher l'historique de navigation</li>
+                        <li class="command-item">/clear cache - Vider le cache du navigateur</li>
+                    </ul>
+                    <p style="margin-top: 15px;"><strong>Astuce :</strong> Utilisez <kbd>Échap</kbd> ou <kbd>Ctrl + Shift + C</kbd> pour fermer la palette de commandes.</p>
+                </div>
+            </section>
+            
+            <section>
+                <h2>🔧 Menu contextuel</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Clic droit sur les favoris pour modifier ou supprimer</li>
+                    <li class="feature-item">Menu hamburger (☰) en haut à droite pour accéder aux paramètres et options</li>
+                </ul>
+            </section>
+            
+            <section>
+                <h2>💡 Conseils et astuces</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">La barre d'URL accepte les URLs complètes ou des termes de recherche</li>
+                    <li class="feature-item">Les onglets peuvent être organisés en groupes pour une meilleure productivité</li>
+                    <li class="feature-item">L'indicateur de chargement (spinner) dans la barre d'URL vous informe du statut de chargement</li>
+                    <li class="feature-item">Le bouton étoile (☆/*) indique si la page actuelle est dans vos favoris</li>
+                    <li class="feature-item">Tous vos favoris et paramètres sont sauvegardés automatiquement</li>
+                </ul>
+            </section>
+        </div>
+        
+        <footer>
+            <p><span class="version">WeedlyWeb</span> - Navigateur web moderne basé sur WebKit2GTK</p>
+            <p style="margin-top: 5px;">Version 1.0 - Développé avec ❤️</p>
+        </footer>
+    </div>
+</body>
+</html>
+

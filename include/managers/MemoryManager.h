@@ -11,7 +11,11 @@ public:
     void hibernerOnglet(WebKitWebView *onglet);
     void reactiverOnglet(WebKitWebView *onglet, const std::string &url);
     void viderCache();
-
+    
+    // Nouvelles méthodes pour l'analyse détaillée
+    void afficherStatistiquesMemoire() const;
+    size_t obtenirMemoireUtilisee() const;  // En KB
+    size_t obtenirMemoireVirtuelle() const; // En KB
 };
 
 #endif

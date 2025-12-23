@@ -85,6 +85,12 @@ void RenderingEngine::initializeRendering(GtkWidget *mainContainer) {
             std::cerr << "Erreur : Impossible de créer WebView" << std::endl;
             return;
         }
+        
+        // Configurer WebKit pour le mode sombre
+        WebKitSettings* settings = webkit_web_view_get_settings(webView);
+        if (settings) {
+            webkit_settings_set_enable_write_console_messages_to_stdout(settings, FALSE);
+        }
     }
     
     // Vérifier que webView n'est pas déjà dans un container

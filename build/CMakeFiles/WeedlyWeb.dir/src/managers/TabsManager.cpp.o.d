@@ -1,7 +1,7 @@
 CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o: \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/src/managers/TabsManager.cpp \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/src/managers/TabsManager.cpp \
  /usr/include/stdc-predef.h \
- /home/pactivisme/Documents/Dev/Perso/weedlyweb/weedlyweb/include/managers/TabsManager.h \
+ /home/pactivisme/Documents/Dev/Perso/weedlyweb/include/managers/TabsManager.h \
  /usr/include/c++/15.2.1/string \
  /usr/include/c++/15.2.1/bits/requires_hosted.h \
  /usr/include/c++/15.2.1/x86_64-pc-linux-gnu/bits/c++config.h \
