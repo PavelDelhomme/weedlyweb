@@ -39,8 +39,9 @@ else()
     message(STATUS "📁 Build directory: ${CMAKE_BINARY_DIR}")
     
     # Configuration GTK
-    set(CMAKE_BUILD_TYPE Debug)
-    set(CMAKE_CXX_FLAGS_DEBUG "-g")
+    if(NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE Debug CACHE STRING "Type de build" FORCE)
+    endif()
     
     # Inclure le répertoire des en-têtes
     include_directories(${PROJECT_SOURCE_DIR}/include)
@@ -123,8 +124,8 @@ else()
     # Créer l'exécutable GTK
     add_executable(WeedlyWeb ${SOURCES} ${HEADERS})
     
-    # Flags de debug
-    target_compile_options(WeedlyWeb PRIVATE -g)
+    # Flags de debug uniquement pour les builds Debug
+    target_compile_options(WeedlyWeb PRIVATE $<$<CONFIG:Debug>:-g>)
     
     # Inclure les répertoires nécessaires
     target_include_directories(WeedlyWeb PRIVATE 

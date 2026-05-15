@@ -1,6 +1,28 @@
 #include "rendering/RenderingEngine.h"
 #include <iostream>
 #include <memory>
+#include <cstdlib>
+#include <string>
+
+namespace {
+bool isDebugLoggingEnabled() {
+    const char* value = std::getenv("WEEDLYWEB_DEBUG");
+    if (!value) {
+        return false;
+    }
+
+    std::string normalized(value);
+    return normalized != "0" && normalized != "false" && normalized != "FALSE" &&
+           normalized != "off" && normalized != "OFF";
+}
+}
+
+#define WEEDLYWEB_DEBUG_LOG(message) \
+    do { \
+        if (isDebugLoggingEnabled()) { \
+            std::cerr << message << std::endl; \
+        } \
+    } while (false)
 
 // Fonction statique pour gérer "notify::title"
 static void on_notify_title(GObject *object, GParamSpec *param_spec, gpointer user_data) {
@@ -133,14 +155,14 @@ static void on_load_finished(WebKitWebView* web_view, WebKitLoadEvent load_event
     std::string url = uri ? std::string(uri) : "unknown";
     
     if (load_event == WEBKIT_LOAD_STARTED) {
-        std::cerr << "[DEBUG] WEBKIT_LOAD_STARTED pour URL: " << url << std::endl;
+        WEEDLYWEB_DEBUG_LOG("[DEBUG] WEBKIT_LOAD_STARTED pour URL: " << url);
         
         // Afficher uniquement l'indicateur de chargement dans la barre d'URL
         browser_set_loading_state(true);
         
         // NE PAS masquer la WebView - la laisser visible pour un rendu immédiat
     } else if (load_event == WEBKIT_LOAD_FINISHED) {
-        std::cerr << "[DEBUG] WEBKIT_LOAD_FINISHED pour URL: " << url << std::endl;
+        WEEDLYWEB_DEBUG_LOG("[DEBUG] WEBKIT_LOAD_FINISHED pour URL: " << url);
         
         // Masquer l'indicateur de chargement dans la barre d'URL
         browser_set_loading_state(false);
@@ -165,39 +187,39 @@ static void on_load_finished(WebKitWebView* web_view, WebKitLoadEvent load_event
             gtk_widget_queue_draw(webWidget);
             gtk_widget_queue_resize(webWidget);
             
-            std::cerr << "[DEBUG] WebView rendue visible après chargement" << std::endl;
+            WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView rendue visible après chargement");
         }
     } else if (load_event == WEBKIT_LOAD_COMMITTED) {
-        std::cerr << "[DEBUG] WEBKIT_LOAD_COMMITTED pour URL: " << url << std::endl;
+        WEEDLYWEB_DEBUG_LOG("[DEBUG] WEBKIT_LOAD_COMMITTED pour URL: " << url);
     } else if (load_event == WEBKIT_LOAD_REDIRECTED) {
-        std::cerr << "[DEBUG] WEBKIT_LOAD_REDIRECTED pour URL: " << url << std::endl;
+        WEEDLYWEB_DEBUG_LOG("[DEBUG] WEBKIT_LOAD_REDIRECTED pour URL: " << url);
     } else {
-        std::cerr << "[DEBUG] Événement de chargement inconnu: " << load_event << " pour URL: " << url << std::endl;
+        WEEDLYWEB_DEBUG_LOG("[DEBUG] Événement de chargement inconnu: " << load_event << " pour URL: " << url);
     }
 }
 
 void RenderingEngine::displayPage(const std::string& url) {
-    std::cerr << "[DEBUG] displayPage() appelé avec URL: '" << url << "'" << std::endl;
+    WEEDLYWEB_DEBUG_LOG("[DEBUG] displayPage() appelé avec URL: '" << url << "'");
     
     if (!webView || !WEBKIT_IS_WEB_VIEW(webView)) {
         std::cerr << "[ERREUR] WebView non initialisé dans displayPage." << std::endl;
         return;
     }
     
-    std::cerr << "[DEBUG] WebView est valide" << std::endl;
+    WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView est valide");
     
     // Normaliser l'URL si nécessaire
     std::string normalizedUrl = url;
     if (normalizedUrl.empty()) {
         normalizedUrl = "https://www.duckduckgo.com";
-        std::cerr << "[DEBUG] URL vide, utilisation de la valeur par défaut: " << normalizedUrl << std::endl;
+        WEEDLYWEB_DEBUG_LOG("[DEBUG] URL vide, utilisation de la valeur par défaut: " << normalizedUrl);
     } else if (normalizedUrl.find("://") == std::string::npos) {
         // Si pas de protocole, ajouter https://
         normalizedUrl = "https://" + normalizedUrl;
-        std::cerr << "[DEBUG] Protocole manquant, URL normalisée: " << normalizedUrl << std::endl;
+        WEEDLYWEB_DEBUG_LOG("[DEBUG] Protocole manquant, URL normalisée: " << normalizedUrl);
     }
     
-    std::cerr << "[DEBUG] Chargement de l'URL normalisée : " << normalizedUrl << std::endl;
+    WEEDLYWEB_DEBUG_LOG("[DEBUG] Chargement de l'URL normalisée : " << normalizedUrl);
     
     // Connecter le signal load-changed pour gérer l'indicateur de chargement
     static bool signalConnected = false;

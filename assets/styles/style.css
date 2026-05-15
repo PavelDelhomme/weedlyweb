@@ -7,6 +7,23 @@
     background-color: #323232; /* Couleur normale - gris foncé */
 }
 
-#barre-favoris {
-    background-color: #2d2d2d; /* Fond sombre */
+/* Barre de favoris compacte (nom GTK: barre-favorites) */
+#barre-favorites {
+    background-color: #2a2a2a;
+    min-height: 0;
+    padding: 0;
+}
+
+#barre-favorites button {
+    min-height: 22px;
+    min-width: 0;
+    padding: 1px 6px;
+    font-size: 11px;
+    margin: 0;
+}
+
+#barre-favorites #button-favori,
+#barre-favorites #button-favori-dossier,
+#barre-favorites #button-favori-more {
+    padding: 1px 5px;
 }

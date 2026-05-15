@@ -11,8 +11,29 @@
 #include <string>
 #include <fstream>
 #include <set>
+#include <cstdlib>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk/gdk.h>
+
+namespace {
+bool isDebugLoggingEnabled() {
+    const char* value = std::getenv("WEEDLYWEB_DEBUG");
+    if (!value) {
+        return false;
+    }
+
+    std::string normalized(value);
+    return normalized != "0" && normalized != "false" && normalized != "FALSE" &&
+           normalized != "off" && normalized != "OFF";
+}
+}
+
+#define WEEDLYWEB_DEBUG_LOG(message) \
+    do { \
+        if (isDebugLoggingEnabled()) { \
+            std::cerr << message << std::endl; \
+        } \
+    } while (false)
 
 // Variable globale pour le callback de chargement
 Browser* g_browser_instance = nullptr;
@@ -83,17 +104,92 @@ void on_supprimer_favori(GtkWidget* widget, gpointer user_data) {
 }
 
 
-static void onStarButtonClicked(GtkButton* button, gpointer user_data) {
-    auto* navigateur = static_cast<Browser*>(user_data);
-    if (navigateur) {
-        navigateur->addFavorite("Favori", navigateur->getCurrentURL(), "");
-    }
-}
-
 static void on_menu_item_activate(GtkWidget* widget, gpointer user_data) {
     auto* data = static_cast<std::pair<Browser*, std::string>*>(user_data);
     data->first->loadURL(data->second);
     delete data;
+}
+
+static void free_browser_url_pair(gpointer data, GClosure*) {
+    delete static_cast<std::pair<Browser*, std::string>*>(data);
+}
+
+static std::string truncate_favorite_label(const std::string& s) {
+    constexpr std::size_t kMax = 12;
+    if (s.size() <= kMax) {
+        return s;
+    }
+    return s.substr(0, kMax - 3) + "...";
+}
+
+static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* browser, const nlohmann::json& children);
+
+static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* browser, const nlohmann::json& children) {
+    if (!children.is_array() || children.empty()) {
+        GtkWidget* emptyItem = gtk_menu_item_new_with_label("(vide)");
+        gtk_widget_set_sensitive(emptyItem, FALSE);
+        gtk_menu_shell_append(shell, emptyItem);
+        return;
+    }
+    for (const auto& child : children) {
+        if (FavoritesJson::isFolder(child)) {
+            const std::string folderName = child.value("name", "Dossier");
+            GtkWidget* mi = gtk_menu_item_new_with_label(folderName.c_str());
+            GtkWidget* sub = gtk_menu_new();
+            nlohmann::json subChildren = nlohmann::json::array();
+            if (child.contains("children") && child["children"].is_array()) {
+                subChildren = child["children"];
+            }
+            populate_favorites_menu_from_children(GTK_MENU_SHELL(sub), browser, subChildren);
+            gtk_menu_item_set_submenu(GTK_MENU_ITEM(mi), sub);
+            gtk_menu_shell_append(shell, mi);
+        } else if (child.contains("url") && child.contains("name") && child["url"].is_string()) {
+            const std::string n = child["name"].get<std::string>();
+            const std::string u = child["url"].get<std::string>();
+            GtkWidget* mi = gtk_menu_item_new_with_label(n.c_str());
+            auto* data = new std::pair<Browser*, std::string>(browser, u);
+            g_signal_connect(mi, "activate", G_CALLBACK(on_menu_item_activate), data);
+            gtk_menu_shell_append(shell, mi);
+        }
+    }
+}
+
+static GtkWidget* create_folder_menu_button(Browser* browser, const nlohmann::json& folderItem) {
+    GtkWidget* mb = gtk_menu_button_new();
+    const std::string baseName = folderItem.value("name", "Dossier");
+    const std::string label = truncate_favorite_label(baseName);
+    gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
+    gtk_button_set_label(GTK_BUTTON(mb), label.c_str());
+    gtk_widget_set_tooltip_text(mb, baseName.c_str());
+    gtk_widget_set_name(mb, "button-favori-dossier");
+    GtkWidget* menu = gtk_menu_new();
+    nlohmann::json children = nlohmann::json::array();
+    if (folderItem.contains("children") && folderItem["children"].is_array()) {
+        children = folderItem["children"];
+    }
+    populate_favorites_menu_from_children(GTK_MENU_SHELL(menu), browser, children);
+    gtk_menu_button_set_popup(GTK_MENU_BUTTON(mb), menu);
+    gtk_widget_set_margin_start(mb, 1);
+    gtk_widget_set_margin_end(mb, 1);
+    return mb;
+}
+
+static void on_bookmark_load_url(GtkButton*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, std::string>*>(user_data);
+    if (p && p->first) {
+        p->first->loadURL(p->second);
+    }
+}
+
+static void connect_bookmark_button_clicked(GtkWidget* boutonFavori, Browser* browser, const std::string& url) {
+    auto* data = new std::pair<Browser*, std::string>(browser, url);
+    g_signal_connect_data(
+        boutonFavori,
+        "clicked",
+        G_CALLBACK(on_bookmark_load_url),
+        data,
+        free_browser_url_pair,
+        (GConnectFlags)0);
 }
 
 
@@ -172,14 +268,6 @@ static void on_bouton_favoris_clicked(GtkButton*, gpointer user_data) {
             navigateur->addFavorite("Favori", url, "");
             navigateur->refreshFavoritesBar();
         }
-    }
-}
-
-static void on_favori_clicked(GtkButton* button, gpointer user_data) {
-    auto* data = static_cast<std::pair<Browser*, std::string>*>(user_data);
-    if (data && data->first) {
-        data->first->loadURL(data->second);
-        delete data;  // Libérer la mémoire allouée
     }
 }
 
@@ -682,126 +770,78 @@ std::string Browser::getCurrentURL() const {
 
 
 void Browser::initializeFavoritesBar() {
-    if (favoritesBar && GTK_IS_WIDGET(favoritesBar)) {
-        // Retirer du container avant de détruire
-        if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
-            GtkWidget* parent = gtk_widget_get_parent(favoritesBar);
-            if (parent && GTK_IS_CONTAINER(parent)) {
-                gtk_container_remove(GTK_CONTAINER(parent), favoritesBar);
-            }
-            // Vérifier à nouveau avant destruction
-            if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
-                gtk_widget_destroy(favoritesBar);
-            }
-        }
-        favoritesBar = nullptr;
-    }
-
-    // Créer une barre de favorites minimaliste et élégante
-    favoritesBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
-    gtk_widget_set_margin_start(favoritesBar, 5);
-    gtk_widget_set_margin_end(favoritesBar, 5);
-    gtk_widget_set_margin_top(favoritesBar, 2);
-    gtk_widget_set_margin_bottom(favoritesBar, 2);
-    
-    // Style minimaliste pour la barre de favorites
-    gtk_widget_set_name(favoritesBar, "barre-favorites");
-
-    // Afficher les favorites (maximum 10 visibles, le reste dans un menu)
-    int maxFavorisVisibles = 10;
-    int compteur = 0;
-
-    for (const auto& favori : *favorites) {
-        if (compteur >= maxFavorisVisibles) {
-            // Bouton "..." pour afficher les favorites restants
-            GtkWidget* boutonPlus = gtk_button_new_with_label("⋯");
-            gtk_widget_set_tooltip_text(boutonPlus, "Plus de favorites");
-            gtk_widget_set_margin_start(boutonPlus, 2);
-            gtk_widget_set_margin_end(boutonPlus, 2);
-            g_signal_connect(boutonPlus, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-                auto* navigateur = static_cast<Browser*>(user_data);
-                navigateur->showRemainingFavoritesMenu();
-            }), this);
-            gtk_box_pack_start(GTK_BOX(favoritesBar), boutonPlus, FALSE, FALSE, 0);
-            break;
-        }
-
-        // Créer un button de favori avec un style minimaliste
-        std::string favoriteName = favori.value("name", "Favori");
-        // Limiter la longueur du nom pour un design propre
-        if (favoriteName.length() > 15) {
-            favoriteName = favoriteName.substr(0, 12) + "...";
-        }
-        
-        GtkWidget* boutonFavori = gtk_button_new_with_label(favoriteName.c_str());
-        gtk_widget_set_tooltip_text(boutonFavori, favori.value("url", "").c_str());
-        gtk_widget_set_margin_start(boutonFavori, 2);
-        gtk_widget_set_margin_end(boutonFavori, 2);
-        
-        auto* data = new std::pair<Browser*, std::string>(this, favori["url"]);
-        g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
-        
-        // Style minimaliste pour les boutons de favorites
-        gtk_widget_set_name(boutonFavori, "button-favori");
-        
-        gtk_box_pack_start(GTK_BOX(favoritesBar), boutonFavori, FALSE, FALSE, 0);
-        compteur++;
-    }
-
-    // Si aucun favori, afficher un message discret
-    if (favorites->empty()) {
-        GtkWidget* labelVide = gtk_label_new("");
-        gtk_widget_set_opacity(labelVide, 0.0); // Invisible mais prend de l'espace
-        gtk_box_pack_start(GTK_BOX(favoritesBar), labelVide, FALSE, FALSE, 0);
-    }
-
-    // Ajouter la barre de favorites au container principal
-    if (mainContainer && !gtk_widget_get_parent(favoritesBar)) {
-        gtk_box_pack_start(GTK_BOX(mainContainer), favoritesBar, FALSE, FALSE, 0);
-    }
-    gtk_widget_show_all(favoritesBar);
+    refreshFavoritesBar();
 }
 
 void Browser::showFavoritesMenu() {
     GtkWidget* menu = gtk_menu_new();
-
-    int largeurDispo = gtk_widget_get_allocated_width(mainContainer);
-    int largeurActuelle = 0;
-
-
     for (const auto& favori : *favorites) {
-        int largeurBouton = 80; // Estimation
-        if (largeurActuelle + largeurBouton > largeurDispo) {
+        if (FavoritesJson::isFolder(favori)) {
+            GtkWidget* item = gtk_menu_item_new_with_label(favori.value("name", "Dossier").c_str());
+            GtkWidget* sub = gtk_menu_new();
+            nlohmann::json ch = nlohmann::json::array();
+            if (favori.contains("children") && favori["children"].is_array()) {
+                ch = favori["children"];
+            }
+            populate_favorites_menu_from_children(GTK_MENU_SHELL(sub), this, ch);
+            gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), sub);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+        } else if (favori.contains("name") && favori.contains("url")) {
             GtkWidget* item = gtk_menu_item_new_with_label(favori["name"].get<std::string>().c_str());
-            auto* data = new std::pair<Browser*, std::string>(this, favori["url"]);
+            auto* data = new std::pair<Browser*, std::string>(this, favori["url"].get<std::string>());
             g_signal_connect(item, "activate", G_CALLBACK(on_menu_item_activate), data);
             gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
         }
-        largeurActuelle += largeurBouton;
     }
-
     gtk_widget_show_all(menu);
-    gtk_menu_popup_at_widget(GTK_MENU(menu), favoritesBar, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
+    if (favoritesBar && GTK_IS_WIDGET(favoritesBar)) {
+        gtk_menu_popup_at_widget(GTK_MENU(menu), favoritesBar, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
+    } else {
+        gtk_menu_popup_at_pointer(GTK_MENU(menu), nullptr);
+    }
 }
 
 void Browser::showRemainingFavoritesMenu() {
+    constexpr int kMaxTopLevelSlots = 10;
     GtkWidget* menu = gtk_menu_new();
-    int largeurDispo = gtk_widget_get_allocated_width(mainContainer);
-    int largeurActuelle = 0;
-
+    int index = 0;
     for (const auto& favori : *favorites) {
-        int largeurBouton = 80; // Estimation de la largeur d'un button
-        if (largeurActuelle + largeurBouton > largeurDispo) {
+        if (index++ < kMaxTopLevelSlots) {
+            continue;
+        }
+        if (FavoritesJson::isFolder(favori)) {
+            GtkWidget* item = gtk_menu_item_new_with_label(favori.value("name", "Dossier").c_str());
+            GtkWidget* sub = gtk_menu_new();
+            nlohmann::json ch = nlohmann::json::array();
+            if (favori.contains("children") && favori["children"].is_array()) {
+                ch = favori["children"];
+            }
+            populate_favorites_menu_from_children(GTK_MENU_SHELL(sub), this, ch);
+            gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), sub);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+        } else if (favori.contains("name") && favori.contains("url")) {
             GtkWidget* item = gtk_menu_item_new_with_label(favori["name"].get<std::string>().c_str());
-            auto* data = new std::pair<Browser*, std::string>(this, favori["url"]);
+            auto* data = new std::pair<Browser*, std::string>(this, favori["url"].get<std::string>());
             g_signal_connect(item, "activate", G_CALLBACK(on_menu_item_activate), data);
             gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
         }
-        largeurActuelle += largeurBouton;
     }
-
+    GList* kids = gtk_container_get_children(GTK_CONTAINER(menu));
+    const bool empty = (kids == nullptr);
+    if (kids) {
+        g_list_free(kids);
+    }
+    if (empty) {
+        GtkWidget* item = gtk_menu_item_new_with_label("(aucun)");
+        gtk_widget_set_sensitive(item, FALSE);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+    }
     gtk_widget_show_all(menu);
-    gtk_menu_popup_at_widget(GTK_MENU(menu), favoritesBar, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
+    if (favoritesBar && GTK_IS_WIDGET(favoritesBar)) {
+        gtk_menu_popup_at_widget(GTK_MENU(menu), favoritesBar, GDK_GRAVITY_SOUTH, GDK_GRAVITY_NORTH, nullptr);
+    } else {
+        gtk_menu_popup_at_pointer(GTK_MENU(menu), nullptr);
+    }
 }
 
 
@@ -814,59 +854,73 @@ void Browser::showFavoritesManager() {
 
 
 void Browser::refreshFavoritesBar() {
-    // CRITIQUE : Vérifier que favoritesBar est valide avant toute manipulation
+    constexpr int kMaxTopLevelSlots = 10;
+
     if (favoritesBar) {
-        // Vérifier que c'est un widget GTK valide et qu'il n'est pas déjà en destruction
         if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
-            // Retirer du container avant de détruire
             GtkWidget* parent = gtk_widget_get_parent(favoritesBar);
             if (parent && GTK_IS_CONTAINER(parent) && GTK_IS_WIDGET(parent)) {
-                // Vérifier à nouveau que le widget est toujours valide
                 if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
                     gtk_container_remove(GTK_CONTAINER(parent), favoritesBar);
                 }
             }
-            // Vérifier une dernière fois avant destruction
             if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
                 gtk_widget_destroy(favoritesBar);
             }
         }
-        // Toujours réinitialiser le pointeur après tentative de destruction
         favoritesBar = nullptr;
     }
 
-    favoritesBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    favoritesBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
     gtk_widget_set_name(favoritesBar, "barre-favorites");
-    gtk_widget_set_margin_start(favoritesBar, 5);
-    gtk_widget_set_margin_end(favoritesBar, 5);
-    gtk_widget_set_margin_top(favoritesBar, 2);
-    gtk_widget_set_margin_bottom(favoritesBar, 2);
+    gtk_widget_set_margin_start(favoritesBar, 4);
+    gtk_widget_set_margin_end(favoritesBar, 4);
+    gtk_widget_set_margin_top(favoritesBar, 0);
+    gtk_widget_set_margin_bottom(favoritesBar, 0);
 
-    if (favorites->empty()) {
-        GtkWidget *labelAucunFavori = gtk_label_new("Aucun favori");
-        gtk_box_pack_start(GTK_BOX(favoritesBar), labelAucunFavori, FALSE, FALSE, 5);
+    if (!favorites || favorites->empty()) {
+        GtkWidget* labelVide = gtk_label_new("");
+        gtk_widget_set_opacity(labelVide, 0.0);
+        gtk_box_pack_start(GTK_BOX(favoritesBar), labelVide, FALSE, FALSE, 0);
     } else {
+        int compteur = 0;
         for (const auto& favori : *favorites) {
-            std::string nomFavori = favori.value("name", "Favori");
-            GtkWidget *boutonFavori = gtk_button_new_with_label(nomFavori.c_str());
-            gtk_widget_set_name(boutonFavori, "button-favori");
-            gtk_widget_set_tooltip_text(boutonFavori, favori.value("url", "").c_str());
-            
-            auto* data = new std::pair<Browser*, std::string>(this, favori["url"]);
-            g_signal_connect(boutonFavori, "clicked", G_CALLBACK(on_favori_clicked), data);
-            
-            if (gtk_widget_get_parent(boutonFavori) == nullptr) {
-                gtk_box_pack_start(GTK_BOX(favoritesBar), boutonFavori, FALSE, FALSE, 5);
+            if (compteur >= kMaxTopLevelSlots) {
+                GtkWidget* boutonPlus = gtk_button_new_with_label("⋯");
+                gtk_widget_set_name(boutonPlus, "button-favori-more");
+                gtk_widget_set_tooltip_text(boutonPlus, "Plus de favoris");
+                gtk_widget_set_margin_start(boutonPlus, 2);
+                gtk_widget_set_margin_end(boutonPlus, 2);
+                g_signal_connect(boutonPlus, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+                    static_cast<Browser*>(user_data)->showRemainingFavoritesMenu();
+                }), this);
+                gtk_box_pack_start(GTK_BOX(favoritesBar), boutonPlus, FALSE, FALSE, 0);
+                break;
             }
+            if (FavoritesJson::isFolder(favori)) {
+                GtkWidget* folderBtn = create_folder_menu_button(this, favori);
+                gtk_box_pack_start(GTK_BOX(favoritesBar), folderBtn, FALSE, FALSE, 0);
+            } else if (favori.contains("url") && favori.contains("name") && favori["url"].is_string()) {
+                const std::string rawName = favori["name"].get<std::string>();
+                const std::string rawUrl = favori["url"].get<std::string>();
+                const std::string label = truncate_favorite_label(rawName);
+                GtkWidget* boutonFavori = gtk_button_new_with_label(label.c_str());
+                gtk_widget_set_tooltip_text(boutonFavori, rawUrl.c_str());
+                gtk_widget_set_name(boutonFavori, "button-favori");
+                gtk_widget_set_margin_start(boutonFavori, 1);
+                gtk_widget_set_margin_end(boutonFavori, 1);
+                g_object_set_data_full(G_OBJECT(boutonFavori), "favorite-url", g_strdup(rawUrl.c_str()), g_free);
+                g_object_set_data_full(G_OBJECT(boutonFavori), "favorite-name", g_strdup(rawName.c_str()), g_free);
+                connect_bookmark_button_clicked(boutonFavori, this, rawUrl);
+                g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(on_favoris_button_press), this);
+                gtk_box_pack_start(GTK_BOX(favoritesBar), boutonFavori, FALSE, FALSE, 0);
+            }
+            compteur++;
         }
     }
 
-    // Vérifier que favoritesBar n'est pas déjà dans le container
-    // IMPORTANT: Ajouter après la barre de navigation mais avant la zone web
     if (mainContainer && !gtk_widget_get_parent(favoritesBar)) {
-        // Ajouter après la barre de navigation
         gtk_box_pack_start(GTK_BOX(mainContainer), favoritesBar, FALSE, FALSE, 0);
-        // Réordonner pour s'assurer que c'est après la barre de navigation (position 2)
         gtk_box_reorder_child(GTK_BOX(mainContainer), favoritesBar, 2);
     }
     gtk_widget_show_all(favoritesBar);
@@ -875,11 +929,7 @@ void Browser::refreshFavoritesBar() {
 
 void Browser::updateStarButton() {
     std::string urlActuelle = getCurrentURL();
-    bool estDejaFavori = std::any_of(
-        favorites->begin(), favorites->end(),
-        [&urlActuelle](const nlohmann::json& favori) { return favori["url"] == urlActuelle; }
-    );
-
+    const bool estDejaFavori = FavoritesJson::containsUrlRecursive(*favorites, urlActuelle);
 
     const char* symbole = estDejaFavori ? "★" : "☆";
     gtk_button_set_label(GTK_BUTTON(starButton), symbole);
@@ -1158,14 +1208,11 @@ void Browser::addNewTab(const std::string &url) {
     
     GtkWidget* webWidget = GTK_WIDGET(newWebView);
     
-    // Configurer WebKit pour le diagnostic (après vérification de validité)
+    // Garder la console des pages silencieuse par défaut : les warnings CSP/preload
+    // viennent souvent du site ou de WebKit, pas du shell du navigateur.
     WebKitSettings* settings = webkit_web_view_get_settings(newWebView);
     if (settings) {
-        // Activer les messages de console pour le diagnostic
-        // Note: Les warnings de préchargement et erreurs CSP sont normaux et non critiques
-        // - Les warnings "preloaded but not used" sont des optimisations de DuckDuckGo
-        // - L'erreur "manifest-src" CSP est due au fait que WebKit2GTK 4.1 ne supporte pas encore cette directive récente
-        webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
+        webkit_settings_set_enable_write_console_messages_to_stdout(settings, isDebugLoggingEnabled());
         // Activer JavaScript (devrait être activé par défaut)
         webkit_settings_set_enable_javascript(settings, TRUE);
         // Note: webkit_settings_set_enable_plugins est déprécié et ne fait rien
@@ -1201,7 +1248,7 @@ void Browser::addNewTab(const std::string &url) {
     GtkWidget* oldParent = gtk_widget_get_parent(webWidget);
     if (oldParent && oldParent != webContainer) {
         // Ne pas retirer ici, changeActiveTab le fera de manière sécurisée
-        std::cerr << "[DEBUG] WebView a un parent différent, sera géré par changeActiveTab" << std::endl;
+        WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView a un parent différent, sera géré par changeActiveTab");
     }
     
     // Afficher l'onglet
@@ -1219,7 +1266,7 @@ void Browser::addNewTab(const std::string &url) {
             if (browser && browser->webContainer) {
                 int containerWidth = gtk_widget_get_allocated_width(browser->webContainer);
                 int containerHeight = gtk_widget_get_allocated_height(browser->webContainer);
-                std::cerr << "[DEBUG] Container allocated size: " << containerWidth << "x" << containerHeight << std::endl;
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] Container allocated size: " << containerWidth << "x" << containerHeight);
                 
                 // Si le container a une taille valide, redimensionner toutes les WebViews
                 if (containerWidth > 100 && containerHeight > 100) {
@@ -1365,15 +1412,15 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                 if (!currentParent) {
                     // WebView n'a pas de parent, l'ajouter au container
                     gtk_box_pack_start(GTK_BOX(webContainer), webWidget, TRUE, TRUE, 0);
-                    std::cerr << "[DEBUG] WebView ajoutée au container lors du changement d'onglet" << std::endl;
+                    WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView ajoutée au container lors du changement d'onglet");
                 } else if (currentParent == webContainer) {
                     // WebView est déjà dans le bon container, juste s'assurer qu'elle est visible
-                    std::cerr << "[DEBUG] WebView déjà dans le container, forcer l'affichage..." << std::endl;
+                    WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView déjà dans le container, forcer l'affichage...");
                     // NE PAS retirer/réajouter car cela peut invalider la WebView
                     // Juste forcer l'affichage et le redessinage
                 } else {
                     // WebView est dans un autre container, la déplacer
-                    std::cerr << "[DEBUG] WebView dans un autre container, déplacement..." << std::endl;
+                    WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView dans un autre container, déplacement...");
                     // Vérifier que le parent et le widget sont valides avant retrait
                     if (GTK_IS_CONTAINER(currentParent) && GTK_IS_WIDGET(webWidget) && 
                         !gtk_widget_in_destruction(webWidget) && !gtk_widget_in_destruction(currentParent)) {
@@ -1416,9 +1463,9 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                 gtk_widget_realize(webWidget);
             }
             
-            std::cerr << "[DEBUG] WebView shown: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << std::endl;
-            std::cerr << "[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
-            std::cerr << "[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO") << std::endl;
+            WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView shown: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO"));
+            WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO"));
+            WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO"));
             
             // 4. Charger l'URL immédiatement
             // Vérifier que la WebView est valide avant d'utiliser
@@ -1434,19 +1481,19 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
             bool needsReload = currentUrl.empty() || currentUrl != tab.url;
             
             if (needsReload) {
-                std::cerr << "[DEBUG] ========== LOADING URL ==========" << std::endl;
-                std::cerr << "[DEBUG] Target URL: " << tab.url << std::endl;
-                std::cerr << "[DEBUG] Current URL: " << currentUrl << std::endl;
-                std::cerr << "[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO") << std::endl;
-                std::cerr << "[DEBUG] WebView visible: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << std::endl;
-                std::cerr << "[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] ========== LOADING URL ==========");
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] Target URL: " << tab.url);
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] Current URL: " << currentUrl);
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView realized: " << (gtk_widget_get_realized(webWidget) ? "YES" : "NO"));
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView visible: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO"));
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO"));
                 
                 // Obtenir la taille allouée
                 int width = 0, height = 0;
                 if (gtk_widget_get_realized(webWidget)) {
                     width = gtk_widget_get_allocated_width(webWidget);
                     height = gtk_widget_get_allocated_height(webWidget);
-                    std::cerr << "[DEBUG] WebView size: " << width << "x" << height << std::endl;
+                    WEEDLYWEB_DEBUG_LOG("[DEBUG] WebView size: " << width << "x" << height);
                 }
                 
                 // Vérifier une dernière fois que la WebView est valide avant de charger
@@ -1455,21 +1502,21 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                     return;
                 }
                 
-                std::cerr << "[DEBUG] Calling webkit_web_view_load_uri..." << std::endl;
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] Calling webkit_web_view_load_uri...");
                 webkit_web_view_load_uri(tab.webView, tab.url.c_str());
                 
                 // Vérifier l'URI après chargement
                 const gchar* loadedUri = webkit_web_view_get_uri(tab.webView);
-                std::cerr << "[DEBUG] URI after load_uri: " << (loadedUri ? loadedUri : "NULL") << std::endl;
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] URI after load_uri: " << (loadedUri ? loadedUri : "NULL"));
                 
                 // Forcer le redessinage après le chargement
                 gtk_widget_queue_draw(webWidget);
                 if (webContainer) {
                     gtk_widget_queue_draw(webContainer);
                 }
-                std::cerr << "[DEBUG] ==================================" << std::endl;
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] ==================================");
             } else {
-                std::cerr << "[DEBUG] URL already loaded: " << currentUrl << std::endl;
+                WEEDLYWEB_DEBUG_LOG("[DEBUG] URL already loaded: " << currentUrl);
                 // Même si l'URL est déjà chargée, forcer le redessinage et le rechargement visuel
                 // Cela garantit que la page s'affiche correctement quand on revient à l'onglet
                 gtk_widget_queue_resize(webWidget);
@@ -1516,15 +1563,15 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                     // Handler pour load-changed
                     g_signal_connect(tab.webView, "load-changed", G_CALLBACK(+[](WebKitWebView* web_view, WebKitLoadEvent load_event, gpointer) {
                         const gchar* uri = webkit_web_view_get_uri(web_view);
-                        std::cerr << "[DEBUG] Load event: " << load_event << " for URI: " << (uri ? uri : "NULL") << std::endl;
+                        WEEDLYWEB_DEBUG_LOG("[DEBUG] Load event: " << load_event << " for URI: " << (uri ? uri : "NULL"));
                         
                         if (load_event == WEBKIT_LOAD_STARTED) {
-                            std::cerr << "[DEBUG] Load started, showing spinner" << std::endl;
+                            WEEDLYWEB_DEBUG_LOG("[DEBUG] Load started, showing spinner");
                             browser_set_loading_state(true);
                         } else if (load_event == WEBKIT_LOAD_COMMITTED) {
-                            std::cerr << "[DEBUG] Load committed" << std::endl;
+                            WEEDLYWEB_DEBUG_LOG("[DEBUG] Load committed");
                         } else if (load_event == WEBKIT_LOAD_FINISHED) {
-                            std::cerr << "[DEBUG] Load finished, hiding spinner" << std::endl;
+                            WEEDLYWEB_DEBUG_LOG("[DEBUG] Load finished, hiding spinner");
                             browser_set_loading_state(false);
                             
                             // CRITIQUE : Forcer l'affichage après chargement
@@ -1533,27 +1580,22 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                             gtk_widget_set_visible(w, TRUE);
                             gtk_widget_queue_draw(w);
                             
-                            // Injecter du JavaScript de diagnostic (méthode asynchrone)
-                            const gchar* js = 
-                                "console.log('=== DIAGNOSTIC WEBVIEW ===');"
-                                "console.log('Document ready: ' + document.readyState);"
-                                "console.log('URL: ' + window.location.href);"
-                                "console.log('Title: ' + document.title);"
-                                "console.log('Body exists: ' + (document.body !== null));"
-                                "console.log('Body innerHTML length: ' + (document.body ? document.body.innerHTML.length : 0));"
-                                "console.log('Window width: ' + window.innerWidth);"
-                                "console.log('Window height: ' + window.innerHeight);"
-                                "if (document.body) {"
-                                "  document.body.style.border = '3px solid blue';"
-                                "  document.body.style.backgroundColor = '#f0f0f0';"
-                                "}";
-                            
-                            // Utiliser evaluate_javascript (méthode moderne)
-                            webkit_web_view_evaluate_javascript(web_view, js, -1, nullptr, nullptr, nullptr, 
-                                [](GObject* source, GAsyncResult* result, gpointer) {
-                                    // Callback optionnel pour le diagnostic
-                                    std::cerr << "[DEBUG] JavaScript diagnostic executed" << std::endl;
-                                }, nullptr);
+                            if (isDebugLoggingEnabled()) {
+                                const gchar* js =
+                                    "console.log('=== DIAGNOSTIC WEBVIEW ===');"
+                                    "console.log('Document ready: ' + document.readyState);"
+                                    "console.log('URL: ' + window.location.href);"
+                                    "console.log('Title: ' + document.title);"
+                                    "console.log('Body exists: ' + (document.body !== null));"
+                                    "console.log('Body innerHTML length: ' + (document.body ? document.body.innerHTML.length : 0));"
+                                    "console.log('Window width: ' + window.innerWidth);"
+                                    "console.log('Window height: ' + window.innerHeight);";
+
+                                webkit_web_view_evaluate_javascript(web_view, js, -1, nullptr, nullptr, nullptr,
+                                    [](GObject*, GAsyncResult*, gpointer) {
+                                        WEEDLYWEB_DEBUG_LOG("[DEBUG] JavaScript diagnostic executed");
+                                    }, nullptr);
+                            }
                             
                             // CRITIQUE : Forcer le redimensionnement et le rendu après chargement
                             // (w est déjà déclaré plus haut)
@@ -1563,12 +1605,12 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                             if (container) {
                                 int containerWidth = gtk_widget_get_allocated_width(container);
                                 int containerHeight = gtk_widget_get_allocated_height(container);
-                                std::cerr << "[DEBUG] Container size after load: " << containerWidth << "x" << containerHeight << std::endl;
+                                WEEDLYWEB_DEBUG_LOG("[DEBUG] Container size after load: " << containerWidth << "x" << containerHeight);
                                 
                                 // Réinitialiser la taille de la WebView pour permettre l'expansion
                                 if (containerWidth > 100 && containerHeight > 100) {
                                     gtk_widget_set_size_request(w, -1, -1); // -1 = utiliser la taille naturelle
-                                    std::cerr << "[DEBUG] Reset WebView size request to natural size" << std::endl;
+                                    WEEDLYWEB_DEBUG_LOG("[DEBUG] Reset WebView size request to natural size");
                                 }
                                 
                                 // Forcer le redessinage du container aussi
@@ -1588,7 +1630,7 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                             // Vérifier la taille finale
                             int finalWidth = gtk_widget_get_allocated_width(w);
                             int finalHeight = gtk_widget_get_allocated_height(w);
-                            std::cerr << "[DEBUG] Final WebView size: " << finalWidth << "x" << finalHeight << std::endl;
+                            WEEDLYWEB_DEBUG_LOG("[DEBUG] Final WebView size: " << finalWidth << "x" << finalHeight);
                             
                             // Si la taille est toujours 1x1, forcer un redimensionnement avec un délai
                             if (finalWidth <= 1 || finalHeight <= 1) {
@@ -1598,7 +1640,7 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                                     if (widget && GTK_IS_WIDGET(widget)) {
                                         gtk_widget_queue_resize(widget);
                                         gtk_widget_queue_draw(widget);
-                                        std::cerr << "[DEBUG] Forced resize after timeout" << std::endl;
+                                        WEEDLYWEB_DEBUG_LOG("[DEBUG] Forced resize after timeout");
                                     }
                                     return FALSE;
                                 }, w);
@@ -1651,7 +1693,7 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                 iterations++;
             }
             
-            std::cerr << "[DEBUG] Changement d'onglet terminé - WebView visible: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << ", parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO") << std::endl;
+            WEEDLYWEB_DEBUG_LOG("[DEBUG] Changement d'onglet terminé - WebView visible: " << (gtk_widget_get_visible(webWidget) ? "YES" : "NO") << ", parent: " << (gtk_widget_get_parent(webWidget) ? "YES" : "NO"));
             return;
         }
     }
@@ -1666,8 +1708,9 @@ void Browser::executeScriptInActiveTab(const std::string& script) {
 }
 
 void Browser::removeFavorite(GtkWidget* widget) {
-    const gchar* favoriteName = gtk_button_get_label(GTK_BUTTON(widget));
-    favoritesManager->removeFavorite(favoriteName);
+    const char* storedName = static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "favorite-name"));
+    const gchar* favoriteName = storedName ? storedName : gtk_button_get_label(GTK_BUTTON(widget));
+    favoritesManager->removeFavorite(favoriteName ? favoriteName : "");
     refreshFavoritesBar();  // Mise à jour visuelle
 }
 
@@ -2466,13 +2509,9 @@ void Browser::onStarButtonClicked(GtkButton* button, gpointer user_data) {
     std::string urlActuelle = navigateur->getCurrentURL();
     gtk_entry_set_text(GTK_ENTRY(navigateur->favoriteUrlEntry), urlActuelle.c_str());
 
-    // Vérifier si l'URL est déjà dans les favorites
+    // Vérifier si l'URL est déjà dans les favorites (y compris dans un dossier)
     auto favorites = navigateur->getFavoris();
-    bool estDejaFavori = std::any_of(
-        favorites->begin(),
-        favorites->end(),
-        [&urlActuelle](const nlohmann::json& favori) { return favori["url"] == urlActuelle; }
-    );
+    const bool estDejaFavori = FavoritesJson::containsUrlRecursive(*favorites, urlActuelle);
 
     // Si l'URL est déjà un favori, afficher un message et ne pas ouvrir le popover
     if (estDejaFavori) {

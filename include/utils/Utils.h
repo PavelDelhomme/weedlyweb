@@ -15,4 +15,11 @@ GtkWidget* creerMenuContextuelFavoris(class Browser* navigateur, GtkWidget* widg
 void chargerFavoris(const std::string& chemin, std::shared_ptr<nlohmann::json>& favorites);
 void sauvegarderFavoris(const std::string& chemin, const std::shared_ptr<nlohmann::json>& favorites);
 
+namespace FavoritesJson {
+bool isFolder(const nlohmann::json& item);
+bool containsUrlRecursive(const nlohmann::json& rootArray, const std::string& url);
+bool removeByNameRecursive(nlohmann::json& rootArray, const std::string& name);
+bool duplicateNameOrUrl(const nlohmann::json& rootArray, const std::string& nom, const std::string& url);
+}
+
 #endif // UTILS_H
