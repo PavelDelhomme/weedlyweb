@@ -12,6 +12,14 @@
 #include <fstream>
 #include <set>
 #include <cstdlib>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <functional>
+#include <unistd.h>
+#include <curl/curl.h>
+#include <cairo/cairo.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk/gdk.h>
 
@@ -122,7 +130,321 @@ static std::string truncate_favorite_label(const std::string& s) {
     return s.substr(0, kMax - 3) + "...";
 }
 
-static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* browser, const nlohmann::json& children);
+static std::string extract_host_from_url(const std::string& url) {
+    std::string host = url;
+    const auto proto = host.find("://");
+    if (proto != std::string::npos) {
+        host = host.substr(proto + 3);
+    }
+    const auto slash = host.find('/');
+    if (slash != std::string::npos) {
+        host = host.substr(0, slash);
+    }
+    const auto at = host.find('@');
+    if (at != std::string::npos) {
+        host = host.substr(at + 1);
+    }
+    const auto colon = host.find(':');
+    if (colon != std::string::npos) {
+        host = host.substr(0, colon);
+    }
+    return host;
+}
+
+static GtkWidget* create_letter_icon(const std::string& text, int size = 16) {
+    GtkWidget* image = gtk_image_new();
+    cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size);
+    cairo_t* cr = cairo_create(surface);
+    cairo_set_source_rgb(cr, 0.30, 0.45, 0.75);
+    cairo_arc(cr, size / 2.0, size / 2.0, size / 2.0 - 0.5, 0, 2 * G_PI);
+    cairo_fill(cr);
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, size * 0.55);
+    char letter[8] = "?";
+    if (!text.empty()) {
+        letter[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(text[0])));
+        letter[1] = '\0';
+    }
+    cairo_text_extents_t extents;
+    cairo_text_extents(cr, letter, &extents);
+    cairo_move_to(cr, (size - extents.width) / 2.0 - extents.x_bearing,
+                  (size - extents.height) / 2.0 - extents.y_bearing);
+    cairo_show_text(cr, letter);
+    cairo_destroy(cr);
+    GdkPixbuf* pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, size, size);
+    cairo_surface_destroy(surface);
+    if (pixbuf) {
+        gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
+        g_object_unref(pixbuf);
+    }
+    return image;
+}
+
+static GtkWidget* create_folder_icon_widget(int size = 16) {
+    GtkWidget* image = gtk_image_new_from_icon_name("folder", GTK_ICON_SIZE_MENU);
+    gtk_image_set_pixel_size(GTK_IMAGE(image), size);
+    return image;
+}
+
+struct FaviconLoadData {
+    GtkWidget* image;
+    std::string url;
+};
+
+static gboolean apply_downloaded_favicon(gpointer user_data) {
+    auto* data = static_cast<FaviconLoadData*>(user_data);
+    if (!data) {
+        return FALSE;
+    }
+    if (data->image && GTK_IS_IMAGE(data->image) && !gtk_widget_in_destruction(data->image)) {
+        GError* error = nullptr;
+        GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file_at_size(data->url.c_str(), 16, 16, &error);
+        if (pixbuf) {
+            gtk_image_set_from_pixbuf(GTK_IMAGE(data->image), pixbuf);
+            g_object_unref(pixbuf);
+        }
+        if (error) {
+            g_error_free(error);
+        }
+        unlink(data->url.c_str());
+    }
+    delete data;
+    return FALSE;
+}
+
+static void* download_favicon_thread(void* user_data) {
+    auto* data = static_cast<FaviconLoadData*>(user_data);
+    if (!data) {
+        return nullptr;
+    }
+    const std::string host = extract_host_from_url(data->url);
+    if (host.empty()) {
+        g_idle_add(+[](gpointer p) -> gboolean {
+            delete static_cast<FaviconLoadData*>(p);
+            return FALSE;
+        }, data);
+        return nullptr;
+    }
+    const std::string iconUrl = "https://www.google.com/s2/favicons?sz=32&domain=" + host;
+    gchar* tmpPath = nullptr;
+    gint fd = g_file_open_tmp("weedly-favicon-XXXXXX.png", &tmpPath, nullptr);
+    if (fd < 0 || !tmpPath) {
+        g_idle_add(+[](gpointer p) -> gboolean {
+            delete static_cast<FaviconLoadData*>(p);
+            return FALSE;
+        }, data);
+        return nullptr;
+    }
+    close(fd);
+
+    CURL* curl = curl_easy_init();
+    bool ok = false;
+    if (curl) {
+        FILE* fp = fopen(tmpPath, "wb");
+        if (fp) {
+            curl_easy_setopt(curl, CURLOPT_URL, iconUrl.c_str());
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 4L);
+            curl_easy_setopt(curl, CURLOPT_USERAGENT, "WeedlyWeb/1.0");
+            const CURLcode res = curl_easy_perform(curl);
+            fclose(fp);
+            ok = (res == CURLE_OK);
+        }
+        curl_easy_cleanup(curl);
+    }
+
+    if (ok) {
+        data->url = tmpPath;
+        g_idle_add(apply_downloaded_favicon, data);
+    } else {
+        unlink(tmpPath);
+        g_idle_add(+[](gpointer p) -> gboolean {
+            delete static_cast<FaviconLoadData*>(p);
+            return FALSE;
+        }, data);
+    }
+    g_free(tmpPath);
+    return nullptr;
+}
+
+static void start_favicon_load(GtkWidget* image, const std::string& pageUrl) {
+    if (!image || pageUrl.empty()) {
+        return;
+    }
+    auto* data = new FaviconLoadData{image, pageUrl};
+    GThread* thread = g_thread_new("favicon-load", download_favicon_thread, data);
+    if (thread) {
+        g_thread_unref(thread);
+    }
+}
+
+static gboolean on_group_color_dot_draw(GtkWidget* widget, cairo_t* cr, gpointer user_data) {
+    auto* navigateur = static_cast<Browser*>(user_data);
+    std::string colorHex = navigateur->getTabsManager()->getCouleurGroupe(navigateur->getTabsManager()->getGroupeActif());
+    double r = 0.3, g = 0.33, b = 0.82;
+    if (colorHex.size() == 7 && colorHex[0] == '#') {
+        auto hex = [](char c) -> int {
+            if (c >= '0' && c <= '9') return c - '0';
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+            return 0;
+        };
+        r = (hex(colorHex[1]) * 16 + hex(colorHex[2])) / 255.0;
+        g = (hex(colorHex[3]) * 16 + hex(colorHex[4])) / 255.0;
+        b = (hex(colorHex[5]) * 16 + hex(colorHex[6])) / 255.0;
+    }
+    const int w = gtk_widget_get_allocated_width(widget);
+    const int h = gtk_widget_get_allocated_height(widget);
+    const double radius = (w < h ? w : h) / 2.0 - 0.5;
+    cairo_set_source_rgb(cr, r, g, b);
+    cairo_arc(cr, w / 2.0, h / 2.0, radius, 0, 2 * G_PI);
+    cairo_fill(cr);
+    return FALSE;
+}
+
+static void free_move_tab_payload(gpointer data, GClosure*) {
+    delete static_cast<std::pair<Browser*, std::pair<GtkWidget*, std::string>>*>(data);
+}
+
+static void on_move_tab_to_group_activate(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, std::pair<GtkWidget*, std::string>>*>(user_data);
+    if (p && p->first) {
+        p->first->moveTabToGroup(p->second.first, p->second.second);
+    }
+}
+
+static void on_open_url_current_or_tab(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, std::pair<std::string, bool>>*>(user_data);
+    if (!p || !p->first) return;
+    if (p->second.second) {
+        p->first->addNewTab(p->second.first);
+    } else {
+        p->first->loadURL(p->second.first);
+    }
+}
+
+static void free_open_url_payload(gpointer data, GClosure*) {
+    delete static_cast<std::pair<Browser*, std::pair<std::string, bool>>*>(data);
+}
+
+static void destroy_json_ptr(gpointer p) {
+    delete static_cast<nlohmann::json*>(p);
+}
+
+static void on_delete_favorite_activate(GtkWidget* w, gpointer ud) {
+    auto* browser = static_cast<Browser*>(ud);
+    const char* n = static_cast<const char*>(g_object_get_data(G_OBJECT(w), "favorite-name"));
+    if (!browser || !n) return;
+    if (!browser->confirmAction("Supprimer le favori", std::string("Supprimer « ") + n + " » ?")) {
+        return;
+    }
+    if (auto favs = browser->getFavoris()) {
+        FavoritesJson::removeByNameRecursive(*favs, n);
+        FileManager::writeJSON(FileManager::favoritesJSONPath(), *favs);
+        browser->refreshFavoritesBar();
+    }
+}
+
+static void on_edit_favorite_activate(GtkWidget*, gpointer ud) {
+    auto* browser = static_cast<Browser*>(ud);
+    if (browser) {
+        browser->showFavoritesManager();
+    }
+}
+
+static void on_open_all_folder_activate(GtkWidget* w, gpointer ud) {
+    auto* browser = static_cast<Browser*>(ud);
+    auto* folderJson = static_cast<nlohmann::json*>(g_object_get_data(G_OBJECT(w), "folder-json"));
+    if (browser && folderJson) {
+        browser->openAllBookmarksInFolder(*folderJson);
+    }
+}
+
+static void on_delete_folder_activate(GtkWidget* w, gpointer ud) {
+    auto* browser = static_cast<Browser*>(ud);
+    const char* n = static_cast<const char*>(g_object_get_data(G_OBJECT(w), "folder-name"));
+    if (!browser || !n) return;
+    if (!browser->confirmAction("Supprimer le dossier",
+            std::string("Supprimer le dossier « ") + n + " » et son contenu ?")) {
+        return;
+    }
+    if (auto favs = browser->getFavoris()) {
+        FavoritesJson::removeByNameRecursive(*favs, n);
+        FileManager::writeJSON(FileManager::favoritesJSONPath(), *favs);
+        browser->refreshFavoritesBar();
+    }
+}
+
+static gboolean on_bookmark_menu_item_button_press(GtkWidget* widget, GdkEventButton* event, gpointer user_data) {
+    if (event->type != GDK_BUTTON_PRESS || event->button != GDK_BUTTON_SECONDARY) {
+        return FALSE;
+    }
+    auto* browser = static_cast<Browser*>(user_data);
+    const char* name = static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "favorite-name"));
+    const char* url = static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "favorite-url"));
+    if (!browser || !url) {
+        return TRUE;
+    }
+
+    GtkWidget* menu = gtk_menu_new();
+
+    GtkWidget* openCurrent = gtk_menu_item_new_with_label("Ouvrir dans la page actuelle");
+    auto* d1 = new std::pair<Browser*, std::pair<std::string, bool>>(browser, {url, false});
+    g_signal_connect_data(openCurrent, "activate", G_CALLBACK(on_open_url_current_or_tab), d1, free_open_url_payload, (GConnectFlags)0);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), openCurrent);
+
+    GtkWidget* openNew = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
+    auto* d2 = new std::pair<Browser*, std::pair<std::string, bool>>(browser, {url, true});
+    g_signal_connect_data(openNew, "activate", G_CALLBACK(on_open_url_current_or_tab), d2, free_open_url_payload, (GConnectFlags)0);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), openNew);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    GtkWidget* modifier = gtk_menu_item_new_with_label("Modifier…");
+    g_signal_connect(modifier, "activate", G_CALLBACK(on_edit_favorite_activate), browser);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifier);
+
+    GtkWidget* supprimer = gtk_menu_item_new_with_label("Supprimer");
+    g_object_set_data_full(G_OBJECT(supprimer), "favorite-name", g_strdup(name ? name : ""), g_free);
+    g_signal_connect(supprimer, "activate", G_CALLBACK(on_delete_favorite_activate), browser);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimer);
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent*)event);
+    return TRUE;
+}
+
+static gboolean on_folder_menu_item_button_press(GtkWidget* widget, GdkEventButton* event, gpointer user_data) {
+    if (event->type != GDK_BUTTON_PRESS || event->button != GDK_BUTTON_SECONDARY) {
+        return FALSE;
+    }
+    auto* browser = static_cast<Browser*>(user_data);
+    const char* folderName = static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "folder-name"));
+    auto* folderJson = static_cast<nlohmann::json*>(g_object_get_data(G_OBJECT(widget), "folder-json"));
+    if (!browser || !folderName) {
+        return TRUE;
+    }
+
+    GtkWidget* menu = gtk_menu_new();
+
+    GtkWidget* openAll = gtk_menu_item_new_with_label("Ouvrir tous les favoris");
+    g_object_set_data(G_OBJECT(openAll), "folder-json", folderJson);
+    g_signal_connect(openAll, "activate", G_CALLBACK(on_open_all_folder_activate), browser);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), openAll);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    GtkWidget* supprimer = gtk_menu_item_new_with_label("Supprimer le dossier…");
+    g_object_set_data_full(G_OBJECT(supprimer), "folder-name", g_strdup(folderName), g_free);
+    g_signal_connect(supprimer, "activate", G_CALLBACK(on_delete_folder_activate), browser);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimer);
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent*)event);
+    return TRUE;
+}
 
 static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* browser, const nlohmann::json& children) {
     if (!children.is_array() || children.empty()) {
@@ -142,6 +464,10 @@ static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* 
             }
             populate_favorites_menu_from_children(GTK_MENU_SHELL(sub), browser, subChildren);
             gtk_menu_item_set_submenu(GTK_MENU_ITEM(mi), sub);
+            auto* owned = new nlohmann::json(child);
+            g_object_set_data_full(G_OBJECT(mi), "folder-name", g_strdup(folderName.c_str()), g_free);
+            g_object_set_data_full(G_OBJECT(mi), "folder-json", owned, destroy_json_ptr);
+            g_signal_connect(mi, "button-press-event", G_CALLBACK(on_folder_menu_item_button_press), browser);
             gtk_menu_shell_append(shell, mi);
         } else if (child.contains("url") && child.contains("name") && child["url"].is_string()) {
             const std::string n = child["name"].get<std::string>();
@@ -149,6 +475,9 @@ static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* 
             GtkWidget* mi = gtk_menu_item_new_with_label(n.c_str());
             auto* data = new std::pair<Browser*, std::string>(browser, u);
             g_signal_connect(mi, "activate", G_CALLBACK(on_menu_item_activate), data);
+            g_object_set_data_full(G_OBJECT(mi), "favorite-name", g_strdup(n.c_str()), g_free);
+            g_object_set_data_full(G_OBJECT(mi), "favorite-url", g_strdup(u.c_str()), g_free);
+            g_signal_connect(mi, "button-press-event", G_CALLBACK(on_bookmark_menu_item_button_press), browser);
             gtk_menu_shell_append(shell, mi);
         }
     }
@@ -157,10 +486,12 @@ static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* 
 static GtkWidget* create_folder_menu_button(Browser* browser, const nlohmann::json& folderItem) {
     GtkWidget* mb = gtk_menu_button_new();
     const std::string baseName = folderItem.value("name", "Dossier");
-    const std::string label = truncate_favorite_label(baseName);
+    const std::string label = "📁 " + truncate_favorite_label(baseName);
     gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
+    gtk_button_set_always_show_image(GTK_BUTTON(mb), FALSE);
+    gtk_button_set_image(GTK_BUTTON(mb), nullptr);
     gtk_button_set_label(GTK_BUTTON(mb), label.c_str());
-    gtk_widget_set_tooltip_text(mb, baseName.c_str());
+    gtk_widget_set_tooltip_text(mb, ("Dossier : " + baseName + " — clic droit sur un élément pour plus d'actions").c_str());
     gtk_widget_set_name(mb, "button-favori-dossier");
     GtkWidget* menu = gtk_menu_new();
     nlohmann::json children = nlohmann::json::array();
@@ -168,9 +499,25 @@ static GtkWidget* create_folder_menu_button(Browser* browser, const nlohmann::js
         children = folderItem["children"];
     }
     populate_favorites_menu_from_children(GTK_MENU_SHELL(menu), browser, children);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+    GtkWidget* openAll = gtk_menu_item_new_with_label("Ouvrir tous les favoris");
+    auto* ownedFolder = new nlohmann::json(folderItem);
+    g_object_set_data_full(G_OBJECT(openAll), "folder-json", ownedFolder, destroy_json_ptr);
+    g_signal_connect(openAll, "activate", G_CALLBACK(on_open_all_folder_activate), browser);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), openAll);
+
+    gtk_widget_show_all(menu);
     gtk_menu_button_set_popup(GTK_MENU_BUTTON(mb), menu);
+
+    auto* ownedForBtn = new nlohmann::json(folderItem);
+    g_object_set_data_full(G_OBJECT(mb), "folder-name", g_strdup(baseName.c_str()), g_free);
+    g_object_set_data_full(G_OBJECT(mb), "folder-json", ownedForBtn, destroy_json_ptr);
+    g_signal_connect(mb, "button-press-event", G_CALLBACK(on_folder_menu_item_button_press), browser);
+
     gtk_widget_set_margin_start(mb, 1);
     gtk_widget_set_margin_end(mb, 1);
+    gtk_widget_show_all(mb);
     return mb;
 }
 
@@ -263,11 +610,7 @@ static void on_ajouter_favori_menu(GtkWidget*, gpointer user_data) {
 static void on_bouton_favoris_clicked(GtkButton*, gpointer user_data) {
     auto* navigateur = static_cast<Browser*>(user_data);
     if (navigateur) {
-        std::string url = navigateur->getCurrentURL();
-        if (!url.empty()) {
-            navigateur->addFavorite("Favori", url, "");
-            navigateur->refreshFavoritesBar();
-        }
+        navigateur->toggleCurrentPageFavorite();
     }
 }
 
@@ -352,39 +695,42 @@ static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
 
 // ✅ Gestion du clic droit (menu contextuel)
 static gboolean on_favoris_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-    if (event->type == GDK_BUTTON_PRESS && event->button == GDK_BUTTON_SECONDARY) {  // Clic droit détecté
-        auto* navigateur = static_cast<Browser*>(user_data);
-        if (!navigateur) return FALSE;
-
-        // Créer un menu contextuel
-        GtkWidget *menu = gtk_menu_new();
-        
-        // **Option 1 : Ouvrir dans un nouvel onglet**
-        auto data = std::make_unique<std::pair<Browser*, std::string>>(navigateur, navigateur->getCurrentURL());
-        GtkWidget *ouvrirNouvelOnglet = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
-        g_signal_connect_data(ouvrirNouvelOnglet, "activate", G_CALLBACK(on_ouvrir_nouvel_onglet_safe), data.release(), delete_user_data, G_CONNECT_AFTER);
-
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), ouvrirNouvelOnglet);
-
-        // **Option 2 : Modifier le favori**
-        GtkWidget *modifierItem = gtk_menu_item_new_with_label("Modifier le favori");
-        g_signal_connect(modifierItem, "activate", G_CALLBACK(on_modifier_favori), navigateur);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifierItem);
-
-        // **Option 3 : Supprimer le favori**
-        GtkWidget *supprimerItem = gtk_menu_item_new_with_label("Supprimer le favori");
-        g_signal_connect_data(supprimerItem, "activate", G_CALLBACK(on_supprimer_favori),
-                         new std::pair<Browser*, GtkWidget*>(navigateur, widget),
-                        delete_user_data,
-                         G_CONNECT_AFTER);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimerItem);
-
-        // **Afficher le menu contextuel au clic droit**
-        gtk_widget_show_all(menu);
-        gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent*)event); 
-        return TRUE;  // Événement capturé
+    if (event->type != GDK_BUTTON_PRESS || event->button != GDK_BUTTON_SECONDARY) {
+        return FALSE;
     }
-    return FALSE;  // Événement non capturé
+    auto* browser = static_cast<Browser*>(user_data);
+    const char* name = static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "favorite-name"));
+    const char* url = static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "favorite-url"));
+    if (!browser || !url) {
+        return TRUE;
+    }
+
+    GtkWidget* menu = gtk_menu_new();
+
+    GtkWidget* openCurrent = gtk_menu_item_new_with_label("Ouvrir dans la page actuelle");
+    auto* d1 = new std::pair<Browser*, std::pair<std::string, bool>>(browser, {url, false});
+    g_signal_connect_data(openCurrent, "activate", G_CALLBACK(on_open_url_current_or_tab), d1, free_open_url_payload, (GConnectFlags)0);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), openCurrent);
+
+    GtkWidget* openNew = gtk_menu_item_new_with_label("Ouvrir dans un nouvel onglet");
+    auto* d2 = new std::pair<Browser*, std::pair<std::string, bool>>(browser, {url, true});
+    g_signal_connect_data(openNew, "activate", G_CALLBACK(on_open_url_current_or_tab), d2, free_open_url_payload, (GConnectFlags)0);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), openNew);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    GtkWidget* modifier = gtk_menu_item_new_with_label("Modifier…");
+    g_signal_connect(modifier, "activate", G_CALLBACK(on_edit_favorite_activate), browser);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), modifier);
+
+    GtkWidget* supprimer = gtk_menu_item_new_with_label("Supprimer");
+    g_object_set_data_full(G_OBJECT(supprimer), "favorite-name", g_strdup(name ? name : ""), g_free);
+    g_signal_connect(supprimer, "activate", G_CALLBACK(on_delete_favorite_activate), browser);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), supprimer);
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent*)event);
+    return TRUE;
 }
 
 void on_button_ajouter_clicked(GtkButton* button, gpointer user_data) {
@@ -421,6 +767,8 @@ Browser::Browser()
       navigationBar(nullptr),
       favoritesBar(nullptr),
       tabsBar(nullptr),
+      groupChip(nullptr),
+      groupChipLabel(nullptr),
       urlBar(nullptr),
       starButton(nullptr),
       loadingSpinner(nullptr),
@@ -467,6 +815,7 @@ Browser::~Browser() {
         tab.webView = nullptr;
         tab.tabWidget = nullptr;
         tab.label = nullptr;
+        tab.faviconImage = nullptr;
     }
     tabs.clear();
     activeTab = nullptr;
@@ -659,9 +1008,22 @@ void Browser::buildInterface() {
         gtk_main_iteration();
     }
     
-    // Ajouter le premier onglet et charger la page d'accueil (APRÈS que la fenêtre soit visible)
-    std::string homepageUrl = homepage.empty() ? "https://www.duckduckgo.com" : homepage;
-    addNewTab(homepageUrl);
+    // Ajouter le premier onglet : restauration de session (style Chrome/Brave) ou accueil
+    restoreSessionTabs();
+
+    // Filet de sécurité : si le signal load-finished a été manqué, retenter le focus
+    // sur le champ de recherche de la page d'accueil après chargement typique.
+    g_timeout_add(1200, +[](gpointer user_data) -> gboolean {
+        auto* navigateur = static_cast<Browser*>(user_data);
+        if (!navigateur || !navigateur->consumeHomepageSearchFocus()) {
+            return FALSE;
+        }
+        if (navigateur->activeTab && navigateur->activeTab->webView &&
+            WEBKIT_IS_WEB_VIEW(navigateur->activeTab->webView)) {
+            navigateur->focusHomepageSearchBox(navigateur->activeTab->webView);
+        }
+        return FALSE;
+    }, this);
 
     renderingEngine->connectURLChangedSignal([this](const std::string& url) {
         if (urlBar) {
@@ -680,7 +1042,7 @@ void Browser::buildInterface() {
 
 void Browser::addButton(GtkWidget* container, const std::string& iconName, GCallback callback, gpointer data) {
     GtkWidget *button = renderingEngine->createButton(iconName, callback, data);
-    if (!gtk_widget_get_parent(button)) {  // Éviter les duplications
+    if (button && GTK_IS_WIDGET(button) && !gtk_widget_get_parent(button)) {
         gtk_box_pack_start(GTK_BOX(container), button, FALSE, FALSE, 0);
     }
 }
@@ -738,8 +1100,12 @@ void Browser::initializeNavigationBar() {
     // Ajouter le container URL à la barre de navigation
     gtk_box_pack_start(GTK_BOX(navigationBar), urlContainer, TRUE, TRUE, 0);
 
-    // Bouton favorites (étoile) - visible et mis à jour selon l'état
-    starButton = gtk_button_new_with_label("☆");
+    // Bouton favorites (étoile) — image GTK symbolic (fiable vs glyphe « null »)
+    starButton = gtk_button_new();
+    GtkWidget* starImg = gtk_image_new_from_icon_name("non-starred", GTK_ICON_SIZE_BUTTON);
+    gtk_button_set_image(GTK_BUTTON(starButton), starImg);
+    gtk_button_set_always_show_image(GTK_BUTTON(starButton), TRUE);
+    gtk_widget_set_name(starButton, "button-etoile");
     gtk_widget_set_tooltip_text(starButton, "Ajouter aux favoris");
     gtk_widget_set_margin_start(starButton, 3);
     gtk_widget_set_margin_end(starButton, 3);
@@ -751,7 +1117,9 @@ void Browser::initializeNavigationBar() {
         auto* navigateur = static_cast<Browser*>(user_data);
         navigateur->showOptionsMenu();
     }), this);
-    gtk_box_pack_start(GTK_BOX(navigationBar), boutonMenu, FALSE, FALSE, 0);
+    if (boutonMenu && GTK_IS_WIDGET(boutonMenu)) {
+        gtk_box_pack_start(GTK_BOX(navigationBar), boutonMenu, FALSE, FALSE, 0);
+    }
 
     // Ajouter la barre de navigation au container principal
     if (mainContainer && !gtk_widget_get_parent(navigationBar)) {
@@ -849,6 +1217,7 @@ void Browser::showFavoritesManager() {
     if (!favoritesManager) {
         favoritesManager = std::make_unique<FavoritesManager>(favorites, [this]() { refreshFavoritesBar(); });
     }
+    favoritesManager->setPageContext(getCurrentTitle(), getCurrentURL());
     favoritesManager->showWindow();
 }
 
@@ -869,32 +1238,45 @@ void Browser::refreshFavoritesBar() {
             }
         }
         favoritesBar = nullptr;
+        groupChip = nullptr;
+        groupChipLabel = nullptr;
     }
 
-    favoritesBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+    favoritesBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
     gtk_widget_set_name(favoritesBar, "barre-favorites");
-    gtk_widget_set_margin_start(favoritesBar, 4);
-    gtk_widget_set_margin_end(favoritesBar, 4);
-    gtk_widget_set_margin_top(favoritesBar, 0);
-    gtk_widget_set_margin_bottom(favoritesBar, 0);
+    gtk_widget_set_margin_start(favoritesBar, 6);
+    gtk_widget_set_margin_end(favoritesBar, 6);
+    gtk_widget_set_margin_top(favoritesBar, 2);
+    gtk_widget_set_margin_bottom(favoritesBar, 2);
 
-    if (!favorites || favorites->empty()) {
-        GtkWidget* labelVide = gtk_label_new("");
-        gtk_widget_set_opacity(labelVide, 0.0);
-        gtk_box_pack_start(GTK_BOX(favoritesBar), labelVide, FALSE, FALSE, 0);
-    } else {
+    // Groupes en début de barre (style Chrome/Brave)
+    groupChip = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    gtk_widget_set_name(groupChip, "group-chip");
+    GtkWidget* colorDot = gtk_drawing_area_new();
+    gtk_widget_set_size_request(colorDot, 10, 10);
+    g_signal_connect(colorDot, "draw", G_CALLBACK(on_group_color_dot_draw), this);
+    gtk_box_pack_start(GTK_BOX(groupChip), colorDot, FALSE, FALSE, 0);
+    groupChipLabel = gtk_label_new(tabsManager->getGroupeActif().c_str());
+    gtk_widget_set_name(groupChipLabel, "group-chip-label");
+    gtk_box_pack_start(GTK_BOX(groupChip), groupChipLabel, FALSE, FALSE, 0);
+    GtkWidget* boutonGroupes = gtk_button_new_with_label("▾");
+    gtk_widget_set_name(boutonGroupes, "button-groupes");
+    gtk_widget_set_tooltip_text(boutonGroupes, "Gérer les groupes d'onglets");
+    g_signal_connect(boutonGroupes, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+        static_cast<Browser*>(user_data)->showGroupsMenu();
+    }), this);
+    gtk_box_pack_start(GTK_BOX(groupChip), boutonGroupes, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(favoritesBar), groupChip, FALSE, FALSE, 0);
+
+    GtkWidget* sep = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
+    gtk_widget_set_margin_start(sep, 4);
+    gtk_widget_set_margin_end(sep, 4);
+    gtk_box_pack_start(GTK_BOX(favoritesBar), sep, FALSE, FALSE, 0);
+
+    if (favorites && !favorites->empty()) {
         int compteur = 0;
         for (const auto& favori : *favorites) {
             if (compteur >= kMaxTopLevelSlots) {
-                GtkWidget* boutonPlus = gtk_button_new_with_label("⋯");
-                gtk_widget_set_name(boutonPlus, "button-favori-more");
-                gtk_widget_set_tooltip_text(boutonPlus, "Plus de favoris");
-                gtk_widget_set_margin_start(boutonPlus, 2);
-                gtk_widget_set_margin_end(boutonPlus, 2);
-                g_signal_connect(boutonPlus, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-                    static_cast<Browser*>(user_data)->showRemainingFavoritesMenu();
-                }), this);
-                gtk_box_pack_start(GTK_BOX(favoritesBar), boutonPlus, FALSE, FALSE, 0);
                 break;
             }
             if (FavoritesJson::isFolder(favori)) {
@@ -904,35 +1286,193 @@ void Browser::refreshFavoritesBar() {
                 const std::string rawName = favori["name"].get<std::string>();
                 const std::string rawUrl = favori["url"].get<std::string>();
                 const std::string label = truncate_favorite_label(rawName);
-                GtkWidget* boutonFavori = gtk_button_new_with_label(label.c_str());
+                GtkWidget* boutonFavori = gtk_button_new();
+                gtk_button_set_always_show_image(GTK_BUTTON(boutonFavori), TRUE);
+                GtkWidget* icon = create_letter_icon(rawName, 14);
+                gtk_button_set_image(GTK_BUTTON(boutonFavori), icon);
+                gtk_button_set_label(GTK_BUTTON(boutonFavori), label.c_str());
                 gtk_widget_set_tooltip_text(boutonFavori, rawUrl.c_str());
                 gtk_widget_set_name(boutonFavori, "button-favori");
-                gtk_widget_set_margin_start(boutonFavori, 1);
-                gtk_widget_set_margin_end(boutonFavori, 1);
                 g_object_set_data_full(G_OBJECT(boutonFavori), "favorite-url", g_strdup(rawUrl.c_str()), g_free);
                 g_object_set_data_full(G_OBJECT(boutonFavori), "favorite-name", g_strdup(rawName.c_str()), g_free);
                 connect_bookmark_button_clicked(boutonFavori, this, rawUrl);
                 g_signal_connect(boutonFavori, "button-press-event", G_CALLBACK(on_favoris_button_press), this);
+                start_favicon_load(icon, rawUrl);
                 gtk_box_pack_start(GTK_BOX(favoritesBar), boutonFavori, FALSE, FALSE, 0);
             }
             compteur++;
         }
     }
 
+    GtkWidget* overflowBtn = gtk_button_new_with_label("⋯");
+    gtk_widget_set_name(overflowBtn, "button-favori-more");
+    gtk_widget_set_tooltip_text(overflowBtn, "Plus de favoris et gestionnaire");
+    g_signal_connect(overflowBtn, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+        static_cast<Browser*>(user_data)->showFavoritesOverflowMenu();
+    }), this);
+    gtk_box_pack_end(GTK_BOX(favoritesBar), overflowBtn, FALSE, FALSE, 0);
+
     if (mainContainer && !gtk_widget_get_parent(favoritesBar)) {
         gtk_box_pack_start(GTK_BOX(mainContainer), favoritesBar, FALSE, FALSE, 0);
         gtk_box_reorder_child(GTK_BOX(mainContainer), favoritesBar, 2);
     }
     gtk_widget_show_all(favoritesBar);
+    updateGroupChip();
 }
 
 
 void Browser::updateStarButton() {
+    if (!starButton || !GTK_IS_BUTTON(starButton)) {
+        return;
+    }
     std::string urlActuelle = getCurrentURL();
-    const bool estDejaFavori = FavoritesJson::containsUrlRecursive(*favorites, urlActuelle);
+    const bool estDejaFavori = !urlActuelle.empty() &&
+        favorites && FavoritesJson::containsUrlRecursive(*favorites, urlActuelle);
 
-    const char* symbole = estDejaFavori ? "★" : "☆";
-    gtk_button_set_label(GTK_BUTTON(starButton), symbole);
+    GtkWidget* img = gtk_image_new_from_icon_name(
+        estDejaFavori ? "starred-symbolic" : "non-starred-symbolic",
+        GTK_ICON_SIZE_BUTTON);
+    // Fallback si le thème n'a pas les icônes symbolic
+    if (!gtk_icon_theme_has_icon(gtk_icon_theme_get_default(),
+            estDejaFavori ? "starred-symbolic" : "non-starred-symbolic")) {
+        img = gtk_image_new_from_icon_name(
+            estDejaFavori ? "starred" : "non-starred",
+            GTK_ICON_SIZE_BUTTON);
+    }
+    gtk_button_set_image(GTK_BUTTON(starButton), img);
+    gtk_button_set_label(GTK_BUTTON(starButton), estDejaFavori ? "★" : "☆");
+    gtk_button_set_always_show_image(GTK_BUTTON(starButton), TRUE);
+    gtk_widget_set_tooltip_text(starButton,
+        estDejaFavori ? "Retirer des favoris" : "Ajouter aux favoris");
+}
+
+void Browser::toggleCurrentPageFavorite() {
+    const std::string url = getCurrentURL();
+    if (url.empty() || !favorites) {
+        return;
+    }
+    if (FavoritesJson::containsUrlRecursive(*favorites, url)) {
+        FavoritesJson::removeByUrlRecursive(*favorites, url);
+        FileManager::writeJSON(FileManager::favoritesJSONPath(), *favorites);
+    } else {
+        std::string nom = getCurrentTitle();
+        if (nom.empty() || nom == "Titre inconnu" || nom == "Nouvel onglet") {
+            nom = "Favori";
+        }
+        addFavorite(nom, url, "Général");
+        updateStarButton();
+        return;
+    }
+    refreshFavoritesBar();
+    updateStarButton();
+}
+
+void Browser::focusUrlBar() {
+    if (!urlBar || !GTK_IS_WIDGET(urlBar)) {
+        return;
+    }
+    gtk_widget_grab_focus(urlBar);
+    if (GTK_IS_EDITABLE(urlBar)) {
+        gtk_editable_select_region(GTK_EDITABLE(urlBar), 0, -1);
+    }
+}
+
+void Browser::requestHomepageSearchFocus() {
+    pendingHomepageSearchFocus = true;
+}
+
+bool Browser::consumeHomepageSearchFocus() {
+    if (!pendingHomepageSearchFocus) {
+        return false;
+    }
+    pendingHomepageSearchFocus = false;
+    return true;
+}
+
+void Browser::focusHomepageSearchBox(WebKitWebView* webView) {
+    if (!webView || !WEBKIT_IS_WEB_VIEW(webView) || !GTK_IS_WIDGET(webView)) {
+        return;
+    }
+
+    // Donner le focus clavier au WebView (pas à la barre d'URL)
+    gtk_widget_grab_focus(GTK_WIDGET(webView));
+
+    // Cibler le champ de recherche de la page (Google, DuckDuckGo, Bing, etc.)
+    static const char* kFocusSearchJs =
+        "(function(){"
+        "  function visible(el){"
+        "    if(!el) return false;"
+        "    var s=window.getComputedStyle(el);"
+        "    return s.display!=='none' && s.visibility!=='hidden' && el.offsetParent!==null;"
+        "  }"
+        "  function tryFocus(){"
+        "    var selectors=["
+        "      '#search_form_input_homepage',"
+        "      '#searchbox_input',"
+        "      'input[name=\"q\"]',"
+        "      'textarea[name=\"q\"]',"
+        "      'input[type=\"search\"]',"
+        "      'form[role=\"search\"] input:not([type=\"hidden\"])',"
+        "      'form[action*=\"search\"] input:not([type=\"hidden\"])',"
+        "      '[role=\"combobox\"]',"
+        "      'input[id*=\"search\" i]',"
+        "      'input[aria-label*=\"Search\" i]',"
+        "      'input[aria-label*=\"Recherche\" i]',"
+        "      'input[placeholder*=\"Search\" i]',"
+        "      'input[placeholder*=\"Recherche\" i]',"
+        "      'input[placeholder*=\"search\" i]'"
+        "    ];"
+        "    for(var i=0;i<selectors.length;i++){"
+        "      try{"
+        "        var el=document.querySelector(selectors[i]);"
+        "        if(el && visible(el)){"
+        "          el.focus({preventScroll:false});"
+        "          try{el.click();}catch(e){}"
+        "          try{el.select&&el.select();}catch(e){}"
+        "          return true;"
+        "        }"
+        "      }catch(e){}"
+        "    }"
+        "    var inputs=document.querySelectorAll('input[type=\"text\"],input:not([type]),textarea');"
+        "    var best=null,bestArea=0;"
+        "    for(var j=0;j<inputs.length;j++){"
+        "      var n=inputs[j];"
+        "      if(!visible(n) || n.disabled || n.readOnly) continue;"
+        "      var r=n.getBoundingClientRect();"
+        "      var area=r.width*r.height;"
+        "      if(area>bestArea && r.width>80){best=n;bestArea=area;}"
+        "    }"
+        "    if(best){"
+        "      best.focus({preventScroll:false});"
+        "      try{best.click();}catch(e){}"
+        "      try{best.select&&best.select();}catch(e){}"
+        "      return true;"
+        "    }"
+        "    return false;"
+        "  }"
+        "  if(tryFocus()) return;"
+        "  setTimeout(tryFocus,250);"
+        "  setTimeout(tryFocus,700);"
+        "  setTimeout(tryFocus,1400);"
+        "})();";
+
+    webkit_web_view_evaluate_javascript(webView, kFocusSearchJs, -1, nullptr, nullptr, nullptr, nullptr, nullptr);
+
+    // Re-focus WebView après un court délai (certains sites volent le focus au chargement)
+    g_timeout_add(400, +[](gpointer data) -> gboolean {
+        auto* view = WEBKIT_WEB_VIEW(data);
+        if (view && WEBKIT_IS_WEB_VIEW(view) && GTK_IS_WIDGET(view)) {
+            gtk_widget_grab_focus(GTK_WIDGET(view));
+            webkit_web_view_evaluate_javascript(view,
+                "(function(){var e=document.activeElement;"
+                "if(!e||(e.tagName!=='INPUT'&&e.tagName!=='TEXTAREA'&&e.getAttribute('role')!=='combobox')){"
+                "var s=document.querySelector('#searchbox_input,#search_form_input_homepage,input[name=\"q\"],textarea[name=\"q\"],input[type=\"search\"]');"
+                "if(s){s.focus();try{s.select&&s.select();}catch(x){}}"
+                "}})();",
+                -1, nullptr, nullptr, nullptr, nullptr, nullptr);
+        }
+        return FALSE;
+    }, webView);
 }
 
 
@@ -1004,18 +1544,13 @@ void Browser::initializeTabsBar() {
     // Ajouter la barre d'onglets au ScrolledWindow
     gtk_container_add(GTK_CONTAINER(scrolledWindow), tabsBar);
     
-    // Bouton pour gérer les groupes (à gauche)
-    GtkWidget* boutonGroupes = gtk_button_new_with_label("📁");
-    gtk_widget_set_tooltip_text(boutonGroupes, "Gérer les groupes d'tabs");
-    gtk_widget_set_margin_start(boutonGroupes, 2);
-    gtk_widget_set_margin_end(boutonGroupes, 2);
-    gtk_widget_set_name(boutonGroupes, "button-groupes");
-    g_signal_connect(boutonGroupes, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-        auto* navigateur = static_cast<Browser*>(user_data);
-        navigateur->showGroupsMenu();
-    }), this);
-    gtk_box_pack_start(GTK_BOX(tabsBar), boutonGroupes, FALSE, FALSE, 0);
-    gtk_widget_show_all(boutonGroupes);
+    // Bouton + pour nouvel onglet (les groupes sont dans la barre de favoris)
+    GtkWidget* boutonAjouterOngletInit = gtk_button_new_with_label("+");
+    gtk_widget_set_tooltip_text(boutonAjouterOngletInit, "Nouvel onglet");
+    gtk_widget_set_name(boutonAjouterOngletInit, "button-ajouter-onglet");
+    g_signal_connect(boutonAjouterOngletInit, "clicked", G_CALLBACK(on_ajouter_onglet), this);
+    gtk_box_pack_start(GTK_BOX(tabsBar), boutonAjouterOngletInit, FALSE, FALSE, 0);
+    gtk_widget_show_all(boutonAjouterOngletInit);
     
     // Les tabs seront ajoutés ici (au milieu)
     // Le bouton "+" sera ajouté dynamiquement après chaque onglet dans addNewTab()
@@ -1059,43 +1594,134 @@ void Browser::initializeTabsBar() {
 }
 
 void Browser::changeTabGroup(const std::string& groupName) {
-    tabsManager->changerGroupeActif(groupName);
-    // Retirer le ScrolledWindow du container avant de détruire
-    if (tabsBar && GTK_IS_WIDGET(tabsBar)) {
-        GtkWidget* scrolledWindow = gtk_widget_get_parent(tabsBar);
-        if (scrolledWindow && GTK_IS_SCROLLED_WINDOW(scrolledWindow) && 
-            GTK_IS_WIDGET(scrolledWindow) && !gtk_widget_in_destruction(scrolledWindow)) {
-            GtkWidget* parent = gtk_widget_get_parent(scrolledWindow);
-            if (parent && GTK_IS_CONTAINER(parent)) {
-                gtk_container_remove(GTK_CONTAINER(parent), scrolledWindow);
-            }
-            // Vérifier à nouveau avant destruction
-            if (GTK_IS_WIDGET(scrolledWindow) && !gtk_widget_in_destruction(scrolledWindow)) {
-                gtk_widget_destroy(scrolledWindow);
-            }
-        }
-        tabsBar = nullptr;
+    if (!tabsManager->groupeExiste(groupName)) {
+        tabsManager->ajouterGroupe(groupName);
     }
-    initializeTabsBar();
+    tabsManager->changerGroupeActif(groupName);
+    updateGroupChip();
+    refreshTabsBarVisibility();
+
+    // Activer le premier onglet visible du groupe, ou créer un nouvel onglet
+    TabData* firstVisible = nullptr;
+    for (auto& tab : tabs) {
+        if (tab.groupName == groupName && tab.tabWidget) {
+            firstVisible = &tab;
+            break;
+        }
+    }
+    if (firstVisible) {
+        changeActiveTab(firstVisible->tabWidget);
+    } else {
+        addNewTab(homepage.empty() ? "https://www.duckduckgo.com" : homepage);
+    }
+}
+
+void Browser::updateGroupChip() {
+    if (groupChipLabel && GTK_IS_LABEL(groupChipLabel)) {
+        gtk_label_set_text(GTK_LABEL(groupChipLabel), tabsManager->getGroupeActif().c_str());
+    }
+    if (groupChip && GTK_IS_WIDGET(groupChip)) {
+        gtk_widget_queue_draw(groupChip);
+    }
+}
+
+void Browser::refreshTabsBarVisibility() {
+    const std::string actif = tabsManager->getGroupeActif();
+    for (auto& tab : tabs) {
+        if (!tab.tabWidget || !GTK_IS_WIDGET(tab.tabWidget)) {
+            continue;
+        }
+        if (tab.groupName == actif) {
+            gtk_widget_show(tab.tabWidget);
+        } else {
+            gtk_widget_hide(tab.tabWidget);
+        }
+    }
+}
+
+void Browser::moveTabToGroup(GtkWidget* tabWidget, const std::string& groupName) {
+    for (auto& tab : tabs) {
+        if (tab.tabWidget != tabWidget) {
+            continue;
+        }
+        if (!tabsManager->groupeExiste(groupName)) {
+            tabsManager->ajouterGroupe(groupName);
+        }
+        tabsManager->removeTab(tab.groupName, tab.url);
+        tab.groupName = groupName;
+        tabsManager->ajouterOnglet(groupName, tab.url);
+        refreshTabsBarVisibility();
+        if (groupName == tabsManager->getGroupeActif()) {
+            changeActiveTab(tab.tabWidget);
+        }
+        return;
+    }
+}
+
+void Browser::deleteTabGroup(const std::string& groupName) {
+    if (groupName == "Par défaut") {
+        return;
+    }
+    for (auto& tab : tabs) {
+        if (tab.groupName == groupName) {
+            tab.groupName = "Par défaut";
+            tabsManager->ajouterOnglet("Par défaut", tab.url);
+        }
+    }
+    tabsManager->supprimerGroupe(groupName);
+    changeTabGroup("Par défaut");
+}
+
+void Browser::showTabContextMenu(GtkWidget* tabWidget, GdkEventButton* event) {
+    GtkWidget* menu = gtk_menu_new();
+
+    GtkWidget* moveHeader = gtk_menu_item_new_with_label("Déplacer vers le groupe");
+    gtk_widget_set_sensitive(moveHeader, FALSE);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), moveHeader);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    for (const auto& groupe : tabsManager->getGroupes()) {
+        GtkWidget* item = gtk_menu_item_new_with_label(groupe.c_str());
+        auto* payload = new std::pair<Browser*, std::pair<GtkWidget*, std::string>>(this, {tabWidget, groupe});
+        g_signal_connect_data(item, "activate", G_CALLBACK(on_move_tab_to_group_activate), payload, free_move_tab_payload, (GConnectFlags)0);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+    }
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+    GtkWidget* newGroup = gtk_menu_item_new_with_label("Nouveau groupe…");
+    g_signal_connect(newGroup, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
+        auto* navigateur = static_cast<Browser*>(user_data);
+        navigateur->showGroupsMenu();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), newGroup);
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent*)event);
 }
 
 
 void Browser::addNewTab(const std::string &url) {
-    tabsManager->ajouterOnglet(tabsManager->getGroupeActif(), url);
+    const std::string groupeCourant = tabsManager->getGroupeActif();
+    tabsManager->ajouterOnglet(groupeCourant, url);
 
     // Créer un container visible pour l'onglet avec style
-    GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget *hboxOnglet = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     gtk_widget_set_margin_start(hboxOnglet, 2);
     gtk_widget_set_margin_end(hboxOnglet, 2);
     gtk_widget_set_margin_top(hboxOnglet, 2);
     gtk_widget_set_margin_bottom(hboxOnglet, 2);
     gtk_widget_set_name(hboxOnglet, "onglet");
+
+    // Favicon (placeholder lettre, remplacé via notify::favicon)
+    GtkWidget *faviconImage = create_letter_icon("N", 14);
+    gtk_widget_set_margin_start(faviconImage, 4);
+    gtk_box_pack_start(GTK_BOX(hboxOnglet), faviconImage, FALSE, FALSE, 0);
     
     // Label avec le titre de l'onglet (ou "Nouvel onglet" par défaut)
     GtkWidget *labelTitre = gtk_label_new("Nouvel onglet");
     gtk_label_set_ellipsize(GTK_LABEL(labelTitre), PANGO_ELLIPSIZE_END);
-    gtk_widget_set_margin_start(labelTitre, 8);
-    gtk_widget_set_margin_end(labelTitre, 8);
+    gtk_widget_set_margin_start(labelTitre, 4);
+    gtk_widget_set_margin_end(labelTitre, 4);
     gtk_box_pack_start(GTK_BOX(hboxOnglet), labelTitre, TRUE, TRUE, 0);
 
     // Bouton fermer (×) à droite
@@ -1131,12 +1757,24 @@ void Browser::addNewTab(const std::string &url) {
             }
         }
     }), nullptr);
-    g_signal_connect(hboxOnglet, "button-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEventButton*, gpointer user_data) -> gboolean {
+    g_signal_connect(hboxOnglet, "button-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEventButton* event, gpointer user_data) -> gboolean {
         auto* n = static_cast<Browser*>(user_data);
-        if (n) {
-            n->changeActiveTab(widget);
+        if (!n) {
+            return FALSE;
         }
-        return TRUE;
+        if (event->button == GDK_BUTTON_MIDDLE) {
+            n->removeTab(widget);
+            return TRUE;
+        }
+        if (event->button == GDK_BUTTON_SECONDARY) {
+            n->showTabContextMenu(widget, event);
+            return TRUE;
+        }
+        if (event->button == GDK_BUTTON_PRIMARY) {
+            n->changeActiveTab(widget);
+            return TRUE;
+        }
+        return FALSE;
     }), this);
 
     // Ajouter l'onglet à la barre d'tabs (après le button groupes)
@@ -1151,7 +1789,7 @@ void Browser::addNewTab(const std::string &url) {
             const gchar* name = gtk_widget_get_name(widget);
             if (name && strcmp(name, "button-ajouter-onglet") == 0) {
                 boutonAjouterOnglet = widget;
-                // Retirer temporairement le bouton du container
+                g_object_ref(boutonAjouterOnglet);
                 gtk_container_remove(GTK_CONTAINER(tabsBar), widget);
                 break;
             }
@@ -1162,8 +1800,9 @@ void Browser::addNewTab(const std::string &url) {
         gtk_box_pack_start(GTK_BOX(tabsBar), hboxOnglet, FALSE, FALSE, 0);
         
         // Réinsérer le bouton "+" juste après le nouvel onglet (pas à l'extrême droite)
-        if (boutonAjouterOnglet) {
+        if (boutonAjouterOnglet && GTK_IS_WIDGET(boutonAjouterOnglet)) {
             gtk_box_pack_start(GTK_BOX(tabsBar), boutonAjouterOnglet, FALSE, FALSE, 0);
+            g_object_unref(boutonAjouterOnglet);
         } else {
             // Créer le bouton "+" s'il n'existe pas encore
             boutonAjouterOnglet = gtk_button_new_with_label("+");
@@ -1176,11 +1815,8 @@ void Browser::addNewTab(const std::string &url) {
             gtk_widget_show_all(boutonAjouterOnglet);
         }
     }
-    // Normaliser l'URL
-    std::string urlNormalisee = url.empty() ? "https://www.duckduckgo.com" : url;
-    if (urlNormalisee.find("://") == std::string::npos) {
-        urlNormalisee = "https://" + urlNormalisee;
-    }
+    // Normaliser l'URL (ne pas préfixer data:/about:/file:)
+    std::string urlNormalisee = normalizeNavigationUrl(url);
     
     // Créer la WebView (utilise le contexte par défaut)
     // Les variables d'environnement dans le Makefile désactivent l'accélération GPU
@@ -1236,6 +1872,8 @@ void Browser::addNewTab(const std::string &url) {
     tabData.tabWidget = hboxOnglet;
     tabData.webView = newWebView;
     tabData.label = labelTitre;
+    tabData.faviconImage = faviconImage;
+    tabData.groupName = groupeCourant;
     
     // Ajouter l'onglet à la liste
     tabs.push_back(tabData);
@@ -1311,14 +1949,42 @@ void Browser::addNewTab(const std::string &url) {
                 }
             }
         }), this);
+
+        g_signal_connect(newWebView, "notify::favicon", G_CALLBACK(+[](GObject* obj, GParamSpec*, gpointer user_data) {
+            auto* browser = static_cast<Browser*>(user_data);
+            if (!browser) return;
+            WebKitWebView* webView = WEBKIT_WEB_VIEW(obj);
+            cairo_surface_t* surface = webkit_web_view_get_favicon(webView);
+            if (!surface) return;
+            for (auto& tab : browser->tabs) {
+                if (tab.webView != webView || !tab.faviconImage || !GTK_IS_IMAGE(tab.faviconImage)) {
+                    continue;
+                }
+                const int sw = cairo_image_surface_get_width(surface);
+                const int sh = cairo_image_surface_get_height(surface);
+                if (sw <= 0 || sh <= 0) break;
+                GdkPixbuf* full = gdk_pixbuf_get_from_surface(surface, 0, 0, sw, sh);
+                if (!full) break;
+                GdkPixbuf* scaled = gdk_pixbuf_scale_simple(full, 14, 14, GDK_INTERP_BILINEAR);
+                g_object_unref(full);
+                if (scaled) {
+                    gtk_image_set_from_pixbuf(GTK_IMAGE(tab.faviconImage), scaled);
+                    g_object_unref(scaled);
+                }
+                break;
+            }
+        }), this);
+
+        start_favicon_load(faviconImage, urlNormalisee);
     } else {
         std::cerr << "[ERREUR] Impossible de connecter le signal notify::title - WebView invalide" << std::endl;
     }
     
     // Changer l'onglet actif vers celui-ci (cela affichera la WebView et chargera l'URL)
     changeActiveTab(hboxOnglet);
-    
-
+    refreshTabsBarVisibility();
+    updateGroupChip();
+    persistSession();
 
     gtk_widget_show_all(tabsBar);
 }
@@ -1476,9 +2142,9 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
             const gchar* currentUri = webkit_web_view_get_uri(tab.webView);
             std::string currentUrl = currentUri ? std::string(currentUri) : "";
             
-            // CRITIQUE : Toujours recharger l'URL si elle est différente ou vide
-            // Même si l'URL semble chargée, forcer le rechargement pour s'assurer que la page s'affiche
-            bool needsReload = currentUrl.empty() || currentUrl != tab.url;
+            // Pages internes (HTML stub) : ne pas recharger via load_uri
+            const bool internalPage = tab.url.rfind("weedly://", 0) == 0;
+            bool needsReload = !internalPage && (currentUrl.empty() || currentUrl != tab.url);
             
             if (needsReload) {
                 WEEDLYWEB_DEBUG_LOG("[DEBUG] ========== LOADING URL ==========");
@@ -1579,6 +2245,12 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                             gtk_widget_show_all(w);
                             gtk_widget_set_visible(w, TRUE);
                             gtk_widget_queue_draw(w);
+
+                            // Au premier chargement de la page d'accueil : focus sur
+                            // le champ de recherche du moteur (dans la page), pas la barre d'URL.
+                            if (g_browser_instance && g_browser_instance->consumeHomepageSearchFocus()) {
+                                g_browser_instance->focusHomepageSearchBox(web_view);
+                            }
                             
                             if (isDebugLoggingEnabled()) {
                                 const gchar* js =
@@ -1723,6 +2395,7 @@ void Browser::removeTab(GtkWidget *tabWidget) {
 
     if (it != tabs.end()) {
         TabData& tab = *it;
+        tabsManager->removeTab(tab.groupName, tab.url);
         
         // Nettoyer la WebView
         if (tab.webView && WEBKIT_IS_WEB_VIEW(tab.webView)) {
@@ -1827,6 +2500,7 @@ void Browser::removeTab(GtkWidget *tabWidget) {
                 changeActiveTab(tabs.front().tabWidget);
             }
         }
+        persistSession();
     }
 }
 
@@ -1849,25 +2523,23 @@ void Browser::highlight(GtkWidget *tabWidget) {
 }
 
 void Browser::loadURL(const std::string& url) {
-    if (activeTab && activeTab->webView) {
-        std::string urlNormalisee = url;
-        if (urlNormalisee.find("://") == std::string::npos) {
-            urlNormalisee = "https://" + urlNormalisee;
-        }
-        webkit_web_view_load_uri(activeTab->webView, urlNormalisee.c_str());
-        activeTab->url = urlNormalisee;
-        history.push_back(urlNormalisee);
+    if (!activeTab || !activeTab->webView || !WEBKIT_IS_WEB_VIEW(activeTab->webView)) {
+        std::cerr << "[ERREUR] loadURL: WebView invalide" << std::endl;
+        return;
     }
 
+    std::string urlNormalisee = normalizeNavigationUrl(url);
+    webkit_web_view_load_uri(activeTab->webView, urlNormalisee.c_str());
+    activeTab->url = urlNormalisee;
+    history.push_back(urlNormalisee);
+
     if (urlBar) {
-        gtk_entry_set_text(GTK_ENTRY(urlBar), url.c_str());
+        gtk_entry_set_text(GTK_ENTRY(urlBar), urlNormalisee.c_str());
     }
     
     updateStarButton();
+    persistSession();
     memoryManager->optimiserMemoire();
-    
-    // Afficher les statistiques de mémoire périodiquement (optionnel, peut être désactivé)
-    // memoryManager->afficherStatistiquesMemoire();
 }
 
 void Browser::showMessage(const std::string& message) {
@@ -1885,122 +2557,422 @@ void Browser::loadConfiguration() {
     if (favorisJson.is_null() || favorisJson.empty()) {
         std::cerr << "Aucun favori trouvé, initialisation avec un favori par défaut." << std::endl;
         favorisJson = nlohmann::json::array({
-            {{"name", "DuckDuckGo"}, {"url", "https://www.duckduckgo.com"}, {"tag", "Recherche"}}
+            {{"name", "DuckDuckGo"}, {"url", "https://duckduckgo.com/"}, {"tag", "Recherche"}}
         });
         FileManager::writeJSON(cheminFavoris, favorisJson);
     }
     
-    // Assigner les favorites au membre de la classe
     *favorites = favorisJson;
     
     if (config.is_null() || config.empty()) {
         std::cerr << "Fichier de configuration non trouvé ou vide. Création d'une configuration par défaut." << std::endl;
-        config["homepage"] = "https://www.google.fr";
+        config["homepage"] = "https://duckduckgo.com/";
         FileManager::writeJSON(chemin, config);
     }
 
-    if (config.contains("tabs")) {
+    homepage = config.value("homepage", "https://duckduckgo.com/");
+    pendingSessionTabs.clear();
+    restorePreviousSession = false;
+
+    if (config.contains("tabs") && config["tabs"].is_array() && !config["tabs"].empty()) {
         for (const auto& onglet : config["tabs"]) {
-            if (onglet.contains("url")) {
-                addNewTab(onglet["url"]);
+            if (onglet.contains("url") && onglet["url"].is_string()) {
+                const std::string u = onglet["url"].get<std::string>();
+                if (!u.empty()) {
+                    pendingSessionTabs.push_back(u);
+                }
             }
         }
+        // Restaurer si session sale (crash) ou si l'utilisateur a des onglets sauvegardés
+        restorePreviousSession = config.value("session_dirty", true) || !pendingSessionTabs.empty();
     }
-    
-    homepage = config.value("homepage", "https://www.google.fr");
+
     std::cout << "Page d'accueil définie sur : " << homepage << std::endl;
+    if (restorePreviousSession && !pendingSessionTabs.empty()) {
+        std::cout << "Session précédente : " << pendingSessionTabs.size() << " onglet(s) à restaurer." << std::endl;
+    }
 }
 
 
 void Browser::saveConfiguration() {
-    nlohmann::json config;
-    config["homepage"] = homepage;
-    FileManager::writeJSON(FileManager::configJSONPath(), config);
-    
+    persistSession();
     FileManager::writeJSON(FileManager::favoritesJSONPath(), *favorites);
-    std::cout << "Favoris sauvegardés automatiquement !" << std::endl;
-    
+}
+
+void Browser::persistSession() {
+    nlohmann::json config = FileManager::readJSON(FileManager::configJSONPath());
+    if (!config.is_object()) {
+        config = nlohmann::json::object();
+    }
+    config["homepage"] = homepage;
+
     nlohmann::json ongletsJson = nlohmann::json::array();
     for (const auto& tab : tabs) {
-        ongletsJson.push_back({{"url", tab.url}});
+        if (tab.url.empty()) {
+            continue;
+        }
+        // Ne pas persister les pages HTML internes (stubs)
+        if (tab.url.rfind("weedly://", 0) == 0 || tab.url == "about:blank") {
+            continue;
+        }
+        ongletsJson.push_back({{"url", tab.url}, {"group", tab.groupName}});
     }
     config["tabs"] = ongletsJson;
+    config["session_dirty"] = true;
+    FileManager::writeJSON(FileManager::configJSONPath(), config);
+}
+
+void Browser::restoreSessionTabs() {
+    if (restorePreviousSession && !pendingSessionTabs.empty()) {
+        for (const auto& url : pendingSessionTabs) {
+            addNewTab(url);
+        }
+        pendingSessionTabs.clear();
+    } else {
+        requestHomepageSearchFocus();
+        addNewTab(homepage.empty() ? "https://duckduckgo.com/" : homepage);
+    }
+}
+
+std::string Browser::normalizeNavigationUrl(const std::string& url) {
+    if (url.empty()) {
+        return "https://duckduckgo.com/";
+    }
+    if (url.rfind("http://", 0) == 0 || url.rfind("https://", 0) == 0 ||
+        url.rfind("file://", 0) == 0 || url.rfind("data:", 0) == 0 ||
+        url.rfind("about:", 0) == 0 || url.rfind("webkit://", 0) == 0 ||
+        url.rfind("weedly://", 0) == 0) {
+        return url;
+    }
+    if (url.find("://") != std::string::npos) {
+        return url;
+    }
+    return "https://" + url;
 }
 
 void Browser::addFavorite(const std::string& nom, const std::string& url, const std::string& tag) {
     favoritesManager->addFavorite(nom, url, tag);
     refreshFavoritesBar();
+    updateStarButton();
 }
 
 
 
+void Browser::showFavoritesOverflowMenu() {
+    GtkWidget* menu = gtk_menu_new();
+    constexpr int kMaxTopLevelSlots = 10;
+    int index = 0;
+    bool hasOverflow = false;
+
+    if (favorites) {
+        for (const auto& favori : *favorites) {
+            if (index++ < kMaxTopLevelSlots) {
+                continue;
+            }
+            hasOverflow = true;
+            if (FavoritesJson::isFolder(favori)) {
+                GtkWidget* item = gtk_menu_item_new_with_label(("📁 " + favori.value("name", "Dossier")).c_str());
+                GtkWidget* sub = gtk_menu_new();
+                nlohmann::json ch = favori.value("children", nlohmann::json::array());
+                populate_favorites_menu_from_children(GTK_MENU_SHELL(sub), this, ch);
+                gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), sub);
+                gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+            } else if (favori.contains("name") && favori.contains("url")) {
+                GtkWidget* item = gtk_menu_item_new_with_label(favori["name"].get<std::string>().c_str());
+                auto* data = new std::pair<Browser*, std::string>(this, favori["url"].get<std::string>());
+                g_signal_connect(item, "activate", G_CALLBACK(on_menu_item_activate), data);
+                g_object_set_data_full(G_OBJECT(item), "favorite-name", g_strdup(favori["name"].get<std::string>().c_str()), g_free);
+                g_object_set_data_full(G_OBJECT(item), "favorite-url", g_strdup(favori["url"].get<std::string>().c_str()), g_free);
+                g_signal_connect(item, "button-press-event", G_CALLBACK(on_bookmark_menu_item_button_press), this);
+                gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+            }
+        }
+    }
+
+    if (hasOverflow) {
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+    } else {
+        GtkWidget* none = gtk_menu_item_new_with_label("Tous les favoris sont affichés");
+        gtk_widget_set_sensitive(none, FALSE);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), none);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+    }
+
+    GtkWidget* manage = gtk_menu_item_new_with_label("Gestionnaire de favoris…");
+    g_signal_connect(manage, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        static_cast<Browser*>(ud)->showFavoritesManager();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), manage);
+
+    gtk_widget_show_all(menu);
+    if (favoritesBar) {
+        gtk_menu_popup_at_widget(GTK_MENU(menu), favoritesBar, GDK_GRAVITY_SOUTH_EAST, GDK_GRAVITY_NORTH_EAST, nullptr);
+    } else {
+        gtk_menu_popup_at_pointer(GTK_MENU(menu), nullptr);
+    }
+}
+
+bool Browser::confirmAction(const std::string& title, const std::string& message) {
+    GtkWidget* dialog = gtk_message_dialog_new(
+        window ? GTK_WINDOW(window) : nullptr,
+        GTK_DIALOG_MODAL,
+        GTK_MESSAGE_QUESTION,
+        GTK_BUTTONS_NONE,
+        "%s",
+        message.c_str());
+    gtk_window_set_title(GTK_WINDOW(dialog), title.c_str());
+    gtk_dialog_add_button(GTK_DIALOG(dialog), "Annuler", GTK_RESPONSE_CANCEL);
+    gtk_dialog_add_button(GTK_DIALOG(dialog), "Supprimer", GTK_RESPONSE_ACCEPT);
+    const int response = gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
+    return response == GTK_RESPONSE_ACCEPT;
+}
+
+void Browser::openAllBookmarksInFolder(const nlohmann::json& folder) {
+    std::function<void(const nlohmann::json&)> walk = [&](const nlohmann::json& node) {
+        if (FavoritesJson::isFolder(node) && node.contains("children")) {
+            for (const auto& child : node["children"]) {
+                walk(child);
+            }
+        } else if (node.contains("url") && node["url"].is_string()) {
+            addNewTab(node["url"].get<std::string>());
+        }
+    };
+    walk(folder);
+}
+
+void Browser::showHistoryPage() {
+    openHtmlTab("Historique",
+        "<!DOCTYPE html><html><head><meta charset=utf-8><title>Historique</title>"
+        "<style>body{font-family:system-ui;background:#1e1e1e;color:#eee;padding:2rem}"
+        "h1{color:#4a90e2}li{margin:.4rem 0;opacity:.85}</style></head><body>"
+        "<h1>Historique</h1><p>Page inspirée Brave — historique local à brancher.</p>"
+        "<ul><li>Aujourd'hui</li><li>Hier</li><li>Autres appareils (sync) — à venir</li></ul>"
+        "</body></html>");
+}
+
+void Browser::showPasswordsPage() {
+    openHtmlTab("Mots de passe",
+        "<!DOCTYPE html><html><head><meta charset=utf-8><title>Mots de passe</title>"
+        "<style>body{font-family:system-ui;background:#1e1e1e;color:#eee;padding:2rem}"
+        "h1{color:#4a90e2}</style></head><body>"
+        "<h1>Mots de passe et saisie automatique</h1>"
+        "<p>Section paramètres dédiée (style Brave) — coffre local à brancher.</p>"
+        "</body></html>");
+}
+
+void Browser::showDevToolsPage(const std::string& tool) {
+    openHtmlTab(tool,
+        std::string("<!DOCTYPE html><html><head><meta charset=utf-8><title>") + tool + "</title>"
+        "<style>body{font-family:monospace;background:#121212;color:#9f9;padding:2rem}"
+        "h1{color:#6cf}</style></head><body><h1>" + tool + "</h1>"
+        "<p>Outil développeur WeedlyWeb — stub UI (inspiré Brave / Chromium DevTools).</p>"
+        "<p>WebKit Inspector peut être branché ensuite via WebKitWebInspector.</p>"
+        "</body></html>");
+}
+
+void Browser::openHtmlTab(const std::string& title, const std::string& html) {
+    addNewTab("about:blank");
+    if (!activeTab || !activeTab->webView || !WEBKIT_IS_WEB_VIEW(activeTab->webView)) {
+        return;
+    }
+    webkit_web_view_load_html(activeTab->webView, html.c_str(), nullptr);
+    activeTab->url = "weedly://" + title;
+    if (activeTab->label && GTK_IS_LABEL(activeTab->label)) {
+        gtk_label_set_text(GTK_LABEL(activeTab->label), title.c_str());
+    }
+    if (urlBar) {
+        gtk_entry_set_text(GTK_ENTRY(urlBar), activeTab->url.c_str());
+    }
+    updateStarButton();
+}
+
 void Browser::showOptionsMenu() {
     GtkWidget* menu = gtk_menu_new();
-    
-    // Option : Gestionnaire de favorites
-    GtkWidget* itemFavoris = gtk_menu_item_new_with_label("Gestionnaire de Favoris");
-    g_signal_connect(itemFavoris, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-        auto* navigateur = static_cast<Browser*>(user_data);
-        navigateur->showFavoritesManager();
+
+    // Navigation / fenêtres
+    GtkWidget* newTab = gtk_menu_item_new_with_label("Nouvel onglet");
+    g_signal_connect(newTab, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        auto* b = static_cast<Browser*>(ud);
+        b->addNewTab(b->getHomepage());
     }), this);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemFavoris);
-    
-    // Séparateur
-    GtkWidget* separator1 = gtk_separator_menu_item_new();
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator1);
-    
-    // Option : Paramètres
-    GtkWidget* itemParametres = gtk_menu_item_new_with_label("⚙️ Paramètres");
-    g_signal_connect(itemParametres, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-        auto* navigateur = static_cast<Browser*>(user_data);
-        navigateur->showSettings();
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), newTab);
+
+    GtkWidget* newWin = gtk_menu_item_new_with_label("Nouvelle fenêtre");
+    g_signal_connect(newWin, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        auto* b = static_cast<Browser*>(ud);
+        b->getTabsManager()->ajouterGroupe("Fenêtre", "#A0A5EB");
+        b->changeTabGroup("Fenêtre");
+        b->addNewTab(b->getHomepage());
     }), this);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemParametres);
-    
-    // Option : Aide
-    GtkWidget* itemAide = gtk_menu_item_new_with_label("❓ Aide");
-    g_signal_connect(itemAide, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-        auto* navigateur = static_cast<Browser*>(user_data);
-        navigateur->showHelp();
+    gtk_widget_set_tooltip_text(newWin, "Ouvre un groupe « Fenêtre » (stub multi-fenêtre Brave)");
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), newWin);
+
+    GtkWidget* privateWin = gtk_menu_item_new_with_label("Nouvelle fenêtre de navigation privée");
+    g_signal_connect(privateWin, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        auto* b = static_cast<Browser*>(ud);
+        b->getTabsManager()->ajouterGroupe("Privé", "#9E1F63");
+        b->changeTabGroup("Privé");
+        b->addNewTab(b->getHomepage());
     }), this);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemAide);
-    
-    // Option : À propos
-    GtkWidget* itemAPropos = gtk_menu_item_new_with_label("ℹ️ À propos");
-    g_signal_connect(itemAPropos, "activate", G_CALLBACK(+[](GtkWidget*, gpointer) {
+    gtk_widget_set_tooltip_text(privateWin, "Groupe isolé « Privé » — session WebKit séparée à brancher");
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), privateWin);
+
+    GtkWidget* torWin = gtk_menu_item_new_with_label("Nouvelle fenêtre privée avec Tor");
+    g_signal_connect(torWin, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        auto* b = static_cast<Browser*>(ud);
+        b->getTabsManager()->ajouterGroupe("Tor", "#E22172");
+        b->changeTabGroup("Tor");
+        b->addNewTab("https://duckduckgo.com/");
+    }), this);
+    gtk_widget_set_tooltip_text(torWin, "Inspiré Brave Tor window — proxy Tor à brancher");
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), torWin);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    // Historique (split-like submenu)
+    GtkWidget* hist = gtk_menu_item_new_with_label("Historique");
+    GtkWidget* histSub = gtk_menu_new();
+    GtkWidget* histLocal = gtk_menu_item_new_with_label("Historique de cet appareil");
+    g_signal_connect(histLocal, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        static_cast<Browser*>(ud)->showHistoryPage();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(histSub), histLocal);
+    GtkWidget* histSync = gtk_menu_item_new_with_label("Autres appareils (synchronisation)");
+    gtk_widget_set_tooltip_text(histSync, "Sync multi-appareils — à brancher");
+    gtk_menu_shell_append(GTK_MENU_SHELL(histSub), histSync);
+    GtkWidget* histClear = gtk_menu_item_new_with_label("Effacer les données de navigation…");
+    gtk_menu_shell_append(GTK_MENU_SHELL(histSub), histClear);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(hist), histSub);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), hist);
+
+    GtkWidget* passwords = gtk_menu_item_new_with_label("Mots de passe et saisie automatique");
+    g_signal_connect(passwords, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        static_cast<Browser*>(ud)->showPasswordsPage();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), passwords);
+
+    GtkWidget* bookmarks = gtk_menu_item_new_with_label("Favoris");
+    GtkWidget* bmSub = gtk_menu_new();
+    GtkWidget* bmManage = gtk_menu_item_new_with_label("Gestionnaire de favoris");
+    g_signal_connect(bmManage, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        static_cast<Browser*>(ud)->showFavoritesManager();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(bmSub), bmManage);
+    GtkWidget* bmImport = gtk_menu_item_new_with_label("Importer des favoris…");
+    gtk_menu_shell_append(GTK_MENU_SHELL(bmSub), bmImport);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(bookmarks), bmSub);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), bookmarks);
+
+    // Cyber & Dev Tools (liens utiles — hors barre de favoris)
+    auto appendUrlItem = [&](GtkWidget* shell, const char* label, const char* url) {
+        GtkWidget* it = gtk_menu_item_new_with_label(label);
+        g_object_set_data_full(G_OBJECT(it), "nav-url", g_strdup(url), g_free);
+        g_signal_connect(it, "activate", G_CALLBACK(+[](GtkWidget* w, gpointer ud) {
+            const char* u = static_cast<const char*>(g_object_get_data(G_OBJECT(w), "nav-url"));
+            if (u) {
+                static_cast<Browser*>(ud)->addNewTab(u);
+            }
+        }), this);
+        gtk_menu_shell_append(GTK_MENU_SHELL(shell), it);
+    };
+
+    GtkWidget* cyber = gtk_menu_item_new_with_label("Cyber");
+    GtkWidget* cyberSub = gtk_menu_new();
+    appendUrlItem(cyberSub, "CVE Details", "https://www.cvedetails.com/");
+    appendUrlItem(cyberSub, "NVD", "https://nvd.nist.gov/");
+    appendUrlItem(cyberSub, "OWASP", "https://owasp.org/");
+    {
+        GtkWidget* cveStub = gtk_menu_item_new_with_label("CVE Analyzer (outil local)");
+        g_signal_connect(cveStub, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+            static_cast<Browser*>(ud)->showDevToolsPage("CVE Analyzer");
+        }), this);
+        gtk_menu_shell_append(GTK_MENU_SHELL(cyberSub), cveStub);
+    }
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(cyber), cyberSub);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), cyber);
+
+    GtkWidget* devToolsLinks = gtk_menu_item_new_with_label("Dev Tools");
+    GtkWidget* dtlSub = gtk_menu_new();
+    appendUrlItem(dtlSub, "caniuse", "https://caniuse.com/");
+    appendUrlItem(dtlSub, "regex101", "https://regex101.com/");
+    appendUrlItem(dtlSub, "MDN", "https://developer.mozilla.org/");
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(devToolsLinks), dtlSub);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), devToolsLinks);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    // Outils développeur
+    GtkWidget* dev = gtk_menu_item_new_with_label("Outils de développement");
+    GtkWidget* devSub = gtk_menu_new();
+    struct DevItem { const char* label; const char* tool; };
+    const DevItem tools[] = {
+        {"Inspecteur d'éléments", "Inspecteur"},
+        {"Débogueur JavaScript", "Débogueur JS"},
+        {"Console", "Console"},
+        {"Réseau", "Réseau"},
+        {"Performance", "Performance"},
+        {"Sécurité / Cyber", "Sécurité"},
+        {"Stockage (cookies, localStorage)", "Stockage"},
+        {"CVE / analyse", "CVE Analyzer"},
+    };
+    for (const auto& t : tools) {
+        GtkWidget* it = gtk_menu_item_new_with_label(t.label);
+        g_object_set_data_full(G_OBJECT(it), "tool", g_strdup(t.tool), g_free);
+        g_signal_connect(it, "activate", G_CALLBACK(+[](GtkWidget* w, gpointer ud) {
+            const char* tool = static_cast<const char*>(g_object_get_data(G_OBJECT(w), "tool"));
+            static_cast<Browser*>(ud)->showDevToolsPage(tool ? tool : "DevTools");
+        }), this);
+        gtk_menu_shell_append(GTK_MENU_SHELL(devSub), it);
+    }
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(dev), devSub);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), dev);
+
+    // Extensions / privacy inspired by Brave
+    GtkWidget* shields = gtk_menu_item_new_with_label("Boucliers & confidentialité");
+    GtkWidget* shieldsSub = gtk_menu_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(shieldsSub), gtk_menu_item_new_with_label("Bloqueur de pubs (à brancher)"));
+    gtk_menu_shell_append(GTK_MENU_SHELL(shieldsSub), gtk_menu_item_new_with_label("Fingerprinting (à brancher)"));
+    gtk_menu_shell_append(GTK_MENU_SHELL(shieldsSub), gtk_menu_item_new_with_label("HTTPS Everywhere (à brancher)"));
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(shields), shieldsSub);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), shields);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    GtkWidget* settings = gtk_menu_item_new_with_label("Paramètres");
+    g_signal_connect(settings, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        static_cast<Browser*>(ud)->showSettings();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), settings);
+
+    GtkWidget* help = gtk_menu_item_new_with_label("Aide");
+    g_signal_connect(help, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        static_cast<Browser*>(ud)->showHelp();
+    }), this);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), help);
+
+    GtkWidget* about = gtk_menu_item_new_with_label("À propos de WeedlyWeb");
+    g_signal_connect(about, "activate", G_CALLBACK(+[](GtkWidget*, gpointer) {
         GtkWidget* dialog = gtk_message_dialog_new(
-            nullptr,
-            GTK_DIALOG_MODAL,
-            GTK_MESSAGE_INFO,
-            GTK_BUTTONS_OK,
-            "WeedlyWeb\n\nNavigateur web moderne basé sur WebKit2GTK\nVersion 1.0"
-        );
+            nullptr, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
+            "WeedlyWeb\n\nNavigateur WebKit2GTK\nUI inspirée de Brave Browser\nhttps://github.com/brave/brave-browser");
         gtk_dialog_run(GTK_DIALOG(dialog));
-        if (dialog && GTK_IS_WIDGET(dialog) && !gtk_widget_in_destruction(dialog)) {
-            gtk_widget_destroy(dialog);
-        }
+        gtk_widget_destroy(dialog);
     }), nullptr);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemAPropos);
-    
-    // Séparateur
-    GtkWidget* separator2 = gtk_separator_menu_item_new();
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator2);
-    
-    // Option : Quitter
-    GtkWidget* itemQuitter = gtk_menu_item_new_with_label("🚪 Quitter");
-    g_signal_connect(itemQuitter, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-        auto* navigateur = static_cast<Browser*>(user_data);
-        navigateur->closeApplication();
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), about);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    GtkWidget* quit = gtk_menu_item_new_with_label("Quitter");
+    g_signal_connect(quit, "activate", G_CALLBACK(+[](GtkWidget*, gpointer ud) {
+        static_cast<Browser*>(ud)->closeApplication();
     }), this);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemQuitter);
-    
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit);
+
     gtk_widget_show_all(menu);
-    
-    // Trouver le button menu pour positionner le popup
-    // On cherche le dernier button ajouté (qui devrait être le menu hamburger)
+
     GList* children = gtk_container_get_children(GTK_CONTAINER(navigationBar));
     GtkWidget* boutonMenu = nullptr;
-    // Prendre le dernier enfant qui est un button (le menu hamburger est ajouté en dernier)
     if (children) {
         GList* last = g_list_last(children);
         if (last && GTK_IS_BUTTON(GTK_WIDGET(last->data))) {
@@ -2008,7 +2980,7 @@ void Browser::showOptionsMenu() {
         }
     }
     g_list_free(children);
-    
+
     if (boutonMenu) {
         gtk_menu_popup_at_widget(GTK_MENU(menu), boutonMenu, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, nullptr);
     } else {
@@ -2018,25 +2990,22 @@ void Browser::showOptionsMenu() {
 
 void Browser::showGroupsMenu() {
     GtkWidget* menu = gtk_menu_new();
-    
-    // Option : Créer un nouveau groupe
-    GtkWidget* itemNouveauGroupe = gtk_menu_item_new_with_label("➕ Créer un nouveau groupe");
+
+    GtkWidget* itemNouveauGroupe = gtk_menu_item_new_with_label("➕ Nouveau groupe…");
     g_signal_connect(itemNouveauGroupe, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
         auto* navigateur = static_cast<Browser*>(user_data);
-        // Créer une boîte de dialogue pour le nom du groupe
         GtkWidget* dialog = gtk_dialog_new_with_buttons(
-            "Nouveau groupe",
-            nullptr,
+            "Nouveau groupe d'onglets",
+            GTK_WINDOW(navigateur->window),
             GTK_DIALOG_MODAL,
             "Annuler", GTK_RESPONSE_CANCEL,
             "Créer", GTK_RESPONSE_ACCEPT,
-            nullptr
-        );
+            nullptr);
         GtkWidget* entry = gtk_entry_new();
         gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "Nom du groupe");
         gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), entry);
         gtk_widget_show_all(dialog);
-        
+
         if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
             const gchar* groupName = gtk_entry_get_text(GTK_ENTRY(entry));
             if (groupName && *groupName) {
@@ -2049,37 +3018,46 @@ void Browser::showGroupsMenu() {
         }
     }), this);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemNouveauGroupe);
-    
-    // Séparateur
-    GtkWidget* separator = gtk_separator_menu_item_new();
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
-    
-    // Lister les groupes existants
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    const std::string actif = tabsManager->getGroupeActif();
     for (const auto& groupe : tabsManager->getGroupes()) {
-        GtkWidget* itemGroupe = gtk_menu_item_new_with_label(groupe.c_str());
+        const std::string color = tabsManager->getCouleurGroupe(groupe);
+        std::string label = (groupe == actif ? "● " : "○ ") + groupe;
+        GtkWidget* itemGroupe = gtk_menu_item_new_with_label(label.c_str());
+        gtk_widget_set_tooltip_text(itemGroupe, ("Couleur " + color).c_str());
+        g_object_set_data_full(G_OBJECT(itemGroupe), "group-name", g_strdup(groupe.c_str()), g_free);
         g_signal_connect(itemGroupe, "activate", G_CALLBACK(+[](GtkWidget* item, gpointer user_data) {
             auto* navigateur = static_cast<Browser*>(user_data);
-            const gchar* groupName = gtk_menu_item_get_label(GTK_MENU_ITEM(item));
-            navigateur->changeTabGroup(groupName);
+            const char* name = static_cast<const char*>(g_object_get_data(G_OBJECT(item), "group-name"));
+            if (name) {
+                navigateur->changeTabGroup(name);
+            }
         }), this);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), itemGroupe);
-    }
-    
-    gtk_widget_show_all(menu);
-    
-    // Trouver le button groupes pour positionner le popup (premier enfant, à gauche)
-    GList* children = gtk_container_get_children(GTK_CONTAINER(tabsBar));
-    GtkWidget* boutonGroupes = nullptr;
-    if (children) {
-        // Prendre le premier enfant (le bouton groupes est le premier)
-        if (children->data && GTK_IS_BUTTON(GTK_WIDGET(children->data))) {
-            boutonGroupes = GTK_WIDGET(children->data);
+
+        if (groupe != "Par défaut") {
+            GtkWidget* delItem = gtk_menu_item_new_with_label(("    Supprimer « " + groupe + " »").c_str());
+            g_object_set_data_full(G_OBJECT(delItem), "group-name", g_strdup(groupe.c_str()), g_free);
+            g_signal_connect(delItem, "activate", G_CALLBACK(+[](GtkWidget* item, gpointer user_data) {
+                auto* navigateur = static_cast<Browser*>(user_data);
+                const char* name = static_cast<const char*>(g_object_get_data(G_OBJECT(item), "group-name"));
+                if (!name) return;
+                if (!navigateur->confirmAction("Supprimer le groupe",
+                        std::string("Supprimer le groupe « ") + name + " » ? Les onglets iront dans « Par défaut ».")) {
+                    return;
+                }
+                navigateur->deleteTabGroup(name);
+            }), this);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), delItem);
         }
     }
-    g_list_free(children);
-    
-    if (boutonGroupes) {
-        gtk_menu_popup_at_widget(GTK_MENU(menu), boutonGroupes, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, nullptr);
+
+    gtk_widget_show_all(menu);
+
+    GtkWidget* anchor = groupChip ? groupChip : tabsBar;
+    if (anchor && GTK_IS_WIDGET(anchor)) {
+        gtk_menu_popup_at_widget(GTK_MENU(menu), anchor, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, nullptr);
     } else {
         gtk_menu_popup_at_pointer(GTK_MENU(menu), nullptr);
     }
@@ -2196,10 +3174,18 @@ void Browser::loadStyles() {
 
     // CSS amélioré avec design moderne en mode sombre
     const gchar* css = 
-        "/* Style global pour forcer le mode sombre */ "
-        "window, window * { "
+        "/* Fond sombre sur les surfaces, PAS sur chaque enfant (évite carrés autour icônes/titres) */ "
+        "window { "
         "  background-color: #2d2d2d; "
         "  color: #e0e0e0; "
+        "} "
+        "box, scrolledwindow, viewport, overlay { "
+        "  background-color: transparent; "
+        "  color: #e0e0e0; "
+        "} "
+        "label, image { "
+        "  background-color: transparent; "
+        "  color: inherit; "
         "} "
         "entry { "
         "  background-color: #3d3d3d; "
@@ -2212,76 +3198,114 @@ void Browser::loadStyles() {
         "button { "
         "  background-color: #404040; "
         "  color: #e0e0e0; "
+        "  background-image: none; "
         "} "
         "button:hover { "
         "  background-color: #505050; "
         "} "
-        "/* Barre de favorites - Mode sombre avec meilleure visibilité */ "
+        "/* Barre de favorites — unie avec la nav, boutons visibles */ "
         "#barre-favorites { "
-        "  background-color: #3a3a3a; "
-        "  border-bottom: 3px solid rgba(255, 255, 255, 0.3); "
-        "  border-top: 1px solid rgba(255, 255, 255, 0.15); "
-        "  padding: 6px 10px; "
-        "  min-height: 40px; "
+        "  background-color: #282828; "
+        "  border-bottom: 1px solid rgba(255, 255, 255, 0.12); "
+        "  padding: 3px 8px; "
+        "  min-height: 30px; "
         "} "
-        "#button-favori { "
-        "  border: 1px solid rgba(100, 100, 100, 0.5); "
+        "#button-favori, #button-favori-dossier, #button-favori-more { "
+        "  border: 1px solid rgba(255, 255, 255, 0.12); "
+        "  border-radius: 6px; "
+        "  padding: 3px 10px; "
+        "  background-color: rgba(60, 60, 60, 0.55); "
+        "  background-image: none; "
+        "  color: #ececec; "
+        "  margin: 0 2px; "
+        "  font-size: 12px; "
+        "  min-height: 26px; "
+        "  box-shadow: none; "
+        "} "
+        "#button-favori:hover, #button-favori-dossier:hover, #button-favori-more:hover { "
+        "  background-color: rgba(90, 120, 180, 0.55); "
+        "  border-color: rgba(120, 160, 220, 0.55); "
+        "  color: #ffffff; "
+        "} "
+        "#button-favori:active, #button-favori-dossier:active { "
+        "  background-color: rgba(74, 144, 226, 0.7); "
+        "} "
+        "#button-favori-dossier { "
+        "  color: #f5dfa0; "
+        "  font-weight: 600; "
+        "} "
+        "#button-favori image, #button-favori-dossier image, #button-favori-more image { "
+        "  background-color: transparent; "
+        "} "
+        "#group-chip { "
+        "  background-color: rgba(55, 60, 75, 0.9); "
+        "  border: 1px solid rgba(255, 255, 255, 0.12); "
+        "  border-radius: 14px; "
+        "  padding: 2px 8px; "
+        "  margin-right: 2px; "
+        "} "
+        "#group-chip-label { "
+        "  font-size: 11px; "
+        "  color: #e8e8e8; "
+        "  font-weight: 600; "
+        "  background-color: transparent; "
+        "} "
+        "#button-groupes { "
+        "  min-width: 22px; "
+        "  min-height: 22px; "
+        "  padding: 0 4px; "
+        "  border: none; "
+        "  background-color: transparent; "
+        "  background-image: none; "
+        "  color: #ddd; "
+        "} "
+        "#button-groupes:hover { "
+        "  background-color: rgba(255,255,255,0.12); "
         "  border-radius: 4px; "
-        "  padding: 6px 12px; "
-        "  background-color: #4a4a4a; "
-        "  color: #e0e0e0; "
-        "  margin: 0 3px; "
-        "  font-weight: 500; "
         "} "
-        "#button-favori:hover { "
-        "  background-color: rgba(70, 70, 70, 1.0); "
+        "#favorites-list row:hover { "
+        "  background-color: rgba(74, 144, 226, 0.25); "
         "} "
-        "#button-favori:active { "
-        "  background-color: rgba(90, 90, 90, 1.0); "
+        "#favorites-add-form { "
+        "  background-color: rgba(50, 50, 50, 0.9); "
+        "  padding: 6px; "
+        "  border-radius: 6px; "
         "} "
         "/* Barre de navigation - Mode sombre */ "
         "#barre-navigation { "
         "  padding: 6px 8px; "
-        "  border-bottom: 2px solid rgba(255, 255, 255, 0.2); "
-        "  background-color: rgba(40, 40, 40, 0.95); "
+        "  border-bottom: 1px solid rgba(255, 255, 255, 0.12); "
+        "  background-color: #282828; "
         "} "
-        "/* Barre d'tabs - container visible avec fond sombre */ "
+        "#barre-navigation button { "
+        "  background-image: none; "
+        "} "
+        "#barre-navigation button image { "
+        "  background-color: transparent; "
+        "} "
+        "/* Barre d'tabs — même teinte que nav/favoris */ "
         "#barre-tabs { "
         "  padding: 4px 6px; "
         "  border-bottom: 1px solid rgba(255, 255, 255, 0.12); "
-        "  background-color: rgba(35, 35, 35, 0.95); "
-        "  border-radius: 4px 4px 0 0; "
+        "  background-color: #282828; "
+        "  border-radius: 0; "
         "} "
         "/* Boutons dans la barre d'tabs - Mode sombre */ "
-        "#button-groupes, "
         "#button-ajouter-onglet { "
-        "  border: 1px solid rgba(100, 100, 100, 0.6); "
+        "  border: 1px solid rgba(74, 144, 226, 0.8); "
         "  border-radius: 4px; "
         "  padding: 4px 8px; "
-        "  background-color: rgba(50, 50, 50, 0.9); "
-        "  color: rgba(220, 220, 220, 1.0); "
+        "  background-color: rgba(74, 144, 226, 0.85); "
+        "  background-image: none; "
+        "  color: white; "
         "  min-width: 28px; "
         "  min-height: 24px; "
         "  font-size: 16px; "
         "  font-weight: bold; "
         "} "
-        "#button-ajouter-onglet { "
-        "  background-color: rgba(74, 144, 226, 0.9); "
-        "  color: white; "
-        "  border-color: rgba(74, 144, 226, 1.0); "
-        "} "
-        "#button-groupes:hover, "
-        "#button-ajouter-onglet:hover { "
-        "  background-color: rgba(70, 70, 70, 1.0); "
-        "  border-color: rgba(120, 120, 120, 0.8); "
-        "} "
         "#button-ajouter-onglet:hover { "
         "  background-color: rgba(74, 144, 226, 1.0); "
         "  border-color: rgba(50, 120, 200, 1.0); "
-        "} "
-        "#button-groupes:active, "
-        "#button-ajouter-onglet:active { "
-        "  background-color: rgba(90, 90, 90, 1.0); "
         "} "
         "#button-ajouter-onglet:active { "
         "  background-color: rgba(50, 120, 200, 1.0); "
@@ -2289,67 +3313,92 @@ void Browser::loadStyles() {
         "/* ScrolledWindow pour les onglets - Mode sombre */ "
         "#scrolled-tabs { "
         "  border-bottom: 1px solid rgba(255, 255, 255, 0.12); "
-        "  background-color: rgba(35, 35, 35, 0.95); "
+        "  background-color: #282828; "
         "} "
-        "/* Onglets - style amélioré avec séparation claire en mode sombre */ "
+        "#scrolled-tabs > *, #scrolled-tabs viewport, #scrolled-tabs undershoot, "
+        "#scrolled-tabs overshoot, #scrolled-tabs junction { "
+        "  background-color: #282828; "
+        "} "
+        "/* Onglets — fond uni ; enfants transparents */ "
         "#onglet { "
-        "  border: 2px solid rgba(100, 100, 100, 0.5); "
+        "  border: 1px solid rgba(255, 255, 255, 0.10); "
         "  border-radius: 6px 6px 0 0; "
-        "  padding: 6px 12px; "
+        "  padding: 4px 8px; "
         "  margin: 0 2px; "
-        "  background-color: rgba(50, 50, 50, 0.9); "
+        "  background-color: #323232; "
+        "  background-image: none; "
         "  border-bottom: none; "
-        "  min-height: 32px; "
-        "  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); "
+        "  min-height: 28px; "
+        "  box-shadow: none; "
+        "} "
+        "#onglet > * { "
+        "  background-color: transparent; "
+        "  background-image: none; "
+        "} "
+        "#onglet image, #onglet label { "
+        "  background-color: transparent; "
+        "  background-image: none; "
+        "  box-shadow: none; "
+        "  border: none; "
         "} "
         "#onglet:hover { "
-        "  background-color: rgba(70, 70, 70, 1.0); "
-        "  border-color: rgba(120, 120, 120, 0.7); "
+        "  background-color: #3a3a3a; "
+        "  border-color: rgba(255, 255, 255, 0.18); "
         "} "
         "#onglet:active { "
-        "  background-color: rgba(80, 80, 80, 1.0); "
+        "  background-color: #404040; "
         "} "
-        "/* Onglet actif - style distinctif avec couleur différente en mode sombre */ "
+        "/* Onglet actif */ "
         "#onglet.onglet-actif { "
-        "  background-color: rgba(74, 144, 226, 0.9); "
-        "  border-color: rgba(90, 160, 240, 1.0); "
-        "  border-bottom: 3px solid rgba(90, 160, 240, 1.0); "
+        "  background-color: #3d5a80; "
+        "  border-color: rgba(120, 170, 230, 0.7); "
+        "  border-bottom: 2px solid #4a90e2; "
         "  font-weight: 600; "
-        "  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); "
+        "  box-shadow: none; "
         "} "
         "#onglet.onglet-actif:hover { "
-        "  background-color: rgba(90, 160, 240, 1.0); "
-        "  border-color: rgba(110, 180, 255, 1.0); "
+        "  background-color: #466891; "
+        "} "
+        "#onglet.onglet-actif > *, #onglet.onglet-actif image, #onglet.onglet-actif label { "
+        "  background-color: transparent; "
         "} "
         "/* Labels dans les tabs - Mode sombre */ "
         "#onglet label { "
-        "  color: rgba(220, 220, 220, 0.95); "
+        "  color: #e0e0e0; "
         "  font-size: 12px; "
         "} "
         "#onglet.onglet-actif label { "
-        "  color: rgba(255, 255, 255, 1.0); "
+        "  color: #ffffff; "
         "  font-weight: 600; "
         "} "
-        "/* Bouton fermer dans l'onglet - Mode sombre */ "
+        "/* Bouton fermer dans l'onglet — transparent, pas de pastille grise */ "
         "#onglet button { "
-        "  border: 1px solid rgba(100, 100, 100, 0.4); "
-        "  background-color: rgba(60, 60, 60, 0.8); "
-        "  padding: 2px 6px; "
-        "  margin: 0 4px 0 8px; "
-        "  border-radius: 4px; "
-        "  min-width: 20px; "
-        "  min-height: 20px; "
-        "  color: rgba(200, 200, 200, 1.0); "
+        "  border: none; "
+        "  background-color: transparent; "
+        "  background-image: none; "
+        "  padding: 0 4px; "
+        "  margin: 0 0 0 4px; "
+        "  border-radius: 3px; "
+        "  min-width: 18px; "
+        "  min-height: 18px; "
+        "  color: #c8c8c8; "
         "  font-weight: bold; "
         "  font-size: 14px; "
+        "  box-shadow: none; "
         "} "
         "#onglet button:hover { "
-        "  background-color: rgba(100, 100, 100, 0.9); "
-        "  border-color: rgba(130, 130, 130, 0.6); "
-        "  color: rgba(255, 255, 255, 1.0); "
+        "  background-color: rgba(255, 255, 255, 0.14); "
+        "  color: #ffffff; "
         "} "
         "#onglet button:active { "
-        "  background-color: rgba(120, 120, 120, 1.0); "
+        "  background-color: rgba(0, 0, 0, 0.25); "
+        "} "
+        "#onglet.onglet-actif button { "
+        "  background-color: transparent; "
+        "  color: #f0f0f0; "
+        "} "
+        "#onglet.onglet-actif button:hover { "
+        "  background-color: rgba(255, 255, 255, 0.18); "
         "} "
         "#onglet.onglet-actif button { "
         "  background-color: rgba(255, 255, 255, 0.3); "
@@ -2501,27 +3550,10 @@ void Browser::createContextMenu(GtkWidget* button) {
 }
 
 
-void Browser::onStarButtonClicked(GtkButton* button, gpointer user_data) {
+void Browser::onStarButtonClicked(GtkButton*, gpointer user_data) {
     auto* navigateur = static_cast<Browser*>(user_data);
-    if (!navigateur) return;
-
-    // Obtenir l'URL actuelle et pré-remplir l'entrée
-    std::string urlActuelle = navigateur->getCurrentURL();
-    gtk_entry_set_text(GTK_ENTRY(navigateur->favoriteUrlEntry), urlActuelle.c_str());
-
-    // Vérifier si l'URL est déjà dans les favorites (y compris dans un dossier)
-    auto favorites = navigateur->getFavoris();
-    const bool estDejaFavori = FavoritesJson::containsUrlRecursive(*favorites, urlActuelle);
-
-    // Si l'URL est déjà un favori, afficher un message et ne pas ouvrir le popover
-    if (estDejaFavori) {
-        std::cerr << "URL déjà ajoutée aux favorites : " << urlActuelle << std::endl;
-        gtk_button_set_label(button, "*"); // Marquer l'URL comme déjà en favorites
-        navigateur->showFavoritesManager(); // Permet la modification
-    } else {
-        // Sinon, ouvrir le popover pour permettre l'ajout
-        gtk_button_set_label(button, "☆");  // Étoile vide
-        gtk_popover_popup(GTK_POPOVER(navigateur->getPopoverFavoris()));
+    if (navigateur) {
+        navigateur->toggleCurrentPageFavorite();
     }
 }
 

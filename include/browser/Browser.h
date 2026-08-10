@@ -24,8 +24,15 @@ struct TabData {
     GtkWidget* tabWidget;  // Le widget de l'onglet dans la barre
     WebKitWebView* webView;  // La WebView unique pour cet onglet
     GtkWidget* label;  // Le label avec le titre
+    GtkWidget* faviconImage; // Favicon à gauche du titre
+    std::string groupName;   // Groupe d'onglets (style Brave)
     
-    TabData() : tabWidget(nullptr), webView(nullptr), label(nullptr) {}
+    TabData()
+        : tabWidget(nullptr),
+          webView(nullptr),
+          label(nullptr),
+          faviconImage(nullptr),
+          groupName("Par défaut") {}
 };
 
 class Browser {
@@ -50,6 +57,13 @@ public:
     void addNewTab(const std::string &url = "");
     void removeTab(GtkWidget* tabWidget);
     void changeActiveTab(GtkWidget* tabWidget);
+    void moveTabToGroup(GtkWidget* tabWidget, const std::string& groupName);
+    void refreshTabsBarVisibility();
+    void focusUrlBar();
+    void focusHomepageSearchBox(WebKitWebView* webView);
+    void requestHomepageSearchFocus();
+    bool consumeHomepageSearchFocus();
+    void deleteTabGroup(const std::string& groupName);
 
     // Gestion des favorites
     void initializeFavoritesBar();
@@ -63,8 +77,17 @@ public:
     void toggleCommandPalette();  // Afficher/masquer la palette de commandes
     void showOptionsMenu();
     void showGroupsMenu();
+    void showFavoritesOverflowMenu();
     void showSettings();
     void showHelp();
+    void showHistoryPage();
+    void showPasswordsPage();
+    void showDevToolsPage(const std::string& tool);
+    void openHtmlTab(const std::string& title, const std::string& html);
+    void openAllBookmarksInFolder(const nlohmann::json& folder);
+    bool confirmAction(const std::string& title, const std::string& message);
+    void toggleCurrentPageFavorite();
+    void persistSession();
 
     // Méthodes utilitaires
     void loadURL(const std::string& url);
@@ -103,6 +126,8 @@ private:
     GtkWidget *navigationBar;
     GtkWidget *favoritesBar;
     GtkWidget *tabsBar;
+    GtkWidget *groupChip;      // Pastille colorée du groupe actif
+    GtkWidget *groupChipLabel; // Nom du groupe actif
     GtkWidget *urlBar;
     GtkWidget *starButton;
     GtkWidget *loadingSpinner;  // Indicateur de chargement dans la barre d'URL
@@ -128,18 +153,25 @@ private:
     GtkWidget* webContainer;  // Container pour les WebViews (une seule visible à la fois)
     std::shared_ptr<nlohmann::json> favorites;
     std::string homepage;
+    bool pendingHomepageSearchFocus = false;
+    std::vector<std::string> pendingSessionTabs;
+    bool restorePreviousSession = false;
 
     // Méthodes internes
     void initializeNavigationBar();
     void initializeTabsBar();
+    void updateGroupChip();
+    void showTabContextMenu(GtkWidget* tabWidget, GdkEventButton* event);
     void initializeFavoritesPopover();
     void highlight(GtkWidget* tabWidget);
     void addButton(GtkWidget* container, const std::string& iconName, GCallback callback, gpointer data);
     void updateStarButton();
+    void restoreSessionTabs();
     void executeScriptInActiveTab(const std::string& script);
     void showMessage(const std::string& message);
     void createContextMenu(GtkWidget* button);
     static void onStarButtonClicked(GtkButton* button, gpointer user_data);
+    static std::string normalizeNavigationUrl(const std::string& url);
 
     // Gestionnaire de mémoire et signaux
     void configureKeyboardShortcuts(); 

@@ -211,10 +211,13 @@ void RenderingEngine::displayPage(const std::string& url) {
     // Normaliser l'URL si nécessaire
     std::string normalizedUrl = url;
     if (normalizedUrl.empty()) {
-        normalizedUrl = "https://www.duckduckgo.com";
+        normalizedUrl = "https://duckduckgo.com/";
         WEEDLYWEB_DEBUG_LOG("[DEBUG] URL vide, utilisation de la valeur par défaut: " << normalizedUrl);
-    } else if (normalizedUrl.find("://") == std::string::npos) {
-        // Si pas de protocole, ajouter https://
+    } else if (normalizedUrl.rfind("http://", 0) != 0 && normalizedUrl.rfind("https://", 0) != 0 &&
+               normalizedUrl.rfind("file://", 0) != 0 && normalizedUrl.rfind("data:", 0) != 0 &&
+               normalizedUrl.rfind("about:", 0) != 0 && normalizedUrl.rfind("webkit://", 0) != 0 &&
+               normalizedUrl.rfind("weedly://", 0) != 0 &&
+               normalizedUrl.find("://") == std::string::npos) {
         normalizedUrl = "https://" + normalizedUrl;
         WEEDLYWEB_DEBUG_LOG("[DEBUG] Protocole manquant, URL normalisée: " << normalizedUrl);
     }

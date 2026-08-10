@@ -1,0 +1,17 @@
+{
+  "name": "brave",
+  "version": "1.95.55",
+  "description": "Brave browser for Android, iOS, Linux, macOS, and Windows",
+  "homepage": "https://github.com/brave/brave-browser#readme",
+  "bugs": {
+    "url": "https://github.com/brave/brave-browser/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brave/brave-browser.git"
+  },
+  "license": "MPL-2.0",
+  "author": {
+    "name": "Brave Software <support@brave.com>"
+  }
+}

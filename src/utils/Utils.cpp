@@ -1,6 +1,7 @@
 #include "utils/Utils.h"
 #include "managers/FileManager.h"
 #include "browser/Browser.h"
+#include <cctype>
 #include <iostream>
 
 // Déclarations forward pour les fonctions (définies dans Browser.cpp)
@@ -38,6 +39,42 @@ bool isFolder(const nlohmann::json& item) {
            item["children"].is_array();
 }
 
+std::string canonicalizeUrl(const std::string& url) {
+    std::string u = url;
+    // minuscules
+    for (char& c : u) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    // enlever fragment
+    const auto hash = u.find('#');
+    if (hash != std::string::npos) {
+        u.erase(hash);
+    }
+    // enlever slash final (sauf schéma seul)
+    while (u.size() > 8 && u.back() == '/') {
+        u.pop_back();
+    }
+    // unifier http/https host www.
+    auto stripWww = [](std::string s) {
+        const std::string markers[] = {"https://www.", "http://www.", "https://", "http://"};
+        for (const auto& m : markers) {
+            if (s.rfind(m, 0) == 0) {
+                s = s.substr(m.size());
+                break;
+            }
+        }
+        return s;
+    };
+    return stripWww(u);
+}
+
+bool urlsMatch(const std::string& a, const std::string& b) {
+    if (a == b) {
+        return true;
+    }
+    return canonicalizeUrl(a) == canonicalizeUrl(b);
+}
+
 bool containsUrlRecursive(const nlohmann::json& rootArray, const std::string& url) {
     if (!rootArray.is_array()) {
         return false;
@@ -47,7 +84,8 @@ bool containsUrlRecursive(const nlohmann::json& rootArray, const std::string& ur
             if (containsUrlRecursive(item["children"], url)) {
                 return true;
             }
-        } else if (item.contains("url") && item["url"].is_string() && item["url"].get<std::string>() == url) {
+        } else if (item.contains("url") && item["url"].is_string() &&
+                   urlsMatch(item["url"].get<std::string>(), url)) {
             return true;
         }
     }
@@ -75,6 +113,27 @@ bool removeByNameRecursive(nlohmann::json& rootArray, const std::string& name) {
     return false;
 }
 
+bool removeByUrlRecursive(nlohmann::json& rootArray, const std::string& url) {
+    if (!rootArray.is_array()) {
+        return false;
+    }
+    for (auto it = rootArray.begin(); it != rootArray.end(); ++it) {
+        if (!it->is_object()) {
+            continue;
+        }
+        if (isFolder(*it)) {
+            if (removeByUrlRecursive((*it)["children"], url)) {
+                return true;
+            }
+        } else if ((*it).contains("url") && (*it)["url"].is_string() &&
+                   urlsMatch((*it)["url"].get<std::string>(), url)) {
+            rootArray.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+
 bool duplicateNameOrUrl(const nlohmann::json& rootArray, const std::string& nom, const std::string& url) {
     if (!rootArray.is_array()) {
         return false;
@@ -91,7 +150,8 @@ bool duplicateNameOrUrl(const nlohmann::json& rootArray, const std::string& nom,
             if (item.contains("name") && item["name"].is_string() && item["name"].get<std::string>() == nom) {
                 return true;
             }
-            if (item.contains("url") && item["url"].is_string() && item["url"].get<std::string>() == url) {
+            if (item.contains("url") && item["url"].is_string() &&
+                urlsMatch(item["url"].get<std::string>(), url)) {
                 return true;
             }
         }

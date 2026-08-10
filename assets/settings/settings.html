@@ -1,16 +1,240 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paramètres</title>
+    <title>Paramètres — WeedlyWeb</title>
+    <style>
+        :root {
+            --bg: #1b1d21;
+            --panel: #252830;
+            --text: #e8eaed;
+            --muted: #9aa0a6;
+            --accent: #fb542b;
+            --line: #3a3f4b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Cantarell", sans-serif;
+            background: linear-gradient(160deg, #16181d 0%, #232833 55%, #1a1c22 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 220px 1fr;
+        }
+        nav {
+            background: rgba(20, 22, 27, 0.92);
+            border-right: 1px solid var(--line);
+            padding: 1.5rem 1rem;
+        }
+        nav h1 {
+            font-size: 1.1rem;
+            margin: 0 0 1.25rem;
+            color: var(--accent);
+            letter-spacing: 0.02em;
+        }
+        nav a {
+            display: block;
+            color: var(--muted);
+            text-decoration: none;
+            padding: 0.55rem 0.7rem;
+            border-radius: 6px;
+            margin-bottom: 0.25rem;
+            font-size: 0.92rem;
+        }
+        nav a:hover, nav a.active { background: var(--panel); color: var(--text); }
+        main { padding: 2rem 2.5rem; max-width: 760px; }
+        section {
+            display: none;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 1.5rem 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+        section.active { display: block; }
+        h2 { margin: 0 0 0.35rem; font-size: 1.35rem; }
+        .hint { color: var(--muted); margin: 0 0 1.25rem; font-size: 0.9rem; }
+        label { display: block; margin: 0.9rem 0 0.35rem; font-size: 0.88rem; color: var(--muted); }
+        input[type="url"], input[type="text"], select {
+            width: 100%;
+            padding: 0.55rem 0.7rem;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+            background: #1a1c22;
+            color: var(--text);
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0.85rem 0;
+        }
+        .row label { margin: 0; color: var(--text); }
+        button {
+            margin-top: 1.25rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 0.55rem 1.1rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button.secondary { background: transparent; border: 1px solid var(--line); color: var(--text); }
+        .toast { display: none; margin-top: 0.75rem; color: #7dcea0; font-size: 0.85rem; }
+    </style>
 </head>
 <body>
-    <h1>Paramètres du navigateur</h1>
-    <form>
-        <label for="homepage">Page d'accueil :</label>
-        <input type="url" id="homepage" name="homepage">
-        <button type="submit">Enregistrer</button>
-    </form>
+    <nav>
+        <h1>Paramètres</h1>
+        <a href="#general" class="active" data-section="general">Général</a>
+        <a href="#privacy" data-section="privacy">Confidentialité</a>
+        <a href="#passwords" data-section="passwords">Mots de passe</a>
+        <a href="#network" data-section="network">Réseau</a>
+        <a href="#dev" data-section="dev">Développeur</a>
+        <a href="#cyber" data-section="cyber">Cyber / sécurité</a>
+        <a href="#appearance" data-section="appearance">Apparence</a>
+    </nav>
+    <main>
+        <section id="general" class="active">
+            <h2>Général</h2>
+            <p class="hint">Page d’accueil et comportement au démarrage (inspiré Brave).</p>
+            <form id="form-general">
+                <label for="homepage">Page d’accueil</label>
+                <input type="url" id="homepage" name="homepage" placeholder="https://duckduckgo.com/">
+                <div class="row">
+                    <input type="checkbox" id="restore-session" checked>
+                    <label for="restore-session">Restaurer les onglets à l’ouverture</label>
+                </div>
+                <div class="row">
+                    <input type="checkbox" id="show-bookmarks-bar" checked>
+                    <label for="show-bookmarks-bar">Afficher la barre de favoris</label>
+                </div>
+                <button type="submit">Enregistrer</button>
+                <p class="toast" id="toast-general">Enregistré (localStorage).</p>
+            </form>
+        </section>
+
+        <section id="privacy">
+            <h2>Confidentialité & boucliers</h2>
+            <p class="hint">Équivalent Shields Brave — à brancher sur RequestInterceptor.</p>
+            <div class="row"><input type="checkbox" id="block-ads" checked><label for="block-ads">Bloquer les publicités</label></div>
+            <div class="row"><input type="checkbox" id="block-trackers" checked><label for="block-trackers">Bloquer les trackers</label></div>
+            <div class="row"><input type="checkbox" id="https-upgrade"><label for="https-upgrade">Forcer HTTPS quand possible</label></div>
+            <div class="row"><input type="checkbox" id="fingerprint"><label for="fingerprint">Résistance au fingerprinting</label></div>
+            <button type="button" class="secondary" onclick="saveSection('privacy')">Enregistrer</button>
+        </section>
+
+        <section id="passwords">
+            <h2>Mots de passe et saisie automatique</h2>
+            <p class="hint">Coffre local — stub UI comme le menu hamburger.</p>
+            <div class="row"><input type="checkbox" id="save-passwords" checked><label for="save-passwords">Proposer d’enregistrer les mots de passe</label></div>
+            <div class="row"><input type="checkbox" id="autofill"><label for="autofill">Saisie automatique des formulaires</label></div>
+            <label for="vault-hint">Indice du coffre (optionnel)</label>
+            <input type="text" id="vault-hint" placeholder="ex. phrase secrète locale">
+            <button type="button" class="secondary" onclick="saveSection('passwords')">Enregistrer</button>
+        </section>
+
+        <section id="network">
+            <h2>Réseau</h2>
+            <p class="hint">Proxy, DNS et diagnostics réseau.</p>
+            <label for="proxy-mode">Mode proxy</label>
+            <select id="proxy-mode">
+                <option value="system">Système</option>
+                <option value="direct">Direct</option>
+                <option value="manual">Manuel</option>
+                <option value="tor">Tor (stub Brave)</option>
+            </select>
+            <label for="proxy-host">Hôte proxy</label>
+            <input type="text" id="proxy-host" placeholder="127.0.0.1:8080">
+            <label for="dns">DNS over HTTPS</label>
+            <select id="dns">
+                <option value="off">Désactivé</option>
+                <option value="cloudflare">Cloudflare</option>
+                <option value="quad9">Quad9</option>
+            </select>
+            <button type="button" class="secondary" onclick="saveSection('network')">Enregistrer</button>
+        </section>
+
+        <section id="dev">
+            <h2>Outils développeur</h2>
+            <p class="hint">Options utiles au debug WebKit / JS.</p>
+            <div class="row"><input type="checkbox" id="show-console"><label for="show-console">Activer logs console WebKit (WEEDLYWEB_DEBUG)</label></div>
+            <div class="row"><input type="checkbox" id="js-diag"><label for="js-diag">Diagnostic JS au chargement</label></div>
+            <div class="row"><input type="checkbox" id="disable-gpu" checked><label for="disable-gpu">Mode compositing soft (hotfix GPU)</label></div>
+            <label for="ua">User-Agent personnalisé</label>
+            <input type="text" id="ua" placeholder="Laisser vide = WebKit par défaut">
+            <button type="button" class="secondary" onclick="saveSection('dev')">Enregistrer</button>
+        </section>
+
+        <section id="cyber">
+            <h2>Cyber / sécurité</h2>
+            <p class="hint">Analyse CVE, intercepteur, laboratoire réseau.</p>
+            <div class="row"><input type="checkbox" id="cve-hints"><label for="cve-hints">Suggestions CVEAnalyzer sur les pages</label></div>
+            <div class="row"><input type="checkbox" id="interceptor"><label for="interceptor">Activer RequestInterceptor</label></div>
+            <div class="row"><input type="checkbox" id="mixed-content"><label for="mixed-content">Bloquer le contenu mixte</label></div>
+            <button type="button" class="secondary" onclick="saveSection('cyber')">Enregistrer</button>
+        </section>
+
+        <section id="appearance">
+            <h2>Apparence</h2>
+            <label for="theme">Thème</label>
+            <select id="theme">
+                <option value="dark">Sombre</option>
+                <option value="light">Clair</option>
+                <option value="system">Système</option>
+            </select>
+            <div class="row"><input type="checkbox" id="compact-tabs" checked><label for="compact-tabs">Onglets compacts</label></div>
+            <div class="row"><input type="checkbox" id="group-colors" checked><label for="group-colors">Couleurs de groupes (Brave-like)</label></div>
+            <button type="button" class="secondary" onclick="saveSection('appearance')">Enregistrer</button>
+        </section>
+    </main>
+    <script>
+        const keys = [
+            'homepage','restore-session','show-bookmarks-bar','block-ads','block-trackers',
+            'https-upgrade','fingerprint','save-passwords','autofill','vault-hint',
+            'proxy-mode','proxy-host','dns','show-console','js-diag','disable-gpu','ua',
+            'cve-hints','interceptor','mixed-content','theme','compact-tabs','group-colors'
+        ];
+        function load() {
+            keys.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const v = localStorage.getItem('ww.settings.' + id);
+                if (v == null) return;
+                if (el.type === 'checkbox') el.checked = v === '1';
+                else el.value = v;
+            });
+        }
+        function saveSection(name) {
+            keys.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const val = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+                localStorage.setItem('ww.settings.' + id, val);
+            });
+            const toast = document.getElementById('toast-general');
+            if (toast && name === 'general') {
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display = 'none', 1800);
+            }
+        }
+        document.querySelectorAll('nav a').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                document.querySelectorAll('nav a').forEach(x => x.classList.remove('active'));
+                document.querySelectorAll('main section').forEach(s => s.classList.remove('active'));
+                a.classList.add('active');
+                document.getElementById(a.dataset.section).classList.add('active');
+            });
+        });
+        document.getElementById('form-general').addEventListener('submit', e => {
+            e.preventDefault();
+            saveSection('general');
+        });
+        load();
+    </script>
 </body>
 </html>

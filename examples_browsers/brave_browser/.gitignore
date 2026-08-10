@@ -1,0 +1,15 @@
+# system
+.AppleDouble
+.DS_Store
+.LSOverride
+.Spotlight-V100
+.Trashes
+._*
+
+# editors
+CMakeLists.txt
+cmake-build-debug
+.idea
+.vscode
+*.sw[a-z]
+*~
