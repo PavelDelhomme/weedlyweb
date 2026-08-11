@@ -1,7 +1,7 @@
 WeedlyWeb: \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/Scrt1.o \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/crti.o \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/crtbeginS.o \
   CMakeFiles/WeedlyWeb.dir/src/main.cpp.o \
   CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o \
   CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o \
@@ -16,72 +16,78 @@ WeedlyWeb: \
   CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o \
   CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o \
   CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libwebkit2gtk-4.1.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgtk-3.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk-3.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libz.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libpangocairo-1.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libcairo-gobject.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk_pixbuf-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libatk-1.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libpango-1.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libcairo.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libharfbuzz.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libsoup-3.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgio-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgmodule-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libjavascriptcoregtk-4.1.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgobject-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libglib-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgtk-3.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libwebkit2gtk-4.1.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgtk-3.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgdk-3.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libz.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libpangocairo-1.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libcairo-gobject.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgdk_pixbuf-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libatk-1.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libpango-1.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libcairo.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libharfbuzz.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libsoup-3.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgio-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgmodule-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libjavascriptcoregtk-4.1.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgobject-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libglib-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgtk-3.so \
   /usr/lib/libcurl.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libsqlite3.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk-3.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libz.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libpangocairo-1.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libcairo-gobject.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk_pixbuf-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libatk-1.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libpango-1.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libcairo.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libharfbuzz.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libsoup-3.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgio-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgmodule-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libjavascriptcoregtk-4.1.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgobject-2.0.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libglib-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libsqlite3.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgdk-3.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libz.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libpangocairo-1.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libcairo-gobject.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgdk_pixbuf-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libatk-1.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libpango-1.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libcairo.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libharfbuzz.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libsoup-3.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgio-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgmodule-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libjavascriptcoregtk-4.1.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgobject-2.0.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libglib-2.0.so \
   /usr/lib/libcurl.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libsqlite3.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libstdc++.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libsqlite3.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libstdc++.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libm.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libm.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libm.so \
   /usr/lib/libm.so.6 \
   /usr/lib/libmvec.so.1 \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so.1 \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libc.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libc.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libc.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgcc_s.so.1 \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc.a \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc.a \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic_asneeded.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic_asneeded.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic_asneeded.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libc.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libc.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libc.so \
   /usr/lib/libc.so.6 \
   /usr/lib/libc_nonshared.a \
   /usr/lib/ld-linux-x86-64.so.2 \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so.1 \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgcc_s.so.1 \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc.a \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc.a \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/crtendS.o \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/crtn.o \
   /usr/lib/libepoxy.so.0 \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic.so \
   /usr/lib32/libfreetype.so.6 \
   /usr/lib/libfreetype.so.6 \
+  /usr/lib32/libfontconfig.so.1 \
   /usr/lib/libfontconfig.so.1 \
   /usr/lib/libwebpmux.so.3 \
   /usr/lib32/libexpat.so.1 \
@@ -99,7 +105,6 @@ WeedlyWeb: \
   /usr/lib/libxml2.so.16 \
   /usr/lib/libxslt.so.1 \
   /usr/lib/liblcms2.so.2 \
-  /usr/lib/libwoff2dec.so.1.0.2 \
   /usr/lib32/libgcrypt.so.20 \
   /usr/lib/libgcrypt.so.20 \
   /usr/lib/libgstallocators-1.0.so.0 \
@@ -114,14 +119,9 @@ WeedlyWeb: \
   /usr/lib/libgstfft-1.0.so.0 \
   /usr/lib/libwebpdemux.so.2 \
   /usr/lib/libwebp.so.7 \
-  /usr/lib/libjxl.so.0.11 \
+  /usr/lib/libjxl.so.0.12 \
   /usr/lib/libavif.so.16 \
   /usr/lib/libharfbuzz-icu.so.0 \
-  /usr/lib/libenchant-2.so.2 \
-  /usr/lib/libsecret-1.so.0 \
-  /usr/lib32/libtasn1.so.6 \
-  /usr/lib/libtasn1.so.6 \
-  /usr/lib/libhyphen.so.0 \
   /usr/lib32/libX11.so.6 \
   /usr/lib/libX11.so.6 \
   /usr/lib32/libwayland-server.so.0 \
@@ -130,10 +130,15 @@ WeedlyWeb: \
   /usr/lib/libwayland-client.so.0 \
   /usr/lib/libmanette-0.2.so.0 \
   /usr/lib/libseccomp.so.2 \
+  /usr/lib/libenchant-2.so.2 \
   /usr/lib32/libgbm.so.1 \
   /usr/lib/libgbm.so.1 \
   /usr/lib32/libdrm.so.2 \
   /usr/lib/libdrm.so.2 \
+  /usr/lib32/libtasn1.so.6 \
+  /usr/lib/libtasn1.so.6 \
+  /usr/lib/libhyphen.so.0 \
+  /usr/lib/libsecret-1.so.0 \
   /usr/lib/ld-linux-x86-64.so.2 \
   /usr/lib/libpangoft2-1.0.so.0 \
   /usr/lib/libfribidi.so.0 \
@@ -141,6 +146,7 @@ WeedlyWeb: \
   /usr/lib/libatk-bridge-2.0.so.0 \
   /usr/lib/libcloudproviders.so.0 \
   /usr/lib/libtinysparql-3.0.so.0 \
+  /usr/lib32/libXfixes.so.3 \
   /usr/lib/libXfixes.so.3 \
   /usr/lib/libxkbcommon.so.0 \
   /usr/lib32/libwayland-cursor.so.0 \
@@ -153,6 +159,7 @@ WeedlyWeb: \
   /usr/lib/libXdamage.so.1 \
   /usr/lib/libXcomposite.so.1 \
   /usr/lib/libXrandr.so.2 \
+  /usr/lib32/libXinerama.so.1 \
   /usr/lib/libXinerama.so.1 \
   /usr/lib/libglycin-2.so.0 \
   /usr/lib/libthai.so.0 \
@@ -175,14 +182,16 @@ WeedlyWeb: \
   /usr/lib/libnghttp2.so.14 \
   /usr/lib32/libmount.so.1 \
   /usr/lib/libmount.so.1 \
-  /usr/lib32/libatomic.so.1 \
-  /usr/lib/libatomic.so.1 \
   /usr/lib32/libffi.so.8 \
   /usr/lib/libffi.so.8 \
   /usr/lib32/libpcre2-8.so.0 \
   /usr/lib/libpcre2-8.so.0 \
   /usr/lib32/libnghttp3.so.9 \
   /usr/lib/libnghttp3.so.9 \
+  /usr/lib32/libngtcp2_crypto_ossl.so.0 \
+  /usr/lib/libngtcp2_crypto_ossl.so.0 \
+  /usr/lib32/libngtcp2.so.16 \
+  /usr/lib/libngtcp2.so.16 \
   /usr/lib32/libidn2.so.0 \
   /usr/lib/libidn2.so.0 \
   /usr/lib32/libssh2.so.1 \
@@ -195,11 +204,8 @@ WeedlyWeb: \
   /usr/lib/libzstd.so.1 \
   /usr/lib32/libbz2.so.1.0 \
   /usr/lib/libbz2.so.1.0 \
-  /usr/lib32/libcap.so.2 \
-  /usr/lib/libcap.so.2 \
   /usr/lib32/libicudata.so.78 \
   /usr/lib/libicudata.so.78 \
-  /usr/lib/libwoff2common.so.1.0.2 \
   /usr/lib32/libgpg-error.so.0 \
   /usr/lib/libgpg-error.so.0 \
   /usr/lib/libunwind.so.8 \
@@ -214,21 +220,21 @@ WeedlyWeb: \
   /usr/lib/libX11-xcb.so.1 \
   /usr/lib/libgudev-1.0.so.0 \
   /usr/lib/libsharpyuv.so.0 \
-  /usr/lib/libjxl_cms.so.0.11 \
+  /usr/lib/libjxl_cms.so.0.12 \
   /usr/lib/libhwy.so.1 \
   /usr/lib32/libbrotlienc.so.1 \
   /usr/lib/libbrotlienc.so.1 \
   /usr/lib/libyuv.so \
   /usr/lib/libdav1d.so.7 \
   /usr/lib/librav1e.so.0.8 \
-  /usr/lib/libSvtAv1Enc.so.3 \
+  /usr/lib/libSvtAv1Enc.so.4 \
   /usr/lib/libaom.so.3 \
+  /usr/lib/libhidapi-hidraw.so.0 \
+  /usr/lib/libevdev.so.2 \
   /usr/lib/libtss2-esys.so.0 \
   /usr/lib/libtss2-mu.so.0 \
   /usr/lib/libtss2-rc.so.0 \
   /usr/lib/libtss2-tctildr.so.0 \
-  /usr/lib/libhidapi-hidraw.so.0 \
-  /usr/lib/libevdev.so.2 \
   /usr/lib/libatspi.so.0 \
   /usr/lib32/libdbus-1.so.3 \
   /usr/lib/libdbus-1.so.3 \
@@ -266,11 +272,11 @@ WeedlyWeb: \
   /usr/lib/libudev.so.1 \
   /usr/lib/libtss2-sys.so.1
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/Scrt1.o:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/Scrt1.o:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crti.o:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/crti.o:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/crtbeginS.o:
 
 CMakeFiles/WeedlyWeb.dir/src/main.cpp.o:
 
@@ -300,109 +306,117 @@ CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o:
 
 CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libwebkit2gtk-4.1.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libwebkit2gtk-4.1.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgtk-3.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgtk-3.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk-3.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgdk-3.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libz.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libz.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libpangocairo-1.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libpangocairo-1.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libcairo-gobject.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libcairo-gobject.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk_pixbuf-2.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgdk_pixbuf-2.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libatk-1.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libatk-1.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libpango-1.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libpango-1.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libcairo.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libcairo.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libharfbuzz.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libharfbuzz.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libsoup-3.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libsoup-3.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgio-2.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgio-2.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgmodule-2.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgmodule-2.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libjavascriptcoregtk-4.1.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libjavascriptcoregtk-4.1.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgobject-2.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgobject-2.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libglib-2.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libglib-2.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgtk-3.so:
-
-/usr/lib/libcurl.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libsqlite3.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk-3.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libz.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libpangocairo-1.0.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libcairo-gobject.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgdk_pixbuf-2.0.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libatk-1.0.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libpango-1.0.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libcairo.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libharfbuzz.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libsoup-3.0.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgio-2.0.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgmodule-2.0.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libjavascriptcoregtk-4.1.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgobject-2.0.so:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libglib-2.0.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgtk-3.so:
 
 /usr/lib/libcurl.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libsqlite3.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libsqlite3.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libstdc++.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgdk-3.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libz.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libpangocairo-1.0.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libcairo-gobject.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgdk_pixbuf-2.0.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libatk-1.0.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libpango-1.0.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libcairo.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libharfbuzz.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libsoup-3.0.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgio-2.0.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgmodule-2.0.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libjavascriptcoregtk-4.1.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgobject-2.0.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libglib-2.0.so:
+
+/usr/lib/libcurl.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libsqlite3.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libstdc++.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libm.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libm.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libm.so:
 
 /usr/lib/libm.so.6:
 
 /usr/lib/libmvec.so.1:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so.1:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgcc_s.so.1:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc.a:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc.a:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libc.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic_asneeded.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libc.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic_asneeded.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libc.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic_asneeded.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libc.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libc.so:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libc.so:
 
 /usr/lib/libc.so.6:
 
@@ -410,27 +424,31 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/ld-linux-x86-64.so.2:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc_s.so:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libgcc_s.so.1:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/libgcc_s.so.1:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc.a:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libgcc.a:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/crtendS.o:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/crtn.o:
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/../../../../lib/crtn.o:
 
 /usr/lib/libepoxy.so.0:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/libatomic.so:
 
 /usr/lib32/libfreetype.so.6:
 
 /usr/lib/libfreetype.so.6:
+
+/usr/lib32/libfontconfig.so.1:
 
 /usr/lib/libfontconfig.so.1:
 
@@ -466,8 +484,6 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/liblcms2.so.2:
 
-/usr/lib/libwoff2dec.so.1.0.2:
-
 /usr/lib32/libgcrypt.so.20:
 
 /usr/lib/libgcrypt.so.20:
@@ -496,21 +512,11 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libwebp.so.7:
 
-/usr/lib/libjxl.so.0.11:
+/usr/lib/libjxl.so.0.12:
 
 /usr/lib/libavif.so.16:
 
 /usr/lib/libharfbuzz-icu.so.0:
-
-/usr/lib/libenchant-2.so.2:
-
-/usr/lib/libsecret-1.so.0:
-
-/usr/lib32/libtasn1.so.6:
-
-/usr/lib/libtasn1.so.6:
-
-/usr/lib/libhyphen.so.0:
 
 /usr/lib32/libX11.so.6:
 
@@ -528,6 +534,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libseccomp.so.2:
 
+/usr/lib/libenchant-2.so.2:
+
 /usr/lib32/libgbm.so.1:
 
 /usr/lib/libgbm.so.1:
@@ -535,6 +543,14 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib32/libdrm.so.2:
 
 /usr/lib/libdrm.so.2:
+
+/usr/lib32/libtasn1.so.6:
+
+/usr/lib/libtasn1.so.6:
+
+/usr/lib/libhyphen.so.0:
+
+/usr/lib/libsecret-1.so.0:
 
 /usr/lib/ld-linux-x86-64.so.2:
 
@@ -549,6 +565,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib/libcloudproviders.so.0:
 
 /usr/lib/libtinysparql-3.0.so.0:
+
+/usr/lib32/libXfixes.so.3:
 
 /usr/lib/libXfixes.so.3:
 
@@ -573,6 +591,8 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib/libXcomposite.so.1:
 
 /usr/lib/libXrandr.so.2:
+
+/usr/lib32/libXinerama.so.1:
 
 /usr/lib/libXinerama.so.1:
 
@@ -618,10 +638,6 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libmount.so.1:
 
-/usr/lib32/libatomic.so.1:
-
-/usr/lib/libatomic.so.1:
-
 /usr/lib32/libffi.so.8:
 
 /usr/lib/libffi.so.8:
@@ -633,6 +649,14 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib32/libnghttp3.so.9:
 
 /usr/lib/libnghttp3.so.9:
+
+/usr/lib32/libngtcp2_crypto_ossl.so.0:
+
+/usr/lib/libngtcp2_crypto_ossl.so.0:
+
+/usr/lib32/libngtcp2.so.16:
+
+/usr/lib/libngtcp2.so.16:
 
 /usr/lib32/libidn2.so.0:
 
@@ -658,15 +682,9 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libbz2.so.1.0:
 
-/usr/lib32/libcap.so.2:
-
-/usr/lib/libcap.so.2:
-
 /usr/lib32/libicudata.so.78:
 
 /usr/lib/libicudata.so.78:
-
-/usr/lib/libwoff2common.so.1.0.2:
 
 /usr/lib32/libgpg-error.so.0:
 
@@ -696,7 +714,7 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/libsharpyuv.so.0:
 
-/usr/lib/libjxl_cms.so.0.11:
+/usr/lib/libjxl_cms.so.0.12:
 
 /usr/lib/libhwy.so.1:
 
@@ -710,9 +728,13 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 
 /usr/lib/librav1e.so.0.8:
 
-/usr/lib/libSvtAv1Enc.so.3:
+/usr/lib/libSvtAv1Enc.so.4:
 
 /usr/lib/libaom.so.3:
+
+/usr/lib/libhidapi-hidraw.so.0:
+
+/usr/lib/libevdev.so.2:
 
 /usr/lib/libtss2-esys.so.0:
 
@@ -721,10 +743,6 @@ CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o:
 /usr/lib/libtss2-rc.so.0:
 
 /usr/lib/libtss2-tctildr.so.0:
-
-/usr/lib/libhidapi-hidraw.so.0:
-
-/usr/lib/libevdev.so.2:
 
 /usr/lib/libatspi.so.0:
 

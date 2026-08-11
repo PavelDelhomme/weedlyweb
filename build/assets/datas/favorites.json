@@ -1,7 +1,111 @@
 [
     {
-        "name": "Speedd",
-        "tag": "Général",
+        "name": "DuckDuckGo",
+        "tag": "Recherche",
+        "url": "https://duckduckgo.com/"
+    },
+    {
+        "name": "Speedtest",
+        "tag": "Outils",
         "url": "https://www.speedtest.net/"
+    },
+    {
+        "children": [
+            {
+                "children": [
+                    {
+                        "name": "Example",
+                        "tag": "Test",
+                        "url": "https://example.com/"
+                    },
+                    {
+                        "name": "Wikipedia",
+                        "tag": "Test",
+                        "url": "https://www.wikipedia.org/"
+                    }
+                ],
+                "name": "Sous-dossier A",
+                "type": "folder"
+            },
+            {
+                "children": [
+                    {
+                        "name": "GitHub",
+                        "tag": "Dev",
+                        "url": "https://github.com/"
+                    },
+                    {
+                        "name": "Brave Browser",
+                        "tag": "Ref",
+                        "url": "https://github.com/brave/brave-browser"
+                    }
+                ],
+                "name": "Sous-dossier B",
+                "type": "folder"
+            },
+            {
+                "name": "MDN",
+                "tag": "Dev",
+                "url": "https://developer.mozilla.org/"
+            }
+        ],
+        "name": "Tests",
+        "type": "folder"
+    },
+    {
+        "children": [
+            {
+                "name": "Arch Wiki",
+                "tag": "Linux",
+                "url": "https://wiki.archlinux.org/"
+            },
+            {
+                "name": "Linear",
+                "tag": "Travail",
+                "url": "https://linear.app/"
+            }
+        ],
+        "name": "Travail",
+        "type": "folder"
+    },
+    {
+        "name": "Hacker News",
+        "tag": "News",
+        "url": "https://news.ycombinator.com/"
+    },
+    {
+        "name": "Reddit",
+        "tag": "Social",
+        "url": "https://www.reddit.com/"
+    },
+    {
+        "name": "YouTube",
+        "tag": "Vidéo",
+        "url": "https://www.youtube.com/"
+    },
+    {
+        "name": "Stack Overflow",
+        "tag": "Dev",
+        "url": "https://stackoverflow.com/"
+    },
+    {
+        "name": "Archive.org",
+        "tag": "Web",
+        "url": "https://archive.org/"
+    },
+    {
+        "name": "IPInfo",
+        "tag": "Réseau",
+        "url": "https://ipinfo.io/"
+    },
+    {
+        "name": "Surplus overflow 1",
+        "tag": "Test",
+        "url": "https://example.org/"
+    },
+    {
+        "name": "Surplus overflow 2",
+        "tag": "Test",
+        "url": "https://httpbin.org/"
     }
 ]

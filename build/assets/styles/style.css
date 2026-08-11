@@ -1,12 +1,49 @@
-/* Mode sombre par défaut */
+/* Mode sombre — surfaces unies, enfants transparents */
 #onglet-actif {
-    background-color: #4a90e2; /* Couleur de surbrillance - bleu en mode sombre */
+    background-color: #3d5a80;
 }
 
 #onglet-inactif {
-    background-color: #323232; /* Couleur normale - gris foncé */
+    background-color: #323232;
 }
 
-#barre-favoris {
-    background-color: #2d2d2d; /* Fond sombre */
+#barre-favorites,
+#barre-tabs,
+#scrolled-tabs,
+#barre-navigation {
+    background-color: #282828;
+}
+
+#barre-favorites button,
+#onglet image,
+#onglet label,
+#onglet button,
+#barre-navigation button image {
+    background-color: transparent;
+}
+
+#barre-favorites button {
+    min-height: 22px;
+    min-width: 0;
+    padding: 1px 6px;
+    font-size: 11px;
+    margin: 0;
+}
+
+#barre-favorites #button-favori,
+#barre-favorites #button-favori-dossier,
+#barre-favorites #button-favori-more {
+    padding: 1px 5px;
+}
+
+#group-chip {
+    background-color: rgba(55, 55, 55, 0.95);
+    border-radius: 12px;
+    padding: 2px 6px;
+}
+
+#group-chip-label {
+    font-size: 11px;
+    font-weight: 600;
+    background-color: transparent;
 }
