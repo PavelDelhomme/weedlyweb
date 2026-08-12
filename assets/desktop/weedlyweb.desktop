@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=WeedlyWeb
+GenericName=Navigateur Web
+Comment=Navigateur WebKit2GTK — compatible X11 et Wayland
+Exec=weedlyweb %u
+Icon=weedlyweb
+Terminal=false
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+StartupWMClass=weedlyweb
+Keywords=Internet;WWW;Browser;Web;WebKit;
+# Fonctionne sous GNOME, KDE Plasma, XFCE, LXQt/Lubuntu, MATE/Xubuntu, Cinnamon, i3, dwm (via .desktop/xdg)
+X-GNOME-UsesNotifications=false

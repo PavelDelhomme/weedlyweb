@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Wrapper installé dans PATH — délègue au lanceur multi-backend
+set -euo pipefail
+
+# Préférer le binaire système, sinon build local du dépôt
+if [[ -x /usr/local/bin/WeedlyWeb ]]; then
+    export WEEDLYWEB_BIN=/usr/local/bin/WeedlyWeb
+elif [[ -x /usr/bin/WeedlyWeb ]]; then
+    export WEEDLYWEB_BIN=/usr/bin/WeedlyWeb
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Si installé : /usr/local/lib/weedlyweb/run-weedlyweb.sh
+if [[ -x "${SCRIPT_DIR}/run-weedlyweb.sh" ]]; then
+    exec "${SCRIPT_DIR}/run-weedlyweb.sh" "$@"
+fi
+if [[ -x /usr/local/lib/weedlyweb/run-weedlyweb.sh ]]; then
+    exec /usr/local/lib/weedlyweb/run-weedlyweb.sh "$@"
+fi
+echo "Lanceur WeedlyWeb introuvable" >&2
+exit 127
