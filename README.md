@@ -121,12 +121,38 @@ make check-deps   # Vérifier les dépendances installées
 
 > 💡 **Tout peut être fait via le Makefile !** Utilisez `make help` pour voir toutes les commandes disponibles.
 
+## 🖥️ Compatibilité affichage (X11 / Wayland / DE)
+
+WeedlyWeb vise **Linux desktop** : GNOME, KDE Plasma, XFCE/Xubuntu, LXQt/Lubuntu, MATE, Cinnamon, i3, sway, dwm, etc.
+
+Architecture multi-UI :
+
+| Backend | Chemin | Commande |
+|---------|--------|----------|
+| GTK (défaut) | `src/ui/gtk` | `make run` / `make run-gtk` |
+| Qt6 | `src/ui/qt` | `make run-qt` |
+| Core partagé | `src/core` | — |
+| Android / Cocoa / Win32 | stubs | futurs |
+
+`make run` utilise `scripts/run-weedlyweb.sh` (backends GDK Wayland/X11).
+
+Détails : [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) · [src/ui/README.md](src/ui/README.md).
+
+> Windows / macOS natifs : stubs dans `src/ui/win32` et `src/ui/cocoa`. WSL2 / Homebrew en attendant.
+
 ## 💻 Utilisation
 
 ### Lancement
 
 ```bash
+make run
+# ou
+./scripts/run-weedlyweb.sh
+# Qt :
+make run-qt
+# binaire direct :
 ./build/WeedlyWeb
+./build/WeedlyWebQt
 # ou
 make run
 ```

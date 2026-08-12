@@ -17,7 +17,7 @@ void ScriptEngine::executerScript(WebKitWebView* webView, const std::string& scr
         nullptr, 
         nullptr
     );
-    std::cout << "Script exécuté : " << script << std::endl;
+    std::cout << "Script exécuté (" << script.size() << " octets)" << std::endl;
 }
 
 

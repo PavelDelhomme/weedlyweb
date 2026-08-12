@@ -1,33 +1,53 @@
-#include <filesystem>
-#include <iostream>
-#include <glib.h>
 #include "managers/FileManager.h"
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 
-// Méthode pour obtenir la racine du projet
+namespace {
+
+std::string xdgDataHome() {
+    if (const char* xdg = std::getenv("XDG_DATA_HOME"); xdg && xdg[0] != '\0') {
+        return xdg;
+    }
+    if (const char* home = std::getenv("HOME"); home && home[0] != '\0') {
+        return std::string(home) + "/.local/share";
+    }
+    return "/tmp";
+}
+
+std::string xdgCacheHome() {
+    if (const char* xdg = std::getenv("XDG_CACHE_HOME"); xdg && xdg[0] != '\0') {
+        return xdg;
+    }
+    if (const char* home = std::getenv("HOME"); home && home[0] != '\0') {
+        return std::string(home) + "/.cache";
+    }
+    return "/tmp";
+}
+
+} // namespace
+
 std::string FileManager::obtenirCheminRacine() {
     auto current_path = std::filesystem::current_path();
-    
-    // Si exécuté depuis le dossier build
-    if (current_path.filename() == "build") {
-        return current_path.parent_path().string(); // Retourne le chemin racine
+    if (current_path.filename() == "build" || current_path.filename() == "bin") {
+        return current_path.parent_path().string();
     }
-
-    // Sinon, retourne le chemin actuel
+    // build/ui-qt, build/gtk, etc.
+    if (current_path.parent_path().filename() == "build") {
+        return current_path.parent_path().parent_path().string();
+    }
     return current_path.string();
 }
 
-
-// Retourne un chemin absolu en combinant le chemin actuel avec un chemin relatif
 std::string FileManager::obtenirCheminAbsolu(const std::string& cheminRelatif) {
     return obtenirCheminRacine() + "/" + cheminRelatif;
 }
 
-// Chemin spécifique pour config.json
 std::string FileManager::configJSONPath() {
     return obtenirCheminAbsolu("assets/settings/config.json");
 }
 
-// Chemin spécifique pour favorites.json
 std::string FileManager::favoritesJSONPath() {
     return obtenirCheminAbsolu("assets/datas/favorites.json");
 }
@@ -37,48 +57,41 @@ std::string FileManager::historyJSONPath() {
 }
 
 std::string FileManager::webkitDataDirectory() {
-    const char* base = g_get_user_data_dir();
-    std::string dir = std::string(base ? base : "/tmp") + "/weedlyweb/webkit-data";
+    std::string dir = xdgDataHome() + "/weedlyweb/webkit-data";
     std::filesystem::create_directories(dir);
     return dir;
 }
 
 std::string FileManager::webkitCacheDirectory() {
-    const char* base = g_get_user_cache_dir();
-    std::string dir = std::string(base ? base : "/tmp") + "/weedlyweb/webkit-cache";
+    std::string dir = xdgCacheHome() + "/weedlyweb/webkit-cache";
     std::filesystem::create_directories(dir);
     return dir;
 }
 
 std::string FileManager::cookiesDatabasePath() {
-    const char* base = g_get_user_data_dir();
-    std::string dir = std::string(base ? base : "/tmp") + "/weedlyweb";
+    std::string dir = xdgDataHome() + "/weedlyweb";
     std::filesystem::create_directories(dir);
     return dir + "/cookies.sqlite";
 }
 
-// Chemin spécifique pour settings.html
 std::string FileManager::cheminParametresHTML() {
     return obtenirCheminAbsolu("assets/settings/settings.html");
 }
 
-// Chemin spécifique pour help.html
 std::string FileManager::cheminHelpHTML() {
     return obtenirCheminAbsolu("assets/help/help.html");
 }
 
-// Chemin spécifique pour style.css
 std::string FileManager::cheminStylesCSS() {
     return obtenirCheminAbsolu("assets/styles/style.css");
 }
 
-// Lecture d'un fichier JSON
 nlohmann::json FileManager::readJSON(const std::string& chemin) {
     try {
         std::ifstream fichier(chemin);
         if (!fichier.is_open()) {
             std::cerr << "Erreur : Le fichier " << chemin << " est introuvable ou inaccessible." << std::endl;
-            return nlohmann::json::object(); // Retourne un objet JSON vide
+            return nlohmann::json::object();
         }
         nlohmann::json contenu;
         fichier >> contenu;
@@ -89,7 +102,6 @@ nlohmann::json FileManager::readJSON(const std::string& chemin) {
     }
 }
 
-// Écriture d'un fichier JSON
 void FileManager::writeJSON(const std::string& chemin, const nlohmann::json& contenu) {
     try {
         std::ofstream fichier(chemin);

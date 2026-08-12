@@ -6,6 +6,7 @@
 #include "utils/CommandPalette.h"
 #include "utils/RequestInterceptor.h"
 #include "database/Database.h"
+#include "core/PageEnhancements.h"
 #include <iostream>
 #include <filesystem>
 #include <string>
@@ -867,13 +868,17 @@ Browser::Browser()
       groupChipLabel(nullptr),
       urlBar(nullptr),
       starButton(nullptr),
+      darkModeButton(nullptr),
+      readerModeButton(nullptr),
       loadingSpinner(nullptr),
       favoriteNameEntry(nullptr),
       favoriteUrlEntry(nullptr),
       favoritesPopover(nullptr),
       activeTab(nullptr),
       webContainer(nullptr),
-      preloadHomeView(nullptr)
+      preloadHomeView(nullptr),
+      forceDarkMode(false),
+      readerMode(false)
 {
     // Initialiser la base de données
     database = std::make_unique<Database>();
@@ -952,6 +957,8 @@ Browser::~Browser() {
     tabsBar = nullptr;
     urlBar = nullptr;
     starButton = nullptr;
+    darkModeButton = nullptr;
+    readerModeButton = nullptr;
     loadingSpinner = nullptr;
     favoriteNameEntry = nullptr;
     favoriteUrlEntry = nullptr;
@@ -1116,12 +1123,14 @@ void Browser::buildInterface() {
         }
         // Mettre à jour le bouton étoile selon si l'URL est en favoris
         updateStarButton();
+        applyPageEnhancements();
     });
 
     initializeFavoritesPopover();
     
     // Mettre à jour le bouton étoile initial
     updateStarButton();
+    updateEnhancementButtons();
     // gtk_widget_show_all sera appelé après l'ajout de l'onglet
 }
 
@@ -1202,6 +1211,56 @@ void Browser::initializeNavigationBar() {
     g_signal_connect(starButton, "clicked", G_CALLBACK(on_bouton_favoris_clicked), this);
     gtk_box_pack_start(GTK_BOX(navigationBar), starButton, FALSE, FALSE, 0);
 
+    // Mode sombre forcé (type Dark Reader) — à côté de l'étoile
+    darkModeButton = gtk_toggle_button_new();
+    {
+        GtkIconTheme* theme = gtk_icon_theme_get_default();
+        const char* darkIcon = "weather-clear-night-symbolic";
+        if (!gtk_icon_theme_has_icon(theme, darkIcon)) {
+            darkIcon = gtk_icon_theme_has_icon(theme, "weather-clear-night")
+                           ? "weather-clear-night"
+                           : "preferences-desktop-display-symbolic";
+        }
+        if (!gtk_icon_theme_has_icon(theme, darkIcon)) {
+            darkIcon = "dialog-information";
+        }
+        GtkWidget* darkImg = gtk_image_new_from_icon_name(darkIcon, GTK_ICON_SIZE_BUTTON);
+        gtk_button_set_image(GTK_BUTTON(darkModeButton), darkImg);
+        gtk_button_set_always_show_image(GTK_BUTTON(darkModeButton), TRUE);
+    }
+    gtk_widget_set_name(darkModeButton, "button-dark-mode");
+    gtk_widget_set_tooltip_text(darkModeButton, "Mode sombre des pages (comme Dark Reader)");
+    gtk_widget_set_margin_start(darkModeButton, 2);
+    g_signal_connect(darkModeButton, "toggled", G_CALLBACK(+[](GtkToggleButton*, gpointer user_data) {
+        static_cast<Browser*>(user_data)->toggleForceDarkMode();
+    }), this);
+    gtk_box_pack_start(GTK_BOX(navigationBar), darkModeButton, FALSE, FALSE, 0);
+
+    // Mode lecture (type Chrome mobile)
+    readerModeButton = gtk_toggle_button_new();
+    {
+        GtkIconTheme* theme = gtk_icon_theme_get_default();
+        const char* readerIcon = "view-paged-symbolic";
+        if (!gtk_icon_theme_has_icon(theme, readerIcon)) {
+            readerIcon = gtk_icon_theme_has_icon(theme, "view-paged")
+                             ? "view-paged"
+                             : (gtk_icon_theme_has_icon(theme, "format-justify-left")
+                                    ? "format-justify-left"
+                                    : "text-x-generic");
+        }
+        GtkWidget* readerImg = gtk_image_new_from_icon_name(readerIcon, GTK_ICON_SIZE_BUTTON);
+        gtk_button_set_image(GTK_BUTTON(readerModeButton), readerImg);
+        gtk_button_set_always_show_image(GTK_BUTTON(readerModeButton), TRUE);
+    }
+    gtk_widget_set_name(readerModeButton, "button-reader-mode");
+    gtk_widget_set_tooltip_text(readerModeButton, "Mode lecture (texte épuré)");
+    gtk_widget_set_margin_start(readerModeButton, 2);
+    gtk_widget_set_margin_end(readerModeButton, 2);
+    g_signal_connect(readerModeButton, "toggled", G_CALLBACK(+[](GtkToggleButton*, gpointer user_data) {
+        static_cast<Browser*>(user_data)->toggleReaderMode();
+    }), this);
+    gtk_box_pack_start(GTK_BOX(navigationBar), readerModeButton, FALSE, FALSE, 0);
+
     // Menu hamburger (trois barres horizontales) pour les options
     GtkWidget* boutonMenu = renderingEngine->createButton("open-menu", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
         auto* navigateur = static_cast<Browser*>(user_data);
@@ -1215,6 +1274,7 @@ void Browser::initializeNavigationBar() {
     if (mainContainer && !gtk_widget_get_parent(navigationBar)) {
         gtk_box_pack_start(GTK_BOX(mainContainer), navigationBar, FALSE, FALSE, 0);
     }
+    updateEnhancementButtons();
 }
 
 
@@ -1436,6 +1496,78 @@ void Browser::updateStarButton() {
     gtk_button_set_always_show_image(GTK_BUTTON(starButton), TRUE);
     gtk_widget_set_tooltip_text(starButton,
         estDejaFavori ? "Retirer des favoris" : "Ajouter aux favoris");
+}
+
+void Browser::updateEnhancementButtons() {
+    suppressEnhancementSignals = true;
+    if (darkModeButton && GTK_IS_TOGGLE_BUTTON(darkModeButton)) {
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(darkModeButton), forceDarkMode);
+        gtk_widget_set_tooltip_text(darkModeButton,
+            forceDarkMode ? "Désactiver le mode sombre des pages"
+                          : "Mode sombre des pages (comme Dark Reader)");
+    }
+    if (readerModeButton && GTK_IS_TOGGLE_BUTTON(readerModeButton)) {
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(readerModeButton), readerMode);
+        gtk_widget_set_tooltip_text(readerModeButton,
+            readerMode ? "Quitter le mode lecture" : "Mode lecture (texte épuré)");
+    }
+    suppressEnhancementSignals = false;
+}
+
+void Browser::applyPageEnhancements(WebKitWebView* webView) {
+    WebKitWebView* view = webView;
+    if (!view && activeTab) {
+        view = activeTab->webView;
+    }
+    if (!view || !WEBKIT_IS_WEB_VIEW(view) || !scriptEngine) {
+        return;
+    }
+
+    const gchar* uri = webkit_web_view_get_uri(view);
+    if (!uri || uri[0] == '\0' || g_str_has_prefix(uri, "about:") ||
+        g_str_has_prefix(uri, "weedly:") || g_str_has_prefix(uri, "data:")) {
+        return;
+    }
+
+    if (readerMode) {
+        scriptEngine->executerScript(view, PageEnhancements::readerModeEnableScript());
+    }
+    if (forceDarkMode) {
+        scriptEngine->executerScript(view, PageEnhancements::darkModeEnableScript());
+    } else {
+        scriptEngine->executerScript(view, PageEnhancements::darkModeDisableScript());
+    }
+}
+
+void Browser::toggleForceDarkMode() {
+    if (suppressEnhancementSignals) {
+        return;
+    }
+    const bool on = darkModeButton && GTK_IS_TOGGLE_BUTTON(darkModeButton) &&
+                    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(darkModeButton));
+    forceDarkMode = on;
+    updateEnhancementButtons();
+    applyPageEnhancements();
+    persistSession();
+}
+
+void Browser::toggleReaderMode() {
+    if (suppressEnhancementSignals) {
+        return;
+    }
+    const bool on = readerModeButton && GTK_IS_TOGGLE_BUTTON(readerModeButton) &&
+                    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(readerModeButton));
+    const bool wasOn = readerMode;
+    readerMode = on;
+    updateEnhancementButtons();
+
+    if (readerMode) {
+        applyPageEnhancements();
+    } else if (wasOn && activeTab && activeTab->webView && WEBKIT_IS_WEB_VIEW(activeTab->webView)) {
+        // Sortir du mode lecture en rechargeant la page d'origine
+        webkit_web_view_reload(activeTab->webView);
+    }
+    persistSession();
 }
 
 void Browser::toggleCurrentPageFavorite() {
@@ -2356,6 +2488,9 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                             if (g_browser_instance && g_browser_instance->consumeHomepageSearchFocus()) {
                                 g_browser_instance->focusHomepageSearchBox(web_view);
                             }
+                            if (g_browser_instance) {
+                                g_browser_instance->applyPageEnhancements(web_view);
+                            }
                             
                             if (isDebugLoggingEnabled()) {
                                 const gchar* js =
@@ -2684,6 +2819,9 @@ void Browser::loadConfiguration() {
     }
 
     homepage = config.value("homepage", "https://duckduckgo.com/");
+    forceDarkMode = config.value("force_dark_mode", false);
+    // Mode lecture = par page / session UI, pas restauré au démarrage
+    readerMode = false;
     pendingSessionTabs.clear();
     restorePreviousSession = false;
 
@@ -2704,6 +2842,7 @@ void Browser::loadConfiguration() {
     if (restorePreviousSession && !pendingSessionTabs.empty()) {
         std::cout << "Session précédente : " << pendingSessionTabs.size() << " onglet(s) à restaurer." << std::endl;
     }
+    updateEnhancementButtons();
 }
 
 
@@ -2718,6 +2857,7 @@ void Browser::persistSession() {
         config = nlohmann::json::object();
     }
     config["homepage"] = homepage;
+    config["force_dark_mode"] = forceDarkMode;
 
     nlohmann::json ongletsJson = nlohmann::json::array();
     for (const auto& tab : tabs) {

@@ -90,6 +90,12 @@ public:
     void persistSession();
     void updateStarButton();
     void refreshUrlCompletionModel();
+    void toggleForceDarkMode();
+    void toggleReaderMode();
+    void applyPageEnhancements(WebKitWebView* webView = nullptr);
+    void updateEnhancementButtons();
+    bool isForceDarkMode() const { return forceDarkMode; }
+    bool isReaderMode() const { return readerMode; }
 
     // Méthodes utilitaires
     void loadURL(const std::string& url);
@@ -132,6 +138,8 @@ private:
     GtkWidget *groupChipLabel; // Nom du groupe actif
     GtkWidget *urlBar;
     GtkWidget *starButton;
+    GtkWidget *darkModeButton;
+    GtkWidget *readerModeButton;
     GtkWidget *loadingSpinner;  // Indicateur de chargement dans la barre d'URL
     GtkWidget *favoriteNameEntry;
     GtkWidget *favoriteUrlEntry;
@@ -155,6 +163,8 @@ private:
     GtkWidget* webContainer;  // Container pour les WebViews (une seule visible à la fois)
     std::shared_ptr<nlohmann::json> favorites;
     std::string homepage;
+    bool forceDarkMode = false;
+    bool readerMode = false;
     bool pendingHomepageSearchFocus = false;
     std::vector<std::string> pendingSessionTabs;
     bool restorePreviousSession = false;
@@ -183,6 +193,7 @@ private:
     void createContextMenu(GtkWidget* button);
     static void onStarButtonClicked(GtkButton* button, gpointer user_data);
     static std::string normalizeNavigationUrl(const std::string& url);
+    bool suppressEnhancementSignals = false;
 
     // Gestionnaire de mémoire et signaux
     void configureKeyboardShortcuts(); 

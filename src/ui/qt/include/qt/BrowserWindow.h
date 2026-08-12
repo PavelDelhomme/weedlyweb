@@ -3,11 +3,11 @@
 
 #include <QMainWindow>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QWidget>
 #include <QString>
 #include <memory>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 class WebView;
 class TabBar;
@@ -17,8 +17,7 @@ class CommandPalette;
 
 struct TabData {
     QString url;
-    WebView* webView;
-    QWidget* tabWidget;
+    WebView* webView = nullptr;
 };
 
 class BrowserWindow : public QMainWindow
@@ -27,7 +26,10 @@ class BrowserWindow : public QMainWindow
 
 public:
     explicit BrowserWindow(QWidget *parent = nullptr);
-    ~BrowserWindow();
+    ~BrowserWindow() override;
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void onUrlChanged(const QString &url);
@@ -48,30 +50,31 @@ private:
     void setupConnections();
     void loadConfiguration();
     void saveConfiguration();
+    void loadFavorites();
+    void restoreSession();
+    void persistSession();
     void addNewTab(const QString &url = QString());
     void removeTab(int index);
     void activateTab(int index);
     void updateStarButton();
     void refreshFavoritesBar();
-    
-    // UI Components
-    QWidget* centralWidget;
-    QVBoxLayout* mainLayout;
-    TabBar* tabBar;
-    NavigationBar* navigationBar;
-    FavoritesBar* favoritesBar;
-    QWidget* webContainer;
-    CommandPalette* commandPalette;
-    
-    // Data
+    void applyPageEnhancements();
+    WebView* currentWebView() const;
+
+    QWidget* centralWidget_ = nullptr;
+    QVBoxLayout* mainLayout = nullptr;
+    TabBar* tabBar = nullptr;
+    NavigationBar* navigationBar = nullptr;
+    FavoritesBar* favoritesBar = nullptr;
+    QWidget* webContainer = nullptr;
+    CommandPalette* commandPalette = nullptr;
+
     std::vector<TabData> tabs;
-    int activeTabIndex;
+    int activeTabIndex = -1;
     QString homepage;
-    
-    // Managers (à adapter depuis GTK)
-    // std::unique_ptr<FavoritesManager> favoritesManager;
-    // std::unique_ptr<TabsManager> tabsManager;
+    nlohmann::json favoritesRoot = nlohmann::json::array();
+    bool forceDarkMode = false;
+    bool readerMode = false;
 };
 
 #endif // BROWSERWINDOW_H
-

@@ -22,6 +22,19 @@
     background-color: transparent;
 }
 
+#button-dark-mode:checked,
+#button-reader-mode:checked {
+    background-color: #3d5a80;
+    border-radius: 4px;
+}
+
+#button-etoile,
+#button-dark-mode,
+#button-reader-mode {
+    min-width: 28px;
+    padding: 2px;
+}
+
 #barre-favorites button {
     min-height: 22px;
     min-width: 0;

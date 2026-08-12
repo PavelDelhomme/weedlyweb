@@ -4,7 +4,9 @@
 #include <QWidget>
 #include <QHBoxLayout>
 #include <QPushButton>
-#include <QStringList>
+#include <QPair>
+#include <QList>
+#include <QString>
 
 class FavoritesBar : public QWidget
 {
@@ -12,17 +14,16 @@ class FavoritesBar : public QWidget
 
 public:
     explicit FavoritesBar(QWidget *parent = nullptr);
-    
-    void setFavorites(const QStringList &favorites);
+
+    void setFavorites(const QList<QPair<QString, QString>> &favorites); // name, url
     void refresh();
 
 signals:
     void favoriteClicked(const QString &url);
 
 private:
-    QHBoxLayout* layout;
+    QHBoxLayout* layout = nullptr;
     QList<QPushButton*> favoriteButtons;
 };
 
 #endif // FAVORITESBAR_H
-

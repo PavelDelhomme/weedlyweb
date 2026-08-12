@@ -1,224 +1,117 @@
 cmake_minimum_required(VERSION 3.16)
-project(WeedlyWeb VERSION 1.0)
+project(WeedlyWeb VERSION 1.0 LANGUAGES CXX)
 
-# Activer le C++17
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Option pour choisir l'interface (Qt ou GTK)
-# Par défaut, Qt est prioritaire si disponible, sinon GTK
-option(USE_QT "Utiliser Qt6 au lieu de GTK" ON)
+# Backends UI (plusieurs peuvent être activés en même temps)
+option(BUILD_UI_GTK "Compiler le backend GTK/WebKit2GTK" ON)
+option(BUILD_UI_QT "Compiler le backend Qt6/WebEngine" ON)
+# Compatibilité ancienne option
+option(USE_QT "DEPRECATED: utilise BUILD_UI_QT ; si ON force Qt seul" OFF)
 
-# Si USE_QT est ON, vérifier que Qt est disponible
 if(USE_QT)
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_check_modules(QT6_TEST QUIET Qt6Core Qt6Gui Qt6Widgets Qt6WebEngineWidgets)
-        if(NOT QT6_TEST_FOUND)
-            message(WARNING "⚠️  Qt6 demandé mais non détecté, basculement vers GTK")
-            message(WARNING "💡 Pour installer Qt6 : sudo pacman -S qt6-base qt6-webengine")
-            set(USE_QT OFF CACHE BOOL "Utiliser Qt6" FORCE)
-        else()
-            message(STATUS "✅ Qt6 détecté et activé par défaut")
-        endif()
-    else()
-        message(WARNING "⚠️  pkg-config non trouvé, basculement vers GTK")
-        set(USE_QT OFF CACHE BOOL "Utiliser Qt6" FORCE)
-    endif()
+    message(WARNING "USE_QT est déprécié — utilisez -DBUILD_UI_QT=ON -DBUILD_UI_GTK=OFF")
+    set(BUILD_UI_GTK OFF CACHE BOOL "" FORCE)
+    set(BUILD_UI_QT ON CACHE BOOL "" FORCE)
 endif()
 
-# Si Qt est demandé, utiliser ui-qt
-if(USE_QT)
-    message(STATUS "🔧 Configuration pour Qt6")
-    message(STATUS "📁 Build directory: ${CMAKE_BINARY_DIR}/ui-qt/build")
-    add_subdirectory(ui-qt)
-    set(EXECUTABLE_NAME WeedlyWebQt)
-    set(EXECUTABLE_PATH ${CMAKE_BINARY_DIR}/ui-qt/build/WeedlyWebQt)
-else()
-    message(STATUS "🔧 Configuration pour GTK")
-    message(STATUS "📁 Build directory: ${CMAKE_BINARY_DIR}")
-    
-    # Configuration GTK
-    if(NOT CMAKE_BUILD_TYPE)
-        set(CMAKE_BUILD_TYPE Debug CACHE STRING "Type de build" FORCE)
-    endif()
-    
-    # Inclure le répertoire des en-têtes
-    include_directories(${PROJECT_SOURCE_DIR}/include)
-    
-    # Chercher la bibliothèque WebKit2GTK
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(WEBKIT2GTK REQUIRED webkit2gtk-4.1)
-    
-    # Vérification de la bibliothèque
-    if(NOT WEBKIT2GTK_FOUND)
-        message(FATAL_ERROR "webKit2GTK 4.1 n'a pas pu être trouvé. Assurez-vous que webkit2gtk-4.1.pc est disponible.")
-    endif()
-    
-    # Rechercher la bibliothèque cURL
-    find_package(CURL REQUIRED)
-    
-    # Rechercher SQLite3
-    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
-    
-    # Rechercher nlohmann/json
-    find_path(NLOHMANN_JSON_INCLUDE_DIR nlohmann/json.hpp
-        PATHS
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+find_package(PkgConfig REQUIRED)
+find_package(CURL REQUIRED)
+pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+
+find_path(NLOHMANN_JSON_INCLUDE_DIR nlohmann/json.hpp
+    PATHS
         /usr/include
         /usr/local/include
         /opt/homebrew/include
         ${CMAKE_SOURCE_DIR}/third_party/nlohmann
-    )
-    
-    if(NOT NLOHMANN_JSON_INCLUDE_DIR)
-        message(STATUS "nlohmann/json non trouvé, téléchargement...")
-        file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/nlohmann)
-        file(DOWNLOAD 
-            https://github.com/nlohmann/json/releases/download/v3.11.2/json.hpp
-            ${CMAKE_BINARY_DIR}/nlohmann/json.hpp
-            TIMEOUT 30
-            SHOW_PROGRESS
-        )
-        set(NLOHMANN_JSON_INCLUDE_DIR ${CMAKE_BINARY_DIR})
-        message(STATUS "nlohmann/json téléchargé dans: ${CMAKE_BINARY_DIR}/nlohmann/json.hpp")
-    endif()
-    
-    if(NLOHMANN_JSON_INCLUDE_DIR)
-        include_directories(${NLOHMANN_JSON_INCLUDE_DIR})
-    endif()
-    
-    # Sources GTK
-    set(SOURCES
-        src/main.cpp
-        src/browser/Browser.cpp
-        src/rendering/RenderingEngine.cpp
-        src/managers/FavoritesManager.cpp
-        src/managers/TabsManager.cpp
-        src/managers/HTTPManager.cpp
-        src/managers/MemoryManager.cpp
-        src/managers/FileManager.cpp
-        src/engine/ScriptEngine.cpp
-        src/utils/Utils.cpp
-        src/utils/CVEAnalyzer.cpp
-        src/utils/CommandPalette.cpp
-        src/utils/RequestInterceptor.cpp
-        src/database/Database.cpp
-    )
-    
-    set(HEADERS
-        include/browser/Browser.h
-        include/rendering/RenderingEngine.h
-        include/managers/FavoritesManager.h
-        include/managers/TabsManager.h
-        include/managers/HTTPManager.h
-        include/managers/MemoryManager.h
-        include/managers/FileManager.h
-        include/engine/ScriptEngine.h
-        include/utils/Utils.h
-        include/utils/CVEAnalyzer.h
-        include/utils/CommandPalette.h
-        include/utils/RequestInterceptor.h
-        include/database/Database.h
-    )
-    
-    # Créer l'exécutable GTK
-    add_executable(WeedlyWeb ${SOURCES} ${HEADERS})
-    
-    # Flags de debug uniquement pour les builds Debug
-    target_compile_options(WeedlyWeb PRIVATE $<$<CONFIG:Debug>:-g>)
-    
-    # Inclure les répertoires nécessaires
-    target_include_directories(WeedlyWeb PRIVATE 
-        ${WEBKIT2GTK_INCLUDE_DIRS} 
-        ${GDK_PIXBUF_INCLUDE_DIRS}
-        ${CMAKE_SOURCE_DIR}/include
-        ${NLOHMANN_JSON_INCLUDE_DIR}
-    )
-    
-    # Lier les bibliothèques nécessaires
-    target_link_libraries(WeedlyWeb PRIVATE 
-        ${WEBKIT2GTK_LIBRARIES} 
-        gtk-3 
-        ${GDK_PIXBUF_LIBRARIES}
-        ${CURL_LIBRARIES}
-        ${SQLITE3_LIBRARIES}
-    )
-    
-    # Copier les assets
-    add_custom_command(TARGET WeedlyWeb POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/assets
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/settings
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/datas
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/icons
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/assets/help
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/settings/config.json ${CMAKE_BINARY_DIR}/assets/settings/config.json
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/datas/favorites.json ${CMAKE_BINARY_DIR}/assets/datas/favorites.json
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/styles/style.css ${CMAKE_BINARY_DIR}/assets/styles/style.css
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/help/help.html ${CMAKE_BINARY_DIR}/assets/help/help.html
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/assets/icons/weedlyweb.svg ${CMAKE_BINARY_DIR}/assets/icons/weedlyweb.svg
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/assets/icons/weedlyweb.png ${CMAKE_BINARY_DIR}/assets/icons/weedlyweb.png
-    )
-    
-    # Installation
-    set(INSTALL_DIR /usr/local)
-    install(TARGETS WeedlyWeb RUNTIME DESTINATION ${INSTALL_DIR}/bin)
-    install(FILES
-        ${CMAKE_SOURCE_DIR}/assets/settings/config.json
-        ${CMAKE_SOURCE_DIR}/assets/datas/favorites.json
-        ${CMAKE_SOURCE_DIR}/assets/styles/style.css
-        ${CMAKE_SOURCE_DIR}/assets/help/help.html
-        DESTINATION ${INSTALL_DIR}/share/WeedlyWeb
-    )
-    
-    set(EXECUTABLE_NAME WeedlyWeb)
-    set(EXECUTABLE_PATH ${CMAKE_BINARY_DIR}/WeedlyWeb)
-endif()
-
-# Cible help personnalisée pour afficher les instructions de démarrage
-# Note: "help" est réservé par CMake, on utilise "project-help" en interne
-# mais le Makefile wrapper intercepte "make help" pour afficher cette aide
-add_custom_target(project-help
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "🌐 WeedlyWeb - Guide de démarrage"
-    COMMAND ${CMAKE_COMMAND} -E echo "=================================="
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "📋 Commandes principales :"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "  make              Compile le projet"
-    COMMAND ${CMAKE_COMMAND} -E echo "  make clean        Nettoie le répertoire de build"
-    COMMAND ${CMAKE_COMMAND} -E echo "  make install      Installe l'application"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "🚀 Pour démarrer rapidement :"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "  1. Installer les dépendances :"
-    COMMAND ${CMAKE_COMMAND} -E echo "     ./scripts/install-deps.sh"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "  2. Configurer CMake (si pas déjà fait) :"
-    COMMAND ${CMAKE_COMMAND} -E echo "     cmake -B build -S ."
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "  3. Compiler :"
-    COMMAND ${CMAKE_COMMAND} -E echo "     make"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "  4. Lancer l'application :"
-    COMMAND ${CMAKE_COMMAND} -E echo "     ./${EXECUTABLE_PATH}"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "📚 Documentation :"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "  - README.md                    Documentation principale"
-    COMMAND ${CMAKE_COMMAND} -E echo "  - docs/QUICKSTART.md           Guide de démarrage rapide"
-    COMMAND ${CMAKE_COMMAND} -E echo "  - docs/INSTALL_DEPENDENCIES.md Guide d'installation"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "💡 Astuce : Consultez README.md pour plus d'informations !"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "=================================="
-    COMMAND ${CMAKE_COMMAND} -E echo ""
+        ${CMAKE_BINARY_DIR}
 )
 
-# Message final
+if(NOT NLOHMANN_JSON_INCLUDE_DIR)
+    message(STATUS "nlohmann/json non trouvé, téléchargement...")
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/nlohmann)
+    file(DOWNLOAD
+        https://github.com/nlohmann/json/releases/download/v3.11.2/json.hpp
+        ${CMAKE_BINARY_DIR}/nlohmann/json.hpp
+        TIMEOUT 30
+        SHOW_PROGRESS
+    )
+    set(NLOHMANN_JSON_INCLUDE_DIR ${CMAKE_BINARY_DIR})
+endif()
+
+# Détection Qt (optionnelle)
+set(QT6_AVAILABLE FALSE)
+if(BUILD_UI_QT)
+    find_package(Qt6 QUIET COMPONENTS Core Gui Widgets WebEngineWidgets)
+    if(Qt6_FOUND)
+        set(QT6_AVAILABLE TRUE)
+        message(STATUS "✅ Qt6 WebEngine détecté — backend Qt activé")
+    else()
+        message(WARNING "⚠️  BUILD_UI_QT=ON mais Qt6 WebEngine introuvable — backend Qt désactivé")
+        message(WARNING "💡 Arch: sudo pacman -S qt6-base qt6-webengine")
+        set(BUILD_UI_QT OFF CACHE BOOL "" FORCE)
+    endif()
+endif()
+
+# Détection GTK
+if(BUILD_UI_GTK)
+    pkg_check_modules(WEBKIT2GTK REQUIRED webkit2gtk-4.1)
+    message(STATUS "✅ WebKit2GTK détecté — backend GTK activé")
+endif()
+
+if(NOT BUILD_UI_GTK AND NOT BUILD_UI_QT)
+    message(FATAL_ERROR "Aucun backend UI activé. Activez BUILD_UI_GTK et/ou BUILD_UI_QT.")
+endif()
+
+add_subdirectory(src/core)
+
+if(BUILD_UI_GTK)
+    add_subdirectory(src/ui/gtk)
+endif()
+
+if(BUILD_UI_QT)
+    add_subdirectory(src/ui/qt)
+endif()
+
+# Installation commune
+install(PROGRAMS
+    ${CMAKE_SOURCE_DIR}/scripts/run-weedlyweb.sh
+    DESTINATION lib/weedlyweb
+)
+install(PROGRAMS
+    ${CMAKE_SOURCE_DIR}/scripts/weedlyweb
+    DESTINATION bin
+)
+install(FILES
+    ${CMAKE_SOURCE_DIR}/assets/desktop/weedlyweb.desktop
+    DESTINATION share/applications
+)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/assets/
+    DESTINATION share/WeedlyWeb
+)
+
+add_custom_target(project-help
+    COMMAND ${CMAKE_COMMAND} -E echo "WeedlyWeb — backends: GTK=${BUILD_UI_GTK} Qt=${BUILD_UI_QT}"
+    COMMAND ${CMAKE_COMMAND} -E echo "  make / cmake --build build"
+    COMMAND ${CMAKE_COMMAND} -E echo "  ./scripts/run-weedlyweb.sh          # GTK (défaut)"
+    COMMAND ${CMAKE_COMMAND} -E echo "  WEEDLYWEB_UI=qt ./scripts/run-weedlyweb.sh"
+    COMMAND ${CMAKE_COMMAND} -E echo "  Structure: src/core + src/ui/{gtk,qt,android,cocoa,win32}"
+)
+
 message(STATUS "")
-message(STATUS "✅ Configuration terminée !")
-message(STATUS "📦 Exécutable: ${EXECUTABLE_NAME}")
-message(STATUS "🚀 Pour compiler: make")
-message(STATUS "▶️  Pour lancer: ./${EXECUTABLE_PATH}")
-message(STATUS "💡 Pour l'aide: make help")
+message(STATUS "✅ Configuration terminée")
+message(STATUS "   Core     : WeedlyWebCore")
+if(BUILD_UI_GTK)
+    message(STATUS "   GTK      : WeedlyWeb  (src/ui/gtk)")
+endif()
+if(BUILD_UI_QT)
+    message(STATUS "   Qt       : WeedlyWebQt (src/ui/qt)")
+endif()
+message(STATUS "   Stubs    : src/ui/{android,cocoa,win32}")
 message(STATUS "")
