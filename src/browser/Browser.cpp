@@ -34,6 +34,37 @@ bool isDebugLoggingEnabled() {
     return normalized != "0" && normalized != "false" && normalized != "FALSE" &&
            normalized != "off" && normalized != "OFF";
 }
+
+WebKitWebContext* getPersistentWebContext() {
+    static WebKitWebContext* context = nullptr;
+    if (context) {
+        return context;
+    }
+
+    const std::string dataDir = FileManager::webkitDataDirectory();
+    const std::string cacheDir = FileManager::webkitCacheDirectory();
+    const std::string cookiesPath = FileManager::cookiesDatabasePath();
+
+    WebKitWebsiteDataManager* manager = webkit_website_data_manager_new(
+        "base-data-directory", dataDir.c_str(),
+        "base-cache-directory", cacheDir.c_str(),
+        nullptr);
+    context = webkit_web_context_new_with_website_data_manager(manager);
+
+    WebKitCookieManager* cookieManager = webkit_web_context_get_cookie_manager(context);
+    webkit_cookie_manager_set_persistent_storage(
+        cookieManager,
+        cookiesPath.c_str(),
+        WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
+    // Nécessaire pour rester connecté à Google et sites similaires
+    webkit_cookie_manager_set_accept_policy(cookieManager, WEBKIT_COOKIE_POLICY_ACCEPT_ALWAYS);
+
+    return context;
+}
+
+WebKitWebView* createPersistentWebView() {
+    return WEBKIT_WEB_VIEW(webkit_web_view_new_with_context(getPersistentWebContext()));
+}
 }
 
 #define WEEDLYWEB_DEBUG_LOG(message) \
@@ -192,6 +223,26 @@ struct FaviconLoadData {
     std::string url;
 };
 
+static std::string favicon_cache_dir() {
+    const char* home = g_get_user_cache_dir();
+    std::string dir = std::string(home ? home : "/tmp") + "/weedlyweb/favicons";
+    g_mkdir_with_parents(dir.c_str(), 0755);
+    return dir;
+}
+
+static std::string favicon_cache_path_for_host(const std::string& host) {
+    std::string safe;
+    safe.reserve(host.size());
+    for (char c : host) {
+        if (std::isalnum(static_cast<unsigned char>(c)) || c == '.' || c == '-') {
+            safe.push_back(c);
+        } else {
+            safe.push_back('_');
+        }
+    }
+    return favicon_cache_dir() + "/" + safe + ".png";
+}
+
 static gboolean apply_downloaded_favicon(gpointer user_data) {
     auto* data = static_cast<FaviconLoadData*>(user_data);
     if (!data) {
@@ -207,7 +258,7 @@ static gboolean apply_downloaded_favicon(gpointer user_data) {
         if (error) {
             g_error_free(error);
         }
-        unlink(data->url.c_str());
+        // Ne pas unlink : chemin = cache disque
     }
     delete data;
     return FALSE;
@@ -226,22 +277,19 @@ static void* download_favicon_thread(void* user_data) {
         }, data);
         return nullptr;
     }
-    const std::string iconUrl = "https://www.google.com/s2/favicons?sz=32&domain=" + host;
-    gchar* tmpPath = nullptr;
-    gint fd = g_file_open_tmp("weedly-favicon-XXXXXX.png", &tmpPath, nullptr);
-    if (fd < 0 || !tmpPath) {
-        g_idle_add(+[](gpointer p) -> gboolean {
-            delete static_cast<FaviconLoadData*>(p);
-            return FALSE;
-        }, data);
+
+    const std::string cachePath = favicon_cache_path_for_host(host);
+    if (g_file_test(cachePath.c_str(), G_FILE_TEST_IS_REGULAR)) {
+        data->url = cachePath;
+        g_idle_add(apply_downloaded_favicon, data);
         return nullptr;
     }
-    close(fd);
 
+    const std::string iconUrl = "https://www.google.com/s2/favicons?sz=32&domain=" + host;
     CURL* curl = curl_easy_init();
     bool ok = false;
     if (curl) {
-        FILE* fp = fopen(tmpPath, "wb");
+        FILE* fp = fopen(cachePath.c_str(), "wb");
         if (fp) {
             curl_easy_setopt(curl, CURLOPT_URL, iconUrl.c_str());
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
@@ -256,16 +304,15 @@ static void* download_favicon_thread(void* user_data) {
     }
 
     if (ok) {
-        data->url = tmpPath;
+        data->url = cachePath;
         g_idle_add(apply_downloaded_favicon, data);
     } else {
-        unlink(tmpPath);
+        unlink(cachePath.c_str());
         g_idle_add(+[](gpointer p) -> gboolean {
             delete static_cast<FaviconLoadData*>(p);
             return FALSE;
         }, data);
     }
-    g_free(tmpPath);
     return nullptr;
 }
 
@@ -273,11 +320,75 @@ static void start_favicon_load(GtkWidget* image, const std::string& pageUrl) {
     if (!image || pageUrl.empty()) {
         return;
     }
+    // Appliquer immédiatement depuis le cache si dispo
+    const std::string host = extract_host_from_url(pageUrl);
+    if (!host.empty()) {
+        const std::string cachePath = favicon_cache_path_for_host(host);
+        if (g_file_test(cachePath.c_str(), G_FILE_TEST_IS_REGULAR)) {
+            GError* error = nullptr;
+            GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file_at_size(cachePath.c_str(), 16, 16, &error);
+            if (pixbuf) {
+                gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
+                g_object_unref(pixbuf);
+                if (error) g_error_free(error);
+                return;
+            }
+            if (error) g_error_free(error);
+        }
+    }
     auto* data = new FaviconLoadData{image, pageUrl};
     GThread* thread = g_thread_new("favicon-load", download_favicon_thread, data);
     if (thread) {
         g_thread_unref(thread);
     }
+}
+
+static void destroy_json_ptr(gpointer p);
+static gboolean on_bookmark_menu_item_button_press(GtkWidget* widget, GdkEventButton* event, gpointer user_data);
+static gboolean on_folder_menu_item_button_press(GtkWidget* widget, GdkEventButton* event, gpointer user_data);
+static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* browser, const nlohmann::json& children);
+
+static GtkWidget* create_bookmark_menu_item(Browser* browser, const std::string& name, const std::string& url) {
+    GtkWidget* mi = gtk_menu_item_new();
+    GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget* icon = create_letter_icon(name, 14);
+    GtkWidget* label = gtk_label_new(name.c_str());
+    gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+    gtk_box_pack_start(GTK_BOX(box), icon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 0);
+    gtk_container_add(GTK_CONTAINER(mi), box);
+    auto* data = new std::pair<Browser*, std::string>(browser, url);
+    g_signal_connect(mi, "activate", G_CALLBACK(on_menu_item_activate), data);
+    g_object_set_data_full(G_OBJECT(mi), "favorite-name", g_strdup(name.c_str()), g_free);
+    g_object_set_data_full(G_OBJECT(mi), "favorite-url", g_strdup(url.c_str()), g_free);
+    g_signal_connect(mi, "button-press-event", G_CALLBACK(on_bookmark_menu_item_button_press), browser);
+    start_favicon_load(icon, url);
+    return mi;
+}
+
+static GtkWidget* create_folder_menu_item(Browser* browser, const nlohmann::json& folder) {
+    const std::string folderName = folder.value("name", "Dossier");
+    GtkWidget* mi = gtk_menu_item_new();
+    GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget* icon = create_folder_icon_widget(14);
+    GtkWidget* label = gtk_label_new(folderName.c_str());
+    gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+    gtk_box_pack_start(GTK_BOX(box), icon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 0);
+    gtk_container_add(GTK_CONTAINER(mi), box);
+
+    GtkWidget* sub = gtk_menu_new();
+    nlohmann::json subChildren = nlohmann::json::array();
+    if (folder.contains("children") && folder["children"].is_array()) {
+        subChildren = folder["children"];
+    }
+    populate_favorites_menu_from_children(GTK_MENU_SHELL(sub), browser, subChildren);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(mi), sub);
+    auto* owned = new nlohmann::json(folder);
+    g_object_set_data_full(G_OBJECT(mi), "folder-name", g_strdup(folderName.c_str()), g_free);
+    g_object_set_data_full(G_OBJECT(mi), "folder-json", owned, destroy_json_ptr);
+    g_signal_connect(mi, "button-press-event", G_CALLBACK(on_folder_menu_item_button_press), browser);
+    return mi;
 }
 
 static gboolean on_group_color_dot_draw(GtkWidget* widget, cairo_t* cr, gpointer user_data) {
@@ -344,6 +455,7 @@ static void on_delete_favorite_activate(GtkWidget* w, gpointer ud) {
         FavoritesJson::removeByNameRecursive(*favs, n);
         FileManager::writeJSON(FileManager::favoritesJSONPath(), *favs);
         browser->refreshFavoritesBar();
+        browser->updateStarButton();
     }
 }
 
@@ -374,6 +486,7 @@ static void on_delete_folder_activate(GtkWidget* w, gpointer ud) {
         FavoritesJson::removeByNameRecursive(*favs, n);
         FileManager::writeJSON(FileManager::favoritesJSONPath(), *favs);
         browser->refreshFavoritesBar();
+        browser->updateStarButton();
     }
 }
 
@@ -455,30 +568,12 @@ static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* 
     }
     for (const auto& child : children) {
         if (FavoritesJson::isFolder(child)) {
-            const std::string folderName = child.value("name", "Dossier");
-            GtkWidget* mi = gtk_menu_item_new_with_label(folderName.c_str());
-            GtkWidget* sub = gtk_menu_new();
-            nlohmann::json subChildren = nlohmann::json::array();
-            if (child.contains("children") && child["children"].is_array()) {
-                subChildren = child["children"];
-            }
-            populate_favorites_menu_from_children(GTK_MENU_SHELL(sub), browser, subChildren);
-            gtk_menu_item_set_submenu(GTK_MENU_ITEM(mi), sub);
-            auto* owned = new nlohmann::json(child);
-            g_object_set_data_full(G_OBJECT(mi), "folder-name", g_strdup(folderName.c_str()), g_free);
-            g_object_set_data_full(G_OBJECT(mi), "folder-json", owned, destroy_json_ptr);
-            g_signal_connect(mi, "button-press-event", G_CALLBACK(on_folder_menu_item_button_press), browser);
-            gtk_menu_shell_append(shell, mi);
+            gtk_menu_shell_append(shell, create_folder_menu_item(browser, child));
         } else if (child.contains("url") && child.contains("name") && child["url"].is_string()) {
-            const std::string n = child["name"].get<std::string>();
-            const std::string u = child["url"].get<std::string>();
-            GtkWidget* mi = gtk_menu_item_new_with_label(n.c_str());
-            auto* data = new std::pair<Browser*, std::string>(browser, u);
-            g_signal_connect(mi, "activate", G_CALLBACK(on_menu_item_activate), data);
-            g_object_set_data_full(G_OBJECT(mi), "favorite-name", g_strdup(n.c_str()), g_free);
-            g_object_set_data_full(G_OBJECT(mi), "favorite-url", g_strdup(u.c_str()), g_free);
-            g_signal_connect(mi, "button-press-event", G_CALLBACK(on_bookmark_menu_item_button_press), browser);
-            gtk_menu_shell_append(shell, mi);
+            gtk_menu_shell_append(shell, create_bookmark_menu_item(
+                browser,
+                child["name"].get<std::string>(),
+                child["url"].get<std::string>()));
         }
     }
 }
@@ -486,12 +581,13 @@ static void populate_favorites_menu_from_children(GtkMenuShell* shell, Browser* 
 static GtkWidget* create_folder_menu_button(Browser* browser, const nlohmann::json& folderItem) {
     GtkWidget* mb = gtk_menu_button_new();
     const std::string baseName = folderItem.value("name", "Dossier");
-    const std::string label = "📁 " + truncate_favorite_label(baseName);
+    const std::string label = truncate_favorite_label(baseName);
     gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
-    gtk_button_set_always_show_image(GTK_BUTTON(mb), FALSE);
-    gtk_button_set_image(GTK_BUTTON(mb), nullptr);
+    GtkWidget* folderIcon = create_folder_icon_widget(14);
+    gtk_button_set_always_show_image(GTK_BUTTON(mb), TRUE);
+    gtk_button_set_image(GTK_BUTTON(mb), folderIcon);
     gtk_button_set_label(GTK_BUTTON(mb), label.c_str());
-    gtk_widget_set_tooltip_text(mb, ("Dossier : " + baseName + " — clic droit sur un élément pour plus d'actions").c_str());
+    gtk_widget_set_tooltip_text(mb, ("Dossier : " + baseName + " — clic droit pour plus d'actions").c_str());
     gtk_widget_set_name(mb, "button-favori-dossier");
     GtkWidget* menu = gtk_menu_new();
     nlohmann::json children = nlohmann::json::array();
@@ -776,7 +872,8 @@ Browser::Browser()
       favoriteUrlEntry(nullptr),
       favoritesPopover(nullptr),
       activeTab(nullptr),
-      webContainer(nullptr)
+      webContainer(nullptr),
+      preloadHomeView(nullptr)
 {
     // Initialiser la base de données
     database = std::make_unique<Database>();
@@ -793,7 +890,12 @@ Browser::Browser()
     commandPalette = std::make_unique<CommandPalette>();
     commandPalette->setRequestInterceptor(requestInterceptor.get());
     
-    favoritesManager = std::make_unique<FavoritesManager>(favorites, [this]() { refreshFavoritesBar(); });
+    favoritesManager = std::make_unique<FavoritesManager>(favorites, [this]() {
+        refreshFavoritesBar();
+        updateStarButton();
+        refreshUrlCompletionModel();
+    });
+    loadBrowsingHistory();
     loadConfiguration();
     buildInterface();
     g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), this);
@@ -803,6 +905,11 @@ Browser::Browser()
 Browser::~Browser() {
     // Sauvegarder la configuration avant de fermer
     saveConfiguration();
+
+    if (preloadHomeView) {
+        g_object_unref(preloadHomeView);
+        preloadHomeView = nullptr;
+    }
     
     // Nettoyer les WebViews et leurs signaux avant de détruire les widgets
     // Les WebViews sont gérées par GTK mais on doit nettoyer les références
@@ -867,47 +974,21 @@ void Browser::buildInterface() {
     
     // Activer le redimensionnement de la fenêtre
     gtk_window_set_resizable(GTK_WINDOW(window), TRUE);
-    
-    // Obtenir la taille de l'écran immédiatement pour définir la taille par défaut
-    GdkDisplay* display = gdk_display_get_default();
-    if (display) {
-        GdkMonitor* monitor = gdk_display_get_primary_monitor(display);
-        if (!monitor) {
-            gint n_monitors = gdk_display_get_n_monitors(display);
-            if (n_monitors > 0) {
-                monitor = gdk_display_get_monitor(display, 0);
-            }
-        }
-        
-        if (monitor) {
-            GdkRectangle geometry;
-            gdk_monitor_get_geometry(monitor, &geometry);
-            // Utiliser 90% de la largeur et 90% de la hauteur pour mieux utiliser l'écran
-            gint windowWidth = (geometry.width * 90) / 100;
-            gint windowHeight = (geometry.height * 90) / 100;
-            gtk_window_set_default_size(GTK_WINDOW(window), windowWidth, windowHeight);
-            
-            // Centrer la fenêtre
-            gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-        } else {
-            // Fallback si pas de moniteur - utiliser une taille raisonnable
-            gtk_window_set_default_size(GTK_WINDOW(window), 1920, 1080);
-        }
-    } else {
-        // Fallback si pas de display
-        gtk_window_set_default_size(GTK_WINDOW(window), 1920, 1080);
-    }
+    fitWindowToMonitor();
     
     // Ajouter le support du plein écran avec F11
-    g_signal_connect(window, "key-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEvent* event, gpointer user_data) -> gboolean {
+    g_signal_connect(window, "key-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEvent* event, gpointer) -> gboolean {
         if (event->type == GDK_KEY_PRESS) {
             GdkEventKey* key_event = (GdkEventKey*) event;
             if (key_event->keyval == GDK_KEY_F11) {
-                GtkWindow* window = GTK_WINDOW(widget);
-                if (gtk_window_is_maximized(window)) {
-                    gtk_window_unmaximize(window);
+                GtkWindow* win = GTK_WINDOW(widget);
+                GdkWindow* gdkWin = gtk_widget_get_window(widget);
+                const bool isFs = gdkWin &&
+                    (gdk_window_get_state(gdkWin) & GDK_WINDOW_STATE_FULLSCREEN);
+                if (isFs) {
+                    gtk_window_unfullscreen(win);
                 } else {
-                    gtk_window_maximize(window);
+                    gtk_window_fullscreen(win);
                 }
                 return TRUE;
             }
@@ -1002,11 +1083,15 @@ void Browser::buildInterface() {
     
     // Présenter la fenêtre au gestionnaire de fenêtres (pour qu'elle apparaisse dans la barre des tâches)
     gtk_window_present(GTK_WINDOW(window));
+    // Ne pas maximiser/forcer un moniteur : laisse la fenêtre sur l'écran où elle a été ouverte
     
     // Forcer le traitement des événements GTK pour s'assurer que la fenêtre est rendue
     while (gtk_events_pending()) {
         gtk_main_iteration();
     }
+
+    // Précharger la page d'accueil en arrière-plan pendant que l'UI se stabilise
+    preloadHomepage();
     
     // Ajouter le premier onglet : restauration de session (style Chrome/Brave) ou accueil
     restoreSessionTabs();
@@ -1096,14 +1181,19 @@ void Browser::initializeNavigationBar() {
     // Barre d'URL (expandable)
     urlBar = renderingEngine->createTextEntry(G_CALLBACK(&Browser::onUrlBarActivate), this);
     gtk_box_pack_start(GTK_BOX(urlContainer), urlBar, TRUE, TRUE, 0);
+    setupUrlBarCompletion();
     
     // Ajouter le container URL à la barre de navigation
     gtk_box_pack_start(GTK_BOX(navigationBar), urlContainer, TRUE, TRUE, 0);
 
-    // Bouton favorites (étoile) — image GTK symbolic (fiable vs glyphe « null »)
+    // Bouton favorites (étoile) — une seule icône, pas de label doublon
     starButton = gtk_button_new();
-    GtkWidget* starImg = gtk_image_new_from_icon_name("non-starred", GTK_ICON_SIZE_BUTTON);
+    GtkWidget* starImg = gtk_image_new_from_icon_name("non-starred-symbolic", GTK_ICON_SIZE_BUTTON);
+    if (!gtk_icon_theme_has_icon(gtk_icon_theme_get_default(), "non-starred-symbolic")) {
+        starImg = gtk_image_new_from_icon_name("non-starred", GTK_ICON_SIZE_BUTTON);
+    }
     gtk_button_set_image(GTK_BUTTON(starButton), starImg);
+    gtk_button_set_label(GTK_BUTTON(starButton), nullptr);
     gtk_button_set_always_show_image(GTK_BUTTON(starButton), TRUE);
     gtk_widget_set_name(starButton, "button-etoile");
     gtk_widget_set_tooltip_text(starButton, "Ajouter aux favoris");
@@ -1170,7 +1260,7 @@ void Browser::showFavoritesMenu() {
 }
 
 void Browser::showRemainingFavoritesMenu() {
-    constexpr int kMaxTopLevelSlots = 10;
+    constexpr int kMaxTopLevelSlots = 14;
     GtkWidget* menu = gtk_menu_new();
     int index = 0;
     for (const auto& favori : *favorites) {
@@ -1223,7 +1313,7 @@ void Browser::showFavoritesManager() {
 
 
 void Browser::refreshFavoritesBar() {
-    constexpr int kMaxTopLevelSlots = 10;
+    constexpr int kMaxTopLevelSlots = 14;
 
     if (favoritesBar) {
         if (GTK_IS_WIDGET(favoritesBar) && !gtk_widget_in_destruction(favoritesBar)) {
@@ -1275,6 +1365,7 @@ void Browser::refreshFavoritesBar() {
 
     if (favorites && !favorites->empty()) {
         int compteur = 0;
+        const int totalRoot = static_cast<int>(favorites->size());
         for (const auto& favori : *favorites) {
             if (compteur >= kMaxTopLevelSlots) {
                 break;
@@ -1302,15 +1393,18 @@ void Browser::refreshFavoritesBar() {
             }
             compteur++;
         }
-    }
 
-    GtkWidget* overflowBtn = gtk_button_new_with_label("⋯");
-    gtk_widget_set_name(overflowBtn, "button-favori-more");
-    gtk_widget_set_tooltip_text(overflowBtn, "Plus de favoris et gestionnaire");
-    g_signal_connect(overflowBtn, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
-        static_cast<Browser*>(user_data)->showFavoritesOverflowMenu();
-    }), this);
-    gtk_box_pack_end(GTK_BOX(favoritesBar), overflowBtn, FALSE, FALSE, 0);
+        // ⋯ uniquement s'il reste des favoris racine non affichés
+        if (totalRoot > kMaxTopLevelSlots) {
+            GtkWidget* overflowBtn = gtk_button_new_with_label("⋯");
+            gtk_widget_set_name(overflowBtn, "button-favori-more");
+            gtk_widget_set_tooltip_text(overflowBtn, "Autres favoris et gestionnaire");
+            g_signal_connect(overflowBtn, "clicked", G_CALLBACK(+[](GtkButton*, gpointer user_data) {
+                static_cast<Browser*>(user_data)->showFavoritesOverflowMenu();
+            }), this);
+            gtk_box_pack_end(GTK_BOX(favoritesBar), overflowBtn, FALSE, FALSE, 0);
+        }
+    }
 
     if (mainContainer && !gtk_widget_get_parent(favoritesBar)) {
         gtk_box_pack_start(GTK_BOX(mainContainer), favoritesBar, FALSE, FALSE, 0);
@@ -1318,6 +1412,8 @@ void Browser::refreshFavoritesBar() {
     }
     gtk_widget_show_all(favoritesBar);
     updateGroupChip();
+    updateStarButton();
+    refreshUrlCompletionModel();
 }
 
 
@@ -1329,18 +1425,14 @@ void Browser::updateStarButton() {
     const bool estDejaFavori = !urlActuelle.empty() &&
         favorites && FavoritesJson::containsUrlRecursive(*favorites, urlActuelle);
 
-    GtkWidget* img = gtk_image_new_from_icon_name(
-        estDejaFavori ? "starred-symbolic" : "non-starred-symbolic",
-        GTK_ICON_SIZE_BUTTON);
-    // Fallback si le thème n'a pas les icônes symbolic
-    if (!gtk_icon_theme_has_icon(gtk_icon_theme_get_default(),
-            estDejaFavori ? "starred-symbolic" : "non-starred-symbolic")) {
-        img = gtk_image_new_from_icon_name(
-            estDejaFavori ? "starred" : "non-starred",
-            GTK_ICON_SIZE_BUTTON);
+    const char* iconName = estDejaFavori ? "starred-symbolic" : "non-starred-symbolic";
+    const char* fallback = estDejaFavori ? "starred" : "non-starred";
+    if (!gtk_icon_theme_has_icon(gtk_icon_theme_get_default(), iconName)) {
+        iconName = fallback;
     }
+    GtkWidget* img = gtk_image_new_from_icon_name(iconName, GTK_ICON_SIZE_BUTTON);
     gtk_button_set_image(GTK_BUTTON(starButton), img);
-    gtk_button_set_label(GTK_BUTTON(starButton), estDejaFavori ? "★" : "☆");
+    gtk_button_set_label(GTK_BUTTON(starButton), nullptr);
     gtk_button_set_always_show_image(GTK_BUTTON(starButton), TRUE);
     gtk_widget_set_tooltip_text(starButton,
         estDejaFavori ? "Retirer des favoris" : "Ajouter aux favoris");
@@ -1818,9 +1910,11 @@ void Browser::addNewTab(const std::string &url) {
     // Normaliser l'URL (ne pas préfixer data:/about:/file:)
     std::string urlNormalisee = normalizeNavigationUrl(url);
     
-    // Créer la WebView (utilise le contexte par défaut)
-    // Les variables d'environnement dans le Makefile désactivent l'accélération GPU
-    WebKitWebView* newWebView = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    // Créer la WebView (réutilise le préchargement homepage si possible)
+    WebKitWebView* newWebView = takePreloadedHomeView(urlNormalisee);
+    if (!newWebView) {
+        newWebView = createPersistentWebView();
+    }
     
     // Vérifier que la WebView est correctement créée
     if (!newWebView) {
@@ -1935,15 +2029,23 @@ void Browser::addNewTab(const std::string &url) {
             auto* browser = static_cast<Browser*>(user_data);
             if (!browser) return;
             
-            // Trouver l'onglet correspondant à cette WebView
             WebKitWebView* webView = WEBKIT_WEB_VIEW(obj);
             for (auto& tab : browser->tabs) {
                 if (tab.webView == webView && tab.label && GTK_IS_LABEL(tab.label)) {
                     const gchar* title = webkit_web_view_get_title(tab.webView);
+                    const gchar* uri = webkit_web_view_get_uri(tab.webView);
                     if (title) {
                         std::string titreStr(title);
                         std::string titreCourt = titreStr.length() > 20 ? titreStr.substr(0, 17) + "..." : titreStr;
                         gtk_label_set_text(GTK_LABEL(tab.label), titreCourt.c_str());
+                    }
+                    if (uri) {
+                        tab.url = uri;
+                        browser->recordHistoryVisit(uri, title ? title : "");
+                        if (&tab == browser->activeTab) {
+                            browser->updateStarButton();
+                            browser->refreshUrlCompletionModel();
+                        }
                     }
                     break;
                 }
@@ -2144,7 +2246,10 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
             
             // Pages internes (HTML stub) : ne pas recharger via load_uri
             const bool internalPage = tab.url.rfind("weedly://", 0) == 0;
-            bool needsReload = !internalPage && (currentUrl.empty() || currentUrl != tab.url);
+            const bool alreadyLoading = webkit_web_view_is_loading(tab.webView);
+            const bool samePage = !currentUrl.empty() && FavoritesJson::urlsMatch(currentUrl, tab.url);
+            bool needsReload = !internalPage && !alreadyLoading && !samePage &&
+                (currentUrl.empty() || !FavoritesJson::urlsMatch(currentUrl, tab.url));
             
             if (needsReload) {
                 WEEDLYWEB_DEBUG_LOG("[DEBUG] ========== LOADING URL ==========");
@@ -2321,7 +2426,13 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                     }), nullptr);
                     
                     // Handler pour load-failed (erreurs de chargement)
-                    g_signal_connect(tab.webView, "load-failed", G_CALLBACK(+[](WebKitWebView* web_view, WebKitLoadEvent load_event, const gchar* failing_uri, GError* error, gpointer) {
+                    g_signal_connect(tab.webView, "load-failed", G_CALLBACK(+[](WebKitWebView*, WebKitLoadEvent load_event, const gchar* failing_uri, GError* error, gpointer) -> gboolean {
+                        // 302 / CANCELLED = navigation remplacée (onglet, stop, nouvelle URL) — pas une vraie erreur
+                        if (error && error->domain == WEBKIT_NETWORK_ERROR &&
+                            error->code == WEBKIT_NETWORK_ERROR_CANCELLED) {
+                            browser_set_loading_state(false);
+                            return TRUE;
+                        }
                         std::cerr << "[ERROR] ========== LOAD FAILED ==========" << std::endl;
                         std::cerr << "[ERROR] Event: " << load_event << std::endl;
                         std::cerr << "[ERROR] URI: " << (failing_uri ? failing_uri : "NULL") << std::endl;
@@ -2332,6 +2443,7 @@ void Browser::changeActiveTab(GtkWidget* tabWidget) {
                         }
                         browser_set_loading_state(false);
                         std::cerr << "[ERROR] ==================================" << std::endl;
+                        return FALSE;
                     }), nullptr);
             }
             
@@ -2383,7 +2495,8 @@ void Browser::removeFavorite(GtkWidget* widget) {
     const char* storedName = static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "favorite-name"));
     const gchar* favoriteName = storedName ? storedName : gtk_button_get_label(GTK_BUTTON(widget));
     favoritesManager->removeFavorite(favoriteName ? favoriteName : "");
-    refreshFavoritesBar();  // Mise à jour visuelle
+    refreshFavoritesBar();
+    updateStarButton();
 }
 
 
@@ -2532,6 +2645,7 @@ void Browser::loadURL(const std::string& url) {
     webkit_web_view_load_uri(activeTab->webView, urlNormalisee.c_str());
     activeTab->url = urlNormalisee;
     history.push_back(urlNormalisee);
+    recordHistoryVisit(urlNormalisee);
 
     if (urlBar) {
         gtk_entry_set_text(GTK_ENTRY(urlBar), urlNormalisee.c_str());
@@ -2539,7 +2653,6 @@ void Browser::loadURL(const std::string& url) {
     
     updateStarButton();
     persistSession();
-    memoryManager->optimiserMemoire();
 }
 
 void Browser::showMessage(const std::string& message) {
@@ -2622,6 +2735,78 @@ void Browser::persistSession() {
     FileManager::writeJSON(FileManager::configJSONPath(), config);
 }
 
+void Browser::fitWindowToMonitor() {
+    GdkDisplay* display = gdk_display_get_default();
+    if (!display || !window) {
+        gtk_window_set_default_size(GTK_WINDOW(window), 1280, 800);
+        return;
+    }
+
+    // Moniteur sous le pointeur = écran où l'utilisateur lance l'app
+    GdkMonitor* monitor = nullptr;
+    GdkSeat* seat = gdk_display_get_default_seat(display);
+    if (seat) {
+        GdkDevice* pointer = gdk_seat_get_pointer(seat);
+        if (pointer) {
+            gint px = 0, py = 0;
+            gdk_device_get_position(pointer, nullptr, &px, &py);
+            monitor = gdk_display_get_monitor_at_point(display, px, py);
+        }
+    }
+    if (!monitor) {
+        monitor = gdk_display_get_primary_monitor(display);
+    }
+    if (!monitor && gdk_display_get_n_monitors(display) > 0) {
+        monitor = gdk_display_get_monitor(display, 0);
+    }
+
+    if (monitor) {
+        GdkRectangle workarea;
+        gdk_monitor_get_workarea(monitor, &workarea);
+        const gint windowWidth = std::max(900, (workarea.width * 92) / 100);
+        const gint windowHeight = std::max(600, (workarea.height * 92) / 100);
+        gtk_window_set_default_size(GTK_WINDOW(window), windowWidth, windowHeight);
+        // Pas de gtk_window_move : évite de téléporter la fenêtre sur un autre écran
+        gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    } else {
+        gtk_window_set_default_size(GTK_WINDOW(window), 1280, 800);
+        gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    }
+}
+
+void Browser::preloadHomepage() {
+    const std::string url = homepage.empty() ? "https://duckduckgo.com/" : homepage;
+    if (preloadHomeView) {
+        return;
+    }
+    preloadHomeView = createPersistentWebView();
+    if (!preloadHomeView || !WEBKIT_IS_WEB_VIEW(preloadHomeView)) {
+        preloadHomeView = nullptr;
+        return;
+    }
+    // Garder une référence : le widget n'a pas encore de parent
+    g_object_ref_sink(preloadHomeView);
+    WebKitSettings* settings = webkit_web_view_get_settings(preloadHomeView);
+    if (settings) {
+        webkit_settings_set_enable_javascript(settings, TRUE);
+    }
+    webkit_web_view_load_uri(preloadHomeView, url.c_str());
+}
+
+WebKitWebView* Browser::takePreloadedHomeView(const std::string& url) {
+    if (!preloadHomeView || !WEBKIT_IS_WEB_VIEW(preloadHomeView)) {
+        return nullptr;
+    }
+    const std::string target = normalizeNavigationUrl(url);
+    const std::string home = normalizeNavigationUrl(homepage.empty() ? "https://duckduckgo.com/" : homepage);
+    if (!FavoritesJson::urlsMatch(target, home)) {
+        return nullptr;
+    }
+    WebKitWebView* view = preloadHomeView;
+    preloadHomeView = nullptr;
+    return view;
+}
+
 void Browser::restoreSessionTabs() {
     if (restorePreviousSession && !pendingSessionTabs.empty()) {
         for (const auto& url : pendingSessionTabs) {
@@ -2660,7 +2845,7 @@ void Browser::addFavorite(const std::string& nom, const std::string& url, const 
 
 void Browser::showFavoritesOverflowMenu() {
     GtkWidget* menu = gtk_menu_new();
-    constexpr int kMaxTopLevelSlots = 10;
+    constexpr int kMaxTopLevelSlots = 14;
     int index = 0;
     bool hasOverflow = false;
 
@@ -2671,30 +2856,17 @@ void Browser::showFavoritesOverflowMenu() {
             }
             hasOverflow = true;
             if (FavoritesJson::isFolder(favori)) {
-                GtkWidget* item = gtk_menu_item_new_with_label(("📁 " + favori.value("name", "Dossier")).c_str());
-                GtkWidget* sub = gtk_menu_new();
-                nlohmann::json ch = favori.value("children", nlohmann::json::array());
-                populate_favorites_menu_from_children(GTK_MENU_SHELL(sub), this, ch);
-                gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), sub);
-                gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(menu), create_folder_menu_item(this, favori));
             } else if (favori.contains("name") && favori.contains("url")) {
-                GtkWidget* item = gtk_menu_item_new_with_label(favori["name"].get<std::string>().c_str());
-                auto* data = new std::pair<Browser*, std::string>(this, favori["url"].get<std::string>());
-                g_signal_connect(item, "activate", G_CALLBACK(on_menu_item_activate), data);
-                g_object_set_data_full(G_OBJECT(item), "favorite-name", g_strdup(favori["name"].get<std::string>().c_str()), g_free);
-                g_object_set_data_full(G_OBJECT(item), "favorite-url", g_strdup(favori["url"].get<std::string>().c_str()), g_free);
-                g_signal_connect(item, "button-press-event", G_CALLBACK(on_bookmark_menu_item_button_press), this);
-                gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(menu), create_bookmark_menu_item(
+                    this,
+                    favori["name"].get<std::string>(),
+                    favori["url"].get<std::string>()));
             }
         }
     }
 
     if (hasOverflow) {
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
-    } else {
-        GtkWidget* none = gtk_menu_item_new_with_label("Tous les favoris sont affichés");
-        gtk_widget_set_sensitive(none, FALSE);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), none);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
     }
 
@@ -3494,8 +3666,194 @@ void Browser::onGoHome(GtkButton *, Browser *n) {
 
 void Browser::onUrlBarActivate(GtkEntry* entry, gpointer user_data) {
     auto* navigateur = static_cast<Browser*>(user_data);
-    std::string url = gtk_entry_get_text(entry);
-    navigateur->loadURL(url);
+    std::string text = gtk_entry_get_text(entry);
+    if (text.empty()) {
+        return;
+    }
+
+    // Si le texte correspond à un onglet ouvert, y basculer
+    for (auto& tab : navigateur->tabs) {
+        if (FavoritesJson::urlsMatch(tab.url, text) ||
+            (!tab.url.empty() && tab.url.find(text) != std::string::npos)) {
+            // match exact URL d'abord
+        }
+    }
+    for (size_t i = 0; i < navigateur->tabs.size(); ++i) {
+        if (FavoritesJson::urlsMatch(navigateur->tabs[i].url, text)) {
+            navigateur->changeActiveTab(navigateur->tabs[i].tabWidget);
+            return;
+        }
+    }
+
+    navigateur->loadURL(text);
+}
+
+void Browser::loadBrowsingHistory() {
+    nlohmann::json data = FileManager::readJSON(FileManager::historyJSONPath());
+    if (data.is_array()) {
+        browsingHistory = data;
+    } else {
+        browsingHistory = nlohmann::json::array();
+    }
+}
+
+void Browser::saveBrowsingHistory() {
+    FileManager::writeJSON(FileManager::historyJSONPath(), browsingHistory);
+}
+
+void Browser::recordHistoryVisit(const std::string& url, const std::string& title) {
+    if (url.empty() || url.rfind("weedly://", 0) == 0 || url == "about:blank") {
+        return;
+    }
+    const std::string canon = FavoritesJson::canonicalizeUrl(url);
+    bool found = false;
+    for (auto& entry : browsingHistory) {
+        if (!entry.is_object() || !entry.contains("url")) continue;
+        if (FavoritesJson::urlsMatch(entry["url"].get<std::string>(), url)) {
+            entry["visits"] = entry.value("visits", 0) + 1;
+            entry["last"] = static_cast<long long>(std::time(nullptr));
+            if (!title.empty()) {
+                entry["title"] = title;
+            }
+            entry["url"] = url;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        browsingHistory.push_back({
+            {"url", url},
+            {"title", title.empty() ? canon : title},
+            {"visits", 1},
+            {"last", static_cast<long long>(std::time(nullptr))}
+        });
+    }
+    // Garder un historique raisonnable
+    if (browsingHistory.size() > 500) {
+        std::sort(browsingHistory.begin(), browsingHistory.end(), [](const nlohmann::json& a, const nlohmann::json& b) {
+            return a.value("last", 0LL) > b.value("last", 0LL);
+        });
+        browsingHistory.erase(browsingHistory.begin() + 400, browsingHistory.end());
+    }
+    saveBrowsingHistory();
+    refreshUrlCompletionModel();
+}
+
+void Browser::setupUrlBarCompletion() {
+    if (!urlBar || !GTK_IS_ENTRY(urlBar)) {
+        return;
+    }
+    // display, url, tabIndex (-1 = naviguer)
+    urlCompletionStore = gtk_list_store_new(3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
+    GtkEntryCompletion* completion = gtk_entry_completion_new();
+    gtk_entry_completion_set_model(completion, GTK_TREE_MODEL(urlCompletionStore));
+    gtk_entry_completion_set_text_column(completion, 0);
+    gtk_entry_completion_set_inline_completion(completion, TRUE);
+    gtk_entry_completion_set_popup_completion(completion, TRUE);
+    gtk_entry_completion_set_minimum_key_length(completion, 1);
+    gtk_entry_set_completion(GTK_ENTRY(urlBar), completion);
+
+    gtk_entry_completion_set_match_func(completion,
+        +[](GtkEntryCompletion* /*comp*/, const gchar* key, GtkTreeIter* iter, gpointer user_data) -> gboolean {
+            auto* store = static_cast<GtkListStore*>(user_data);
+            gchar* display = nullptr;
+            gchar* url = nullptr;
+            gtk_tree_model_get(GTK_TREE_MODEL(store), iter, 0, &display, 1, &url, -1);
+            if (!key || !*key) {
+                g_free(display);
+                g_free(url);
+                return TRUE;
+            }
+            std::string k(key);
+            for (char& c : k) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            auto contains = [&](const char* s) {
+                if (!s) return false;
+                std::string v(s);
+                for (char& c : v) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                return v.find(k) != std::string::npos;
+            };
+            const bool ok = contains(display) || contains(url);
+            g_free(display);
+            g_free(url);
+            return ok ? TRUE : FALSE;
+        }, urlCompletionStore, nullptr);
+
+    g_signal_connect(completion, "match-selected", G_CALLBACK(+[](GtkEntryCompletion* /*comp*/, GtkTreeModel* model, GtkTreeIter* iter, gpointer user_data) -> gboolean {
+        auto* browser = static_cast<Browser*>(user_data);
+        gchar* url = nullptr;
+        gint tabIndex = -1;
+        gtk_tree_model_get(model, iter, 1, &url, 2, &tabIndex, -1);
+        if (!browser) {
+            g_free(url);
+            return FALSE;
+        }
+        if (tabIndex >= 0 && tabIndex < static_cast<gint>(browser->tabs.size())) {
+            browser->changeActiveTab(browser->tabs[static_cast<size_t>(tabIndex)].tabWidget);
+        } else if (url) {
+            browser->loadURL(url);
+        }
+        g_free(url);
+        return TRUE; // on a géré l'activation
+    }), this);
+
+    refreshUrlCompletionModel();
+}
+
+void Browser::refreshUrlCompletionModel() {
+    if (!urlCompletionStore) {
+        return;
+    }
+    gtk_list_store_clear(urlCompletionStore);
+
+    auto appendRow = [&](const std::string& display, const std::string& url, int tabIndex) {
+        GtkTreeIter iter;
+        gtk_list_store_append(urlCompletionStore, &iter);
+        gtk_list_store_set(urlCompletionStore, &iter,
+            0, display.c_str(),
+            1, url.c_str(),
+            2, tabIndex,
+            -1);
+    };
+
+    // Onglets ouverts
+    for (size_t i = 0; i < tabs.size(); ++i) {
+        std::string title = "Onglet";
+        if (tabs[i].label && GTK_IS_LABEL(tabs[i].label)) {
+            const gchar* t = gtk_label_get_text(GTK_LABEL(tabs[i].label));
+            if (t && *t) title = t;
+        }
+        appendRow("🗂 " + title + " — " + tabs[i].url, tabs[i].url, static_cast<int>(i));
+    }
+
+    // Favoris (récursif)
+    std::function<void(const nlohmann::json&)> walkFavs = [&](const nlohmann::json& arr) {
+        if (!arr.is_array()) return;
+        for (const auto& item : arr) {
+            if (FavoritesJson::isFolder(item)) {
+                walkFavs(item.value("children", nlohmann::json::array()));
+            } else if (item.contains("url") && item.contains("name")) {
+                appendRow("★ " + item["name"].get<std::string>() + " — " + item["url"].get<std::string>(),
+                          item["url"].get<std::string>(), -1);
+            }
+        }
+    };
+    if (favorites) {
+        walkFavs(*favorites);
+    }
+
+    // Historique trié par visites
+    std::vector<nlohmann::json> hist;
+    for (const auto& e : browsingHistory) {
+        if (e.is_object() && e.contains("url")) hist.push_back(e);
+    }
+    std::sort(hist.begin(), hist.end(), [](const nlohmann::json& a, const nlohmann::json& b) {
+        return a.value("visits", 0) > b.value("visits", 0);
+    });
+    for (const auto& e : hist) {
+        const std::string url = e["url"].get<std::string>();
+        const std::string title = e.value("title", url);
+        appendRow("🕒 " + title + " — " + url, url, -1);
+    }
 }
 
 void Browser::closeApplication() {

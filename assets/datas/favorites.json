@@ -1,10 +1,5 @@
 [
     {
-        "name": "DuckDuckGo",
-        "tag": "Recherche",
-        "url": "https://duckduckgo.com/"
-    },
-    {
         "name": "Speedtest",
         "tag": "Outils",
         "url": "https://www.speedtest.net/"

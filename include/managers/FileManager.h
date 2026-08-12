@@ -14,6 +14,10 @@ public:
     static std::string obtenirCheminAbsolu(const std::string& cheminRelatif);
     static std::string configJSONPath();
     static std::string favoritesJSONPath();
+    static std::string historyJSONPath();
+    static std::string webkitDataDirectory();
+    static std::string webkitCacheDirectory();
+    static std::string cookiesDatabasePath();
     static std::string cheminParametresHTML();
     static std::string cheminHelpHTML();
     static std::string cheminStylesCSS();

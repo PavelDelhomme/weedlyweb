@@ -20,13 +20,9 @@ void MemoryManager::surveillerUtilisationMemoire() {
 }
 
 void MemoryManager::optimiserMemoire() {
-    WebKitWebContext *context = webkit_web_context_get_default();
-    if (context) {
-        std::cout << "Optimisation mémoire : vidage du cache WebKit..." << std::endl;
-        webkit_web_context_clear_cache(context);
-    } else {
-        std::cerr << "Erreur : Contexte WebKit non disponible pour optimisation." << std::endl;
-    }
+    // Ne plus vider le cache WebKit à chaque navigation :
+    // cela annulait les chargements (YouTube, etc.) et provoquait des crashs.
+    // Le cache disque / mémoire est géré par WebKitWebsiteDataManager.
 }
 
 

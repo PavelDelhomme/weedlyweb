@@ -163,7 +163,102 @@ CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o: \
  /usr/include/c++/16/bits/refwrap.h /usr/include/c++/16/bits/unique_ptr.h \
  /usr/include/c++/16/ext/aligned_buffer.h \
  /usr/include/c++/16/bits/fs_dir.h /usr/include/c++/16/bits/fs_ops.h \
- /usr/include/c++/16/iostream \
+ /usr/include/c++/16/iostream /usr/include/glib-2.0/glib.h \
+ /usr/include/glib-2.0/glib/galloca.h /usr/include/glib-2.0/glib/gtypes.h \
+ /usr/lib/glib-2.0/include/glibconfig.h \
+ /usr/include/glib-2.0/glib/gmacros.h \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/16/include/limits.h \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/16/include/syslimits.h \
+ /usr/include/limits.h /usr/include/bits/posix1_lim.h \
+ /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/bits/posix2_lim.h /usr/include/bits/xopen_lim.h \
+ /usr/include/bits/uio_lim.h \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/16/include/float.h \
+ /usr/include/glib-2.0/glib/gversionmacros.h \
+ /usr/include/glib-2.0/glib/glib-visibility.h /usr/include/string.h \
+ /usr/include/strings.h /usr/include/glib-2.0/glib/garray.h \
+ /usr/include/glib-2.0/glib/gasyncqueue.h \
+ /usr/include/glib-2.0/glib/gthread.h \
+ /usr/include/glib-2.0/glib/gatomic.h \
+ /usr/include/glib-2.0/glib/glib-typeof.h \
+ /usr/include/glib-2.0/glib/gerror.h /usr/include/glib-2.0/glib/gquark.h \
+ /usr/include/glib-2.0/glib/gutils.h /usr/include/c++/16/stdlib.h \
+ /usr/include/glib-2.0/glib/gbacktrace.h /usr/include/signal.h \
+ /usr/include/bits/signum-generic.h /usr/include/bits/signum-arch.h \
+ /usr/include/bits/types/sig_atomic_t.h \
+ /usr/include/bits/types/siginfo_t.h /usr/include/bits/types/__sigval_t.h \
+ /usr/include/bits/siginfo-arch.h /usr/include/bits/siginfo-consts.h \
+ /usr/include/bits/siginfo-consts-arch.h \
+ /usr/include/bits/types/sigval_t.h /usr/include/bits/types/sigevent_t.h \
+ /usr/include/bits/sigevent-consts.h /usr/include/bits/sigaction.h \
+ /usr/include/bits/sigcontext.h /usr/include/bits/types/stack_t.h \
+ /usr/include/sys/ucontext.h /usr/include/bits/sigstack.h \
+ /usr/include/bits/sigstksz.h /usr/include/unistd.h \
+ /usr/include/bits/posix_opt.h /usr/include/bits/environments.h \
+ /usr/include/bits/confname.h /usr/include/bits/getopt_posix.h \
+ /usr/include/bits/getopt_core.h /usr/include/bits/unistd_ext.h \
+ /usr/include/linux/close_range.h /usr/include/bits/ss_flags.h \
+ /usr/include/bits/types/struct_sigstack.h /usr/include/bits/sigthread.h \
+ /usr/include/bits/signal_ext.h /usr/include/glib-2.0/glib/gbase64.h \
+ /usr/include/glib-2.0/glib/gbitlock.h \
+ /usr/include/glib-2.0/glib/gbookmarkfile.h \
+ /usr/include/glib-2.0/glib/gdatetime.h \
+ /usr/include/glib-2.0/glib/gtimezone.h \
+ /usr/include/glib-2.0/glib/gbytes.h \
+ /usr/include/glib-2.0/glib/gcharset.h \
+ /usr/include/glib-2.0/glib/gchecksum.h \
+ /usr/include/glib-2.0/glib/gconvert.h \
+ /usr/include/glib-2.0/glib/gdataset.h /usr/include/glib-2.0/glib/gdate.h \
+ /usr/include/glib-2.0/glib/gdir.h /usr/include/dirent.h \
+ /usr/include/bits/dirent.h /usr/include/bits/dirent_ext.h \
+ /usr/include/glib-2.0/glib/genviron.h \
+ /usr/include/glib-2.0/glib/gfileutils.h \
+ /usr/include/glib-2.0/glib/ggettext.h /usr/include/glib-2.0/glib/ghash.h \
+ /usr/include/glib-2.0/glib/glist.h /usr/include/glib-2.0/glib/gmem.h \
+ /usr/include/glib-2.0/glib/gnode.h /usr/include/glib-2.0/glib/ghmac.h \
+ /usr/include/glib-2.0/glib/gchecksum.h \
+ /usr/include/glib-2.0/glib/ghook.h \
+ /usr/include/glib-2.0/glib/ghostutils.h \
+ /usr/include/glib-2.0/glib/giochannel.h \
+ /usr/include/glib-2.0/glib/gmain.h /usr/include/glib-2.0/glib/gpoll.h \
+ /usr/include/glib-2.0/glib/gslist.h /usr/include/glib-2.0/glib/gstring.h \
+ /usr/include/glib-2.0/glib/gunicode.h \
+ /usr/include/glib-2.0/glib/gstrfuncs.h \
+ /usr/include/glib-2.0/glib/gkeyfile.h \
+ /usr/include/glib-2.0/glib/gmappedfile.h \
+ /usr/include/glib-2.0/glib/gmarkup.h \
+ /usr/include/glib-2.0/glib/gmessages.h \
+ /usr/include/glib-2.0/glib/gvariant.h \
+ /usr/include/glib-2.0/glib/gvarianttype.h \
+ /usr/include/glib-2.0/glib/goption.h \
+ /usr/include/glib-2.0/glib/gpathbuf.h \
+ /usr/include/glib-2.0/glib/gpattern.h \
+ /usr/include/glib-2.0/glib/gprimes.h /usr/include/glib-2.0/glib/gqsort.h \
+ /usr/include/glib-2.0/glib/gqueue.h /usr/include/glib-2.0/glib/grand.h \
+ /usr/include/glib-2.0/glib/grcbox.h \
+ /usr/include/glib-2.0/glib/grefcount.h \
+ /usr/include/glib-2.0/glib/grefstring.h \
+ /usr/include/glib-2.0/glib/gmem.h /usr/include/glib-2.0/glib/gmacros.h \
+ /usr/include/glib-2.0/glib/gregex.h \
+ /usr/include/glib-2.0/glib/gscanner.h \
+ /usr/include/glib-2.0/glib/gsequence.h \
+ /usr/include/glib-2.0/glib/gshell.h /usr/include/glib-2.0/glib/gslice.h \
+ /usr/include/glib-2.0/glib/gspawn.h \
+ /usr/include/glib-2.0/glib/gstringchunk.h \
+ /usr/include/glib-2.0/glib/gstrvbuilder.h \
+ /usr/include/glib-2.0/glib/gtestutils.h \
+ /usr/include/glib-2.0/glib/gthreadpool.h \
+ /usr/include/glib-2.0/glib/gtimer.h \
+ /usr/include/glib-2.0/glib/gtrashstack.h \
+ /usr/include/glib-2.0/glib/gtree.h /usr/include/glib-2.0/glib/guri.h \
+ /usr/include/glib-2.0/glib/guuid.h /usr/include/glib-2.0/glib/gversion.h \
+ /usr/include/glib-2.0/glib/deprecated/gallocator.h \
+ /usr/include/glib-2.0/glib/deprecated/gcache.h \
+ /usr/include/glib-2.0/glib/deprecated/gcompletion.h \
+ /usr/include/glib-2.0/glib/deprecated/gmain.h \
+ /usr/include/glib-2.0/glib/deprecated/grel.h \
+ /usr/include/glib-2.0/glib/deprecated/gthread.h \
+ /usr/include/glib-2.0/glib/glib-autocleanups.h \
  /home/pactivisme/Documents/Dev/Perso/weedlyweb/include/managers/FileManager.h \
  /usr/include/c++/16/fstream \
  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/basic_file.h \
@@ -248,7 +343,7 @@ CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o: \
  /usr/include/nlohmann/detail/meta/call_std/end.hpp \
  /usr/include/nlohmann/json_fwd.hpp \
  /usr/include/nlohmann/detail/string_concat.hpp \
- /usr/include/c++/16/cstring /usr/include/string.h /usr/include/strings.h \
+ /usr/include/c++/16/cstring \
  /usr/include/nlohmann/detail/meta/identity_tag.hpp \
  /usr/include/nlohmann/detail/meta/std_fs.hpp \
  /usr/include/nlohmann/detail/conversions/to_json.hpp \

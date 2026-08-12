@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <iostream>
+#include <glib.h>
 #include "managers/FileManager.h"
 
 // Méthode pour obtenir la racine du projet
@@ -29,6 +30,31 @@ std::string FileManager::configJSONPath() {
 // Chemin spécifique pour favorites.json
 std::string FileManager::favoritesJSONPath() {
     return obtenirCheminAbsolu("assets/datas/favorites.json");
+}
+
+std::string FileManager::historyJSONPath() {
+    return obtenirCheminAbsolu("assets/datas/history.json");
+}
+
+std::string FileManager::webkitDataDirectory() {
+    const char* base = g_get_user_data_dir();
+    std::string dir = std::string(base ? base : "/tmp") + "/weedlyweb/webkit-data";
+    std::filesystem::create_directories(dir);
+    return dir;
+}
+
+std::string FileManager::webkitCacheDirectory() {
+    const char* base = g_get_user_cache_dir();
+    std::string dir = std::string(base ? base : "/tmp") + "/weedlyweb/webkit-cache";
+    std::filesystem::create_directories(dir);
+    return dir;
+}
+
+std::string FileManager::cookiesDatabasePath() {
+    const char* base = g_get_user_data_dir();
+    std::string dir = std::string(base ? base : "/tmp") + "/weedlyweb";
+    std::filesystem::create_directories(dir);
+    return dir + "/cookies.sqlite";
 }
 
 // Chemin spécifique pour settings.html

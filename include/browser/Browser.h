@@ -88,6 +88,8 @@ public:
     bool confirmAction(const std::string& title, const std::string& message);
     void toggleCurrentPageFavorite();
     void persistSession();
+    void updateStarButton();
+    void refreshUrlCompletionModel();
 
     // Méthodes utilitaires
     void loadURL(const std::string& url);
@@ -156,6 +158,9 @@ private:
     bool pendingHomepageSearchFocus = false;
     std::vector<std::string> pendingSessionTabs;
     bool restorePreviousSession = false;
+    WebKitWebView* preloadHomeView = nullptr;
+    GtkListStore* urlCompletionStore = nullptr;
+    nlohmann::json browsingHistory = nlohmann::json::array();
 
     // Méthodes internes
     void initializeNavigationBar();
@@ -165,8 +170,14 @@ private:
     void initializeFavoritesPopover();
     void highlight(GtkWidget* tabWidget);
     void addButton(GtkWidget* container, const std::string& iconName, GCallback callback, gpointer data);
-    void updateStarButton();
     void restoreSessionTabs();
+    void preloadHomepage();
+    WebKitWebView* takePreloadedHomeView(const std::string& url);
+    void fitWindowToMonitor();
+    void setupUrlBarCompletion();
+    void recordHistoryVisit(const std::string& url, const std::string& title = "");
+    void loadBrowsingHistory();
+    void saveBrowsingHistory();
     void executeScriptInActiveTab(const std::string& script);
     void showMessage(const std::string& message);
     void createContextMenu(GtkWidget* button);
