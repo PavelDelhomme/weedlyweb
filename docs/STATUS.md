@@ -1,168 +1,123 @@
-# 📊 WeedlyWeb - État du Projet
+# 📊 WeedlyWeb — État du projet
 
-**Dernière mise à jour :** 2025-12-15  
-**Branche active :** fusion_github_features  
-**Version :** 1.0
+**Dernière mise à jour :** 2026-08-24  
+**Branche active :** `hotfix/err-failed-gpu`  
+**Version :** 1.x (GTK principal, Qt6 expérimental)
 
 ---
 
-## ✅ Fonctionnalités Implémentées
+## ✅ Fonctionnalités implémentées
 
-### Navigation de base
-- ✅ Gestion des tabs (ajout, suppression, navigation)
-- ✅ Barre d'URL fonctionnelle
-- ✅ Barre de navigation (retour, avancer, recharger)
-- ✅ Chargement et affichage des pages web
+### Navigation
+- Onglets (ajout, fermeture, duplication, groupes)
+- Barre d'URL avec autocomplétion
+- Barre de navigation (retour, avancer, recharger)
+- WebKit2GTK 4.1 (GTK) / Qt WebEngine (Qt6)
+
+### Onglets avancés (GTK)
+- Menu contextuel : fermer, dupliquer, renommer, titre verrouillé
+- Épingler / désépingler (molette ne ferme pas les épinglés)
+- Favoris depuis l'onglet (ajouter / modifier / supprimer selon l'URL)
+- Déplacer vers un groupe
 
 ### Favoris
-- ✅ Ajout de favorites
-- ✅ Suppression de favorites
-- ✅ Barre de favorites dédiée
-- ✅ Gestionnaire de favorites avec interface
-- ✅ Menu contextuel pour les favorites
+- JSON hiérarchique + barre dédiée
+- Gestionnaire avec dossiers
+- Recherche par URL (`FavoritesJson::findByUrlRecursive`)
 
-### Gestion mémoire
-- ✅ Surveillance de l'utilisation mémoire avec `MemoryManager`
-- ✅ Optimisation de la mémoire (vidage du cache)
-- ✅ Mise en veille des tabs inactifs
-- ✅ Réactivation des tabs à partir de leur URL
-
-### Sécurité HTTP
-- ✅ Vérification des certificats SSL dans `HTTPManager`
-- ✅ Affichage des erreurs de connexion HTTPS
-
----
-
-## 🚧 En Cours de Développement
-
-### Interface utilisateur
-- ✅ Réorganisation complète de l'interface (barres en haut, zone web en bas)
-- ✅ Système d'tabs simplifié avec button "+" simple
-- ✅ Menu hamburger (trois barres) pour les options
-- ✅ Design minimaliste et moderne avec CSS
-- ✅ Barre de favorites améliorée (affichage limité à 10, button "⋯" pour le reste)
-- ✅ Correction des erreurs de fermeture (GLib-GObject-CRITICAL)
-- ✅ Fenêtre apparaît correctement dans la barre des tâches (XFCE/KDE/GNOME)
+### Affichage et UX
+- Mode sombre des pages (`PageEnhancements`)
+- Mode lecture
+- Multi-écrans : lancement sur moniteur sous curseur, F11 sur un seul écran
+- Raccourcis globaux (key snooper GTK) : Ctrl+T/W/D, F11, etc.
+- Palette de commandes (Ctrl+Shift+C)
 
 ### Infrastructure
-- ✅ Makefile complet avec commandes build, run, debug, valgrind
-- ✅ Script d'installation automatique des dépendances (`install-deps.sh`)
-- ✅ Documentation complète (`INSTALL_DEPENDENCIES.md`, `GUIDE_DEBUG.md`)
-- ✅ Configuration GDB avec `.gdbinit` et commandes personnalisées
-- ✅ Vérification automatique des dépendances (`make check-deps`)
+- Architecture `src/core` + `src/ui/{gtk,qt}`
+- CMake dual `BUILD_UI_GTK` / `BUILD_UI_QT`
+- Lanceur `scripts/run-weedlyweb.sh` (Wayland / X11)
+- Makefile : `run-gtk`, `run-qt`, `stop`, etc.
+
+### Mémoire et sécurité
+- `MemoryManager`, cache WebKit
+- Vérification SSL (`HTTPManager`)
+- Intercepteur de requêtes, cookies persistants
 
 ---
 
-## 📋 Fonctionnalités Planifiées
+## 🚧 En cours / partiel
 
-### Priorité Haute
-- [ ] Page de paramètres utilisateur complète
-- [ ] Bouton pour vider le cache manuellement
-- [ ] Amélioration de la gestion des erreurs WebKit/GTK
-
-### Priorité Moyenne
-- [ ] Animations pour les transitions d'tabs
-- [ ] Amélioration de l'UX de la barre d'tabs
-- [ ] Système de logs structuré
-
-### Priorité Basse
-- [ ] Historique de navigation
-- [ ] Mode sombre
-- [ ] Accès aux cookies
-- [ ] Informations serveur
-- [ ] Support Tor
-- [ ] Intégration similaire à BurpSuite
-- [ ] Gestion manuelle des requêtes
-- [ ] Analyse des éléments chargés
-- [ ] Indexation automatique des pages
+| Élément | GTK | Qt6 |
+|---------|-----|-----|
+| Navigation de base | ✅ | ✅ squelette |
+| Favoris / groupes | ✅ | partiel |
+| Menu onglet / épinglage | ✅ | ❌ |
+| Mode sombre / lecture | ✅ | ❌ |
+| Multi-écran | ✅ | ✅ placement initial |
 
 ---
 
-## 🐛 Bugs Connus
+## 📋 Planifié
 
-- [ ] Erreur "WebView invalide" dans les logs (occasionnel, non bloquant)
-- [ ] Avertissement "Failed to create GBM buffer" au démarrage (non bloquant, lié au driver graphique)
-- [x] ~~Erreurs GLib-GObject-CRITICAL à la fermeture~~ (Corrigé)
-- [x] ~~Fenêtre n'apparaissait pas dans la barre des tâches~~ (Corrigé)
-- [x] ~~Barre de favorites mal affichée~~ (Corrigé)
+### Priorité haute
+- [ ] Parité fonctionnelle Qt6 avec GTK
+- [ ] Page paramètres complète
+- [ ] Bouton vider le cache manuellement
 
----
+### Priorité moyenne
+- [ ] Historique de navigation UI
+- [ ] Animations onglets
+- [ ] Logs structurés
 
-## 🔧 Améliorations Techniques Récentes
-
-### 2025-12-15
-- ✅ Réorganisation complète de l'interface utilisateur
-  - Barres (tabs, navigation, favorites) en haut
-  - Zone de rendu web en bas (expandable)
-- ✅ Système d'tabs simplifié
-  - Bouton "+" simple pour ajouter un onglet
-  - Onglets avec titre et button fermer (×)
-  - Suppression du button "Changer Groupe" visible au démarrage
-- ✅ Menu hamburger (trois barres) pour les options
-  - Gestionnaire de Favoris
-  - Paramètres
-  - À propos
-  - Quitter
-- ✅ Design minimaliste et moderne
-  - CSS personnalisé pour tous les composants
-  - Barre de favorites avec affichage limité (10 favorites max)
-  - Bouton "⋯" pour les favorites restants
-  - Effets hover/active sur les boutons
-- ✅ Correction des erreurs de fermeture
-  - Nettoyage propre des signaux GTK dans le destructeur
-  - Plus d'erreurs GLib-GObject-CRITICAL
-- ✅ Configuration pour la barre des tâches
-  - Fenêtre apparaît correctement dans XFCE/KDE/GNOME
-  - Propriétés X11 correctement définies
-- ✅ Documentation et outils de développement
-  - `INSTALL_DEPENDENCIES.md` : Guide complet d'installation
-  - `GUIDE_DEBUG.md` : Guide d'utilisation de GDB
-  - `install-deps.sh` : Script d'installation automatique
-  - `.gdbinit` : Configuration GDB avec commandes personnalisées
-  - `make check-deps` : Vérification automatique des dépendances
-
-### 2025-01-24
-- Création de la branche `dev` à partir de `origin/dev_avant_modif_global_favoris`
-- Ajout d'un Makefile complet pour la gestion du projet
-- Transformation de `todos.md` en `STATUS.md`
-
-### 2025-01-16
-- Gestion des favorites avec boutons et barre de favorites
-- Amélioration de la gestion des tabs
+### Priorité basse
+- [ ] Support Tor, analyse CVE avancée
+- [ ] Backends Android / Cocoa / Win32 (stubs présents)
 
 ---
 
-## 📈 Métriques du Projet
+## 🐛 Bugs connus
 
-- **Langage :** C++17
-- **Framework GUI :** GTK+3
-- **Moteur de rendu :** WebKit2GTK 4.1
-- **Gestionnaire de build :** CMake + Makefile
-- **Dépendances principales :**
-  - WebKit2GTK 4.1
-  - GTK+3
-  - cURL
-  - SQLite3
-  - nlohmann/json
-- **Outils de développement :**
-  - GDB (débogage)
-  - Valgrind (détection de fuites mémoire)
-  - strace (traçage système)
+- Avertissement « Failed to create GBM buffer » (driver GPU, souvent non bloquant)
+- `gtk_key_snooper_install` déprécié (GTK 4 migration future)
+- Qt : fonctionnalités inférieures au backend GTK
+
+### Corrigés récemment
+- [x] F11 couvrait tout le bureau virtuel multi-écrans
+- [x] Fenêtre centrée entre plusieurs moniteurs au lancement
+- [x] Raccourcis ignorés quand le focus est dans WebKit
+- [x] GLib-GObject-CRITICAL à la fermeture
 
 ---
 
-## 🎯 Objectifs à Court Terme
+## 🔧 Améliorations récentes
 
-1. Résoudre les bugs critiques liés aux tabs
-2. Nettoyer le code commenté
-3. Finaliser la migration vers Makefile
-4. Améliorer la gestion des erreurs
+### 2026-08-24
+- Menu contextuel onglets + épinglage + favoris depuis l'onglet
+- Plein écran par moniteur (`fullscreen_on_monitor`)
+- Raccourcis clavier via key snooper
+- Placement fenêtre multi-écrans (GTK + Qt)
+- Documentation : README, QUICKSTART, KEYBOARD_SHORTCUTS, DISPLAY_AND_MONITORS
+
+### 2026-08 (architecture)
+- Refactor `src/core` + `src/ui/gtk|qt`
+- Modes sombre et lecture (`PageEnhancements`)
+- Lanceur multi-backend et `.desktop`
+
+---
+
+## 📈 Métriques
+
+| | |
+|---|---|
+| Langage | C++17 |
+| GUI | GTK+3 (principal), Qt6 (alternatif) |
+| Rendu | WebKit2GTK 4.1, Qt WebEngine |
+| Build | CMake + Makefile |
+| Données | SQLite3, JSON (favoris, config, session) |
 
 ---
 
 ## 📝 Notes
 
-- Le projet utilise une architecture modulaire avec des gestionnaires séparés
-- La gestion mémoire est optimisée pour les applications longues sessions
-- Le système de favorites est fonctionnel mais peut être amélioré au niveau UX
-
+- Backend **GTK** = référence pour les nouvelles fonctionnalités
+- Voir [COMPATIBILITY.md](COMPATIBILITY.md), [MIGRATION_QT.md](MIGRATION_QT.md)

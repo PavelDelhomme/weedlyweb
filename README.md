@@ -24,15 +24,17 @@
 
 ## ✨ Fonctionnalités
 
-- 🌍 **Navigation web** avec WebKit2GTK 4.1
-- 📑 **Gestion des onglets** avec groupes d'onglets
-- ⭐ **Favoris** avec organisation par catégories
-- 🔍 **Barre d'adresse** avec auto-complétion
-- ⌨️ **Raccourcis clavier** (CTRL+T, CTRL+D, etc.)
-- 🎨 **Interface moderne** et minimaliste
-- 🔒 **Sécurité** avec intercepteur de requêtes
-- 📊 **Base de données SQLite** pour l'historique et les favoris
-- 🎯 **Palette de commandes** (CTRL+ALT+C)
+- 🌍 **Navigation web** avec WebKit2GTK 4.1 (GTK) ou Qt WebEngine (Qt6)
+- 📑 **Onglets** avec groupes, menu contextuel (renommer, dupliquer, épingler, favoris)
+- ⭐ **Favoris** avec dossiers/sous-dossiers et barre dédiée
+- 🌙 **Mode sombre** des pages (type Dark Reader) et **mode lecture**
+- 🖥️ **Multi-écrans** : lancement et plein écran (F11) sur le moniteur actif
+- 🔍 **Barre d'URL** avec autocomplétion (favoris, historique, onglets)
+- ⌨️ **Raccourcis globaux** (Ctrl+T, Ctrl+W, F11…) même dans la page web
+- 🎨 **Interface** sombre, minimaliste
+- 🔒 **Intercepteur de requêtes** et cookies persistants
+- 📊 **SQLite** + JSON (favoris, historique, session)
+- 🎯 **Palette de commandes** (Ctrl+Shift+C)
 
 ## 🚀 Démarrage rapide
 
@@ -106,17 +108,20 @@ make dev          # Surveille les fichiers et recompile automatiquement
 ### Toutes les commandes disponibles
 
 ```bash
-make help         # Afficher toutes les commandes disponibles
-make setup        # Configuration complète (deps + build)
-make install-deps # Installe les dépendances
-make build        # Compile le projet
-make clean        # Nettoyer le répertoire de build
-make run          # Compile et lance l'application
-make run-debug    # Lancer en mode debug
-make debug        # Lancer avec GDB
-make dev          # Mode développement (recompilation automatique)
-make install      # Installer l'application
-make check-deps   # Vérifier les dépendances installées
+make help         # Aide Makefile
+make build        # Compile GTK (+ Qt si installé)
+make run          # Compile et lance GTK (multi-écran + lanceur Wayland/X11)
+make run-gtk      # Idem GTK
+make run-qt       # Backend Qt6
+make run-debug    # Mode debug GTK
+make clean        # Nettoie build/
+make install      # Installation système
+make install-deps # Dépendances (script)
+make check-deps   # Vérifier deps
+make dev          # Recompilation auto
+make debug        # GDB
+make valgrind     # Fuites mémoire
+make stop         # Arrêter les processus WeedlyWeb
 ```
 
 > 💡 **Tout peut être fait via le Makefile !** Utilisez `make help` pour voir toutes les commandes disponibles.
@@ -159,15 +164,27 @@ make run
 
 ### Raccourcis clavier
 
+Voir **[docs/KEYBOARD_SHORTCUTS.md](docs/KEYBOARD_SHORTCUTS.md)** pour la liste complète.
+
 | Raccourci | Action |
 |-----------|--------|
-| `CTRL + T` | Ouvrir un nouvel onglet |
-| `CTRL + D` | Ajouter aux favoris |
-| `CTRL + SHIFT + D` | Dupliquer l'onglet actuel |
-| `CTRL + ALT + C` | Afficher la palette de commandes |
-| `CTRL + W` | Fermer l'onglet actuel |
-| `CTRL + R` | Actualiser la page |
-| `CTRL + H` | Aller à la page d'accueil |
+| `Ctrl+T` / `Ctrl++` | Nouvel onglet |
+| `Ctrl+W` / `Ctrl+Shift+W` | Fermer l'onglet (dernier → quitte l'app) |
+| `Ctrl+Shift+D` | Dupliquer l'onglet |
+| `Ctrl+D` | Ajouter aux favoris |
+| `Ctrl+L` | Focus barre d'URL |
+| `Ctrl+R` / `F5` | Actualiser |
+| `Ctrl+Shift+C` | Palette de commandes |
+| `F11` | Plein écran sur le moniteur courant |
+
+**Clic droit sur un onglet** : fermer, dupliquer, renommer, épingler, favoris, déplacer vers un groupe.
+
+### Affichage multi-écrans
+
+Au lancement, la fenêtre s'ouvre **maximisée sur l'écran où se trouve la souris**.  
+**F11** = plein écran sur **cet** écran uniquement (pas le bureau virtuel 3×).
+
+Détails : [docs/DISPLAY_AND_MONITORS.md](docs/DISPLAY_AND_MONITORS.md)
 
 ## 🛠️ Développement
 
@@ -212,64 +229,40 @@ make build-debug  # Compiler en mode debug
 
 ## 🏗️ Architecture
 
-Le projet est organisé en modules indépendants :
-
 ```
 weedlyweb/
 ├── src/
-│   ├── browser/         # Classe principale Browser
-│   ├── rendering/        # Moteur de rendu WebKit (RenderingEngine)
-│   ├── managers/         # Gestionnaires (Favorites, Tabs, HTTP, Memory, File)
-│   ├── engine/           # Moteur de scripts (ScriptEngine)
-│   ├── database/         # Gestion base de données SQLite
-│   └── utils/           # Utilitaires (CommandPalette, RequestInterceptor, etc.)
-├── include/              # Fichiers d'en-tête (même structure)
-└── assets/               # Ressources (icônes, styles, données)
+│   ├── core/              # Logique partagée (DB, HTTP, favoris JSON, onglets…)
+│   └── ui/
+│       ├── gtk/           # Backend principal → WeedlyWeb
+│       ├── qt/            # Backend Qt6 → WeedlyWebQt
+│       └── {android,cocoa,win32}/  # Stubs futurs
+├── include/               # En-têtes (miroir + core/)
+├── assets/                # CSS, config, favoris, icônes, .desktop
+├── scripts/               # install-deps, run-weedlyweb.sh, weedlyweb
+└── docs/                  # Documentation
 ```
+
+CMake : `-DBUILD_UI_GTK=ON -DBUILD_UI_QT=ON` pour compiler les deux backends.
 
 ### Composants principaux
 
-- **`Browser`** : Classe principale, orchestre tous les composants
-- **`RenderingEngine`** : Gère WebKitWebView et le rendu des pages
-- **`FavoritesManager`** : Gestion des favoris (ajout, suppression, organisation)
-- **`TabsManager`** : Gestion des onglets et groupes d'onglets
-- **`HTTPManager`** : Requêtes HTTP (cURL)
-- **`MemoryManager`** : Gestion mémoire et nettoyage
-- **`FileManager`** : Gestion fichiers et JSON
-- **`Database`** : Accès SQLite3
-- **`CommandPalette`** : Palette de commandes (CTRL+ALT+C)
-- **`RequestInterceptor`** : Interception et filtrage des requêtes
+- **`Browser`** (GTK) : fenêtre, onglets, barres, session, raccourcis
+- **`WeedlyWebCore`** : `FileManager`, `Database`, `TabsManager`, `FavoritesJson`, `PageEnhancements`
+- **`RenderingEngine`** : WebKit2GTK
+- **`FavoritesManager`** : UI favoris + dossiers
+- **`BrowserWindow`** (Qt) : variante Qt6
 
-## 📁 Structure du code
+Voir [src/ui/README.md](src/ui/README.md) et [docs/ARCHITECTURE_MONOREPO.md](docs/ARCHITECTURE_MONOREPO.md).
 
-### Organisation des fichiers
-
-- **Headers** : `include/<module>/<Class>.h`
-- **Sources** : `src/<module>/<Class>.cpp`
-- **Noms en anglais** : Tous les noms de classes, fonctions et variables sont en anglais
-
-### Exemple de structure
+## 📁 Structure du code (détail GTK)
 
 ```
-include/
-├── browser/
-│   └── Browser.h
-├── rendering/
-│   └── RenderingEngine.h
-└── managers/
-    ├── FavoritesManager.h
-    ├── TabsManager.h
-    └── ...
-
-src/
-├── browser/
-│   └── Browser.cpp
-├── rendering/
-│   └── RenderingEngine.cpp
-└── managers/
-    ├── FavoritesManager.cpp
-    ├── TabsManager.cpp
-    └── ...
+src/ui/gtk/
+├── browser/Browser.cpp    # Application principale
+├── rendering/             # WebKit
+├── managers/              # Favoris UI, mémoire…
+└── utils/                 # Palette, intercepteur…
 ```
 
 ## 📝 Standards de code
@@ -378,11 +371,13 @@ Utiliser le format [Conventional Commits](https://www.conventionalcommits.org/) 
 
 Toute la documentation est dans `docs/` :
 
-- **[QUICKSTART.md](docs/QUICKSTART.md)** - Guide de démarrage rapide
-- **[INSTALL_DEPENDENCIES.md](docs/INSTALL_DEPENDENCIES.md)** - Installation détaillée
-- **[GUIDE_DEBUG.md](docs/GUIDE_DEBUG.md)** - Guide de débogage
-- **[ARCHITECTURE_MONOREPO.md](docs/ARCHITECTURE_MONOREPO.md)** - Architecture du projet
-- **[STATUS.md](docs/STATUS.md)** - État actuel du projet
+- **[QUICKSTART.md](docs/QUICKSTART.md)** — Démarrage rapide
+- **[COMPATIBILITY.md](docs/COMPATIBILITY.md)** — X11, Wayland, distros, backends
+- **[DISPLAY_AND_MONITORS.md](docs/DISPLAY_AND_MONITORS.md)** — Multi-écrans et F11
+- **[KEYBOARD_SHORTCUTS.md](docs/KEYBOARD_SHORTCUTS.md)** — Raccourcis clavier
+- **[INSTALL_DEPENDENCIES.md](docs/INSTALL_DEPENDENCIES.md)** — Dépendances
+- **[GUIDE_DEBUG.md](docs/GUIDE_DEBUG.md)** — Débogage
+- **[STATUS.md](docs/STATUS.md)** — État du projet
 
 ## 🤝 Contribution
 

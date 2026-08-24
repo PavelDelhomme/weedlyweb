@@ -7,6 +7,16 @@
     background-color: #323232;
 }
 
+#onglet-epingle {
+    min-width: 36px;
+    max-width: 140px;
+    border-left: 2px solid #6a9fd8;
+}
+
+#onglet-epingle label {
+    font-weight: 600;
+}
+
 #barre-favorites,
 #barre-tabs,
 #scrolled-tabs,

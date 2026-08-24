@@ -65,6 +65,13 @@ update-desktop-database ~/.local/share/applications 2>/dev/null || true
 
 Compatible avec les menus de **KDE**, **GNOME**, **XFCE**, **LXQt (Lubuntu)**, **MATE (Ubuntu MATE / Xubuntu-like)**.
 
+## Multi-écrans
+
+- **Lancement** : fenêtre maximisée sur le moniteur sous le curseur (GTK et Qt)
+- **F11** : plein écran via `gtk_window_fullscreen_on_monitor` (un seul écran)
+
+Détails : [DISPLAY_AND_MONITORS.md](DISPLAY_AND_MONITORS.md)
+
 ## Windows
 
 Pas de binaire natif Win32 pour l’instant (GTK/WebKit2GTK). Options :

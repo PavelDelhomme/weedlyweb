@@ -11,6 +11,7 @@
 
 #include <QApplication>
 #include <QCloseEvent>
+#include <QCursor>
 #include <QScreen>
 #include <QDir>
 #include <QVBoxLayout>
@@ -70,10 +71,16 @@ void BrowserWindow::setupUI()
     mainLayout->addWidget(favoritesBar);
     mainLayout->addWidget(webContainer, 1);
 
-    if (QScreen *screen = QApplication::primaryScreen()) {
-        const QSize screenSize = screen->availableSize();
-        resize(static_cast<int>(screenSize.width() * 0.85),
-               static_cast<int>(screenSize.height() * 0.85));
+    // Configuration de la fenêtre : moniteur sous le curseur, puis maximisée
+    QScreen* targetScreen = QApplication::screenAt(QCursor::pos());
+    if (!targetScreen) {
+        targetScreen = QApplication::primaryScreen();
+    }
+    if (targetScreen) {
+        // Positionner d'abord sur le moniteur de la souris, sinon maximize
+        // peut s'appliquer au mauvais écran / bureau virtuel
+        setGeometry(targetScreen->availableGeometry());
+        setWindowState(windowState() | Qt::WindowMaximized);
     } else {
         resize(1280, 720);
     }

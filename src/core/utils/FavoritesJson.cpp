@@ -126,6 +126,30 @@ bool duplicateNameOrUrl(const nlohmann::json& rootArray, const std::string& nom,
     return false;
 }
 
+bool findByUrlRecursive(const nlohmann::json& rootArray, const std::string& url,
+                        std::string& outName, std::string* outUrl) {
+    if (!rootArray.is_array()) {
+        return false;
+    }
+    for (const auto& item : rootArray) {
+        if (isFolder(item)) {
+            if (findByUrlRecursive(item["children"], url, outName, outUrl)) {
+                return true;
+            }
+        } else if (item.contains("url") && item["url"].is_string() &&
+                   urlsMatch(item["url"].get<std::string>(), url)) {
+            if (item.contains("name") && item["name"].is_string()) {
+                outName = item["name"].get<std::string>();
+            }
+            if (outUrl && item["url"].is_string()) {
+                *outUrl = item["url"].get<std::string>();
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 void collectBookmarkEntries(const nlohmann::json& rootArray,
                             std::vector<std::pair<std::string, std::string>>& out,
                             int maxItems) {

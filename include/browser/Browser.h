@@ -21,18 +21,14 @@
 // Structure pour stocker les données d'un onglet
 struct TabData {
     std::string url;
-    GtkWidget* tabWidget;  // Le widget de l'onglet dans la barre
-    WebKitWebView* webView;  // La WebView unique pour cet onglet
-    GtkWidget* label;  // Le label avec le titre
-    GtkWidget* faviconImage; // Favicon à gauche du titre
-    std::string groupName;   // Groupe d'onglets (style Brave)
-    
-    TabData()
-        : tabWidget(nullptr),
-          webView(nullptr),
-          label(nullptr),
-          faviconImage(nullptr),
-          groupName("Par défaut") {}
+    GtkWidget* tabWidget = nullptr;
+    WebKitWebView* webView = nullptr;
+    GtkWidget* label = nullptr;
+    GtkWidget* faviconImage = nullptr;
+    std::string groupName = "Par défaut";
+    std::string customTitle;   // titre manuel (prioritaire si titleLocked)
+    bool titleLocked = false;
+    bool pinned = false;
 };
 
 class Browser {
@@ -57,6 +53,13 @@ public:
     void addNewTab(const std::string &url = "");
     void removeTab(GtkWidget* tabWidget);
     void changeActiveTab(GtkWidget* tabWidget);
+    void duplicateTab(GtkWidget* tabWidget);
+    void renameTab(GtkWidget* tabWidget);
+    void resetTabTitle(GtkWidget* tabWidget);
+    void togglePinTab(GtkWidget* tabWidget);
+    void addTabToFavorites(GtkWidget* tabWidget);
+    void editTabFavorite(GtkWidget* tabWidget);
+    void removeTabFavorite(GtkWidget* tabWidget);
     void moveTabToGroup(GtkWidget* tabWidget, const std::string& groupName);
     void refreshTabsBarVisibility();
     void focusUrlBar();
@@ -122,6 +125,7 @@ public:
     
     // Méthode publique pour gérer l'état de chargement
     void setLoadingState(bool loading);
+    bool handleKeyboardShortcut(GdkEventKey* event);
 
     // Interface utilisateur
     void closeApplication();
@@ -177,6 +181,11 @@ private:
     void initializeTabsBar();
     void updateGroupChip();
     void showTabContextMenu(GtkWidget* tabWidget, GdkEventButton* event);
+    TabData* findTabByWidget(GtkWidget* tabWidget);
+    std::string getTabDisplayTitle(const TabData& tab) const;
+    void updateTabLabel(TabData& tab);
+    void reorderTabsBar();
+    std::string getTabUrl(const TabData& tab) const;
     void initializeFavoritesPopover();
     void highlight(GtkWidget* tabWidget);
     void addButton(GtkWidget* container, const std::string& iconName, GCallback callback, gpointer data);
@@ -191,9 +200,12 @@ private:
     void executeScriptInActiveTab(const std::string& script);
     void showMessage(const std::string& message);
     void createContextMenu(GtkWidget* button);
+    void enterFullscreenOnCurrentMonitor();
+    void leaveFullscreen();
     static void onStarButtonClicked(GtkButton* button, gpointer user_data);
     static std::string normalizeNavigationUrl(const std::string& url);
     bool suppressEnhancementSignals = false;
+    guint keySnooperId = 0;
 
     // Gestionnaire de mémoire et signaux
     void configureKeyboardShortcuts(); 

@@ -427,6 +427,66 @@ static void on_move_tab_to_group_activate(GtkWidget*, gpointer user_data) {
     }
 }
 
+static void free_tab_widget_payload(gpointer data, GClosure*) {
+    delete static_cast<std::pair<Browser*, GtkWidget*>*>(data);
+}
+
+static void on_tab_menu_close(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, GtkWidget*>*>(user_data);
+    if (p && p->first && p->second) {
+        p->first->removeTab(p->second);
+    }
+}
+
+static void on_tab_menu_duplicate(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, GtkWidget*>*>(user_data);
+    if (p && p->first && p->second) {
+        p->first->duplicateTab(p->second);
+    }
+}
+
+static void on_tab_menu_rename(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, GtkWidget*>*>(user_data);
+    if (p && p->first && p->second) {
+        p->first->renameTab(p->second);
+    }
+}
+
+static void on_tab_menu_reset_title(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, GtkWidget*>*>(user_data);
+    if (p && p->first && p->second) {
+        p->first->resetTabTitle(p->second);
+    }
+}
+
+static void on_tab_menu_toggle_pin(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, GtkWidget*>*>(user_data);
+    if (p && p->first && p->second) {
+        p->first->togglePinTab(p->second);
+    }
+}
+
+static void on_tab_menu_add_favorite(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, GtkWidget*>*>(user_data);
+    if (p && p->first && p->second) {
+        p->first->addTabToFavorites(p->second);
+    }
+}
+
+static void on_tab_menu_edit_favorite(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, GtkWidget*>*>(user_data);
+    if (p && p->first && p->second) {
+        p->first->editTabFavorite(p->second);
+    }
+}
+
+static void on_tab_menu_remove_favorite(GtkWidget*, gpointer user_data) {
+    auto* p = static_cast<std::pair<Browser*, GtkWidget*>*>(user_data);
+    if (p && p->first && p->second) {
+        p->first->removeTabFavorite(p->second);
+    }
+}
+
 static void on_open_url_current_or_tab(GtkWidget*, gpointer user_data) {
     auto* p = static_cast<std::pair<Browser*, std::pair<std::string, bool>>*>(user_data);
     if (!p || !p->first) return;
@@ -736,57 +796,12 @@ static gboolean on_delete_event(GtkWidget*, GdkEvent*, gpointer user_data) {
     return FALSE;
 }
 
-static gboolean on_key_press(GtkWidget*, GdkEvent* event, gpointer user_data) {
+static gint weedly_key_snooper(GtkWidget*, GdkEventKey* event, gpointer user_data) {
     auto* navigateur = static_cast<Browser*>(user_data);
-    
-    if (event->type == GDK_KEY_PRESS) {
-        GdkEventKey* key_event = (GdkEventKey*) event;
-
-        // Gestion du raccourci CTRL + T pour ouvrir un nouvel onglet
-        if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_t) {
-            navigateur->addNewTab(navigateur->getHomepage());
-            return TRUE;
-        }
-
-        // Gestion du raccourci CTRL + D pour ajouter un favori
-        if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_d) {
-            std::string url = navigateur->getCurrentURL();
-            std::string titre = navigateur->getCurrentTitle();
-            
-            // Pré-remplir les champs du formulaire
-            gtk_entry_set_text(GTK_ENTRY(navigateur->getEntryNomFavori()), titre.c_str());
-            gtk_entry_set_text(GTK_ENTRY(navigateur->getEntryURLFavori()), url.c_str());
-
-            // Afficher le formulaire d'ajout de favori (popover)
-            gtk_popover_popup(GTK_POPOVER(navigateur->getPopoverFavoris()));
-            return TRUE;
-        }
-        
-        // Gestion du raccourci CTRL + SHIFT + C pour afficher/masquer la palette de commandes
-        if ((key_event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) && 
-            key_event->keyval == GDK_KEY_c) {
-            navigateur->toggleCommandPalette();
-            return TRUE;
-        }
-        
-        // Gestion du raccourci CTRL + H pour afficher l'aide
-        if ((key_event->state & GDK_CONTROL_MASK) && 
-            key_event->keyval == GDK_KEY_h) {
-            navigateur->showHelp();
-            return TRUE;
-        }
-        
-        // Gestion du raccourci CTRL + SHIFT + D pour dupliquer l'onglet actuel
-        if ((key_event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) && 
-            key_event->keyval == GDK_KEY_d) {
-            std::string url = navigateur->getCurrentURL();
-            if (!url.empty()) {
-                navigateur->addNewTab(url);
-            }
-            return TRUE;
-        }
+    if (!navigateur || !event || event->type != GDK_KEY_PRESS) {
+        return FALSE;
     }
-    return FALSE;
+    return navigateur->handleKeyboardShortcut(event) ? TRUE : FALSE;
 }
 
 
@@ -903,11 +918,16 @@ Browser::Browser()
     loadBrowsingHistory();
     loadConfiguration();
     buildInterface();
-    g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), this);
+    configureKeyboardShortcuts();
 }
 
 
 Browser::~Browser() {
+    if (keySnooperId != 0) {
+        gtk_key_snooper_remove(keySnooperId);
+        keySnooperId = 0;
+    }
+
     // Sauvegarder la configuration avant de fermer
     saveConfiguration();
 
@@ -983,25 +1003,8 @@ void Browser::buildInterface() {
     gtk_window_set_resizable(GTK_WINDOW(window), TRUE);
     fitWindowToMonitor();
     
-    // Ajouter le support du plein écran avec F11
-    g_signal_connect(window, "key-press-event", G_CALLBACK(+[](GtkWidget* widget, GdkEvent* event, gpointer) -> gboolean {
-        if (event->type == GDK_KEY_PRESS) {
-            GdkEventKey* key_event = (GdkEventKey*) event;
-            if (key_event->keyval == GDK_KEY_F11) {
-                GtkWindow* win = GTK_WINDOW(widget);
-                GdkWindow* gdkWin = gtk_widget_get_window(widget);
-                const bool isFs = gdkWin &&
-                    (gdk_window_get_state(gdkWin) & GDK_WINDOW_STATE_FULLSCREEN);
-                if (isFs) {
-                    gtk_window_unfullscreen(win);
-                } else {
-                    gtk_window_fullscreen(win);
-                }
-                return TRUE;
-            }
-        }
-        return FALSE;
-    }), this);
+    // F11 / raccourcis : gérés via key snooper (configureKeyboardShortcuts)
+    // pour fonctionner même quand le focus est dans WebKit.
     
     // Définir l'icône de la fenêtre
     std::string iconPath = FileManager::obtenirCheminAbsolu("assets/icons/weedlyweb.png");
@@ -1897,25 +1900,62 @@ void Browser::deleteTabGroup(const std::string& groupName) {
 }
 
 void Browser::showTabContextMenu(GtkWidget* tabWidget, GdkEventButton* event) {
+    TabData* tab = findTabByWidget(tabWidget);
+    if (!tab) {
+        return;
+    }
+
+    const std::string tabUrl = getTabUrl(*tab);
+    const bool inFavorites = !tabUrl.empty() && favorites &&
+                             FavoritesJson::containsUrlRecursive(*favorites, tabUrl);
+
     GtkWidget* menu = gtk_menu_new();
+    auto appendItem = [&](const char* label, GCallback cb) {
+        GtkWidget* item = gtk_menu_item_new_with_label(label);
+        auto* payload = new std::pair<Browser*, GtkWidget*>(this, tabWidget);
+        g_signal_connect_data(item, "activate", cb, payload, free_tab_widget_payload, (GConnectFlags)0);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+    };
+
+    appendItem("Fermer l'onglet", G_CALLBACK(on_tab_menu_close));
+    appendItem("Dupliquer l'onglet", G_CALLBACK(on_tab_menu_duplicate));
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    appendItem("Renommer l'onglet…", G_CALLBACK(on_tab_menu_rename));
+    if (tab->titleLocked) {
+        appendItem("Utiliser le titre de la page", G_CALLBACK(on_tab_menu_reset_title));
+    }
+    appendItem(tab->pinned ? "Désépingler l'onglet" : "Épingler l'onglet",
+               G_CALLBACK(on_tab_menu_toggle_pin));
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    if (inFavorites) {
+        appendItem("Modifier le favori…", G_CALLBACK(on_tab_menu_edit_favorite));
+        appendItem("Supprimer le favori", G_CALLBACK(on_tab_menu_remove_favorite));
+    } else if (!tabUrl.empty()) {
+        appendItem("Ajouter aux favoris", G_CALLBACK(on_tab_menu_add_favorite));
+    }
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
 
     GtkWidget* moveHeader = gtk_menu_item_new_with_label("Déplacer vers le groupe");
     gtk_widget_set_sensitive(moveHeader, FALSE);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), moveHeader);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
 
     for (const auto& groupe : tabsManager->getGroupes()) {
         GtkWidget* item = gtk_menu_item_new_with_label(groupe.c_str());
         auto* payload = new std::pair<Browser*, std::pair<GtkWidget*, std::string>>(this, {tabWidget, groupe});
-        g_signal_connect_data(item, "activate", G_CALLBACK(on_move_tab_to_group_activate), payload, free_move_tab_payload, (GConnectFlags)0);
+        g_signal_connect_data(item, "activate", G_CALLBACK(on_move_tab_to_group_activate), payload,
+                              free_move_tab_payload, (GConnectFlags)0);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
     }
 
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
     GtkWidget* newGroup = gtk_menu_item_new_with_label("Nouveau groupe…");
     g_signal_connect(newGroup, "activate", G_CALLBACK(+[](GtkWidget*, gpointer user_data) {
-        auto* navigateur = static_cast<Browser*>(user_data);
-        navigateur->showGroupsMenu();
+        static_cast<Browser*>(user_data)->showGroupsMenu();
     }), this);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), newGroup);
 
@@ -1923,6 +1963,207 @@ void Browser::showTabContextMenu(GtkWidget* tabWidget, GdkEventButton* event) {
     gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent*)event);
 }
 
+TabData* Browser::findTabByWidget(GtkWidget* tabWidget) {
+    for (auto& tab : tabs) {
+        if (tab.tabWidget == tabWidget) {
+            return &tab;
+        }
+    }
+    return nullptr;
+}
+
+std::string Browser::getTabUrl(const TabData& tab) const {
+    if (!tab.url.empty()) {
+        return tab.url;
+    }
+    if (tab.webView && WEBKIT_IS_WEB_VIEW(tab.webView)) {
+        const gchar* uri = webkit_web_view_get_uri(tab.webView);
+        if (uri && uri[0] != '\0') {
+            return uri;
+        }
+    }
+    return "";
+}
+
+std::string Browser::getTabDisplayTitle(const TabData& tab) const {
+    if (tab.titleLocked && !tab.customTitle.empty()) {
+        return tab.customTitle;
+    }
+    if (tab.webView && WEBKIT_IS_WEB_VIEW(tab.webView)) {
+        const gchar* title = webkit_web_view_get_title(tab.webView);
+        if (title && title[0] != '\0') {
+            return title;
+        }
+    }
+    return "Nouvel onglet";
+}
+
+void Browser::updateTabLabel(TabData& tab) {
+    if (!tab.label || !GTK_IS_LABEL(tab.label)) {
+        return;
+    }
+    std::string titre = getTabDisplayTitle(tab);
+    if (titre.length() > 24) {
+        titre = titre.substr(0, 21) + "...";
+    }
+    gtk_label_set_text(GTK_LABEL(tab.label), titre.c_str());
+    if (tab.tabWidget && GTK_IS_WIDGET(tab.tabWidget)) {
+        gtk_widget_set_tooltip_text(tab.tabWidget, getTabDisplayTitle(tab).c_str());
+    }
+}
+
+void Browser::reorderTabsBar() {
+    if (!tabsBar) {
+        return;
+    }
+    int pos = 0;
+    for (auto& t : tabs) {
+        if (t.pinned && t.tabWidget && GTK_IS_WIDGET(t.tabWidget)) {
+            gtk_box_reorder_child(GTK_BOX(tabsBar), t.tabWidget, pos++);
+        }
+    }
+    for (auto& t : tabs) {
+        if (!t.pinned && t.tabWidget && GTK_IS_WIDGET(t.tabWidget)) {
+            gtk_box_reorder_child(GTK_BOX(tabsBar), t.tabWidget, pos++);
+        }
+    }
+}
+
+void Browser::duplicateTab(GtkWidget* tabWidget) {
+    TabData* tab = findTabByWidget(tabWidget);
+    if (!tab) {
+        return;
+    }
+    const std::string url = getTabUrl(*tab);
+    if (!url.empty()) {
+        addNewTab(url);
+    }
+}
+
+void Browser::renameTab(GtkWidget* tabWidget) {
+    TabData* tab = findTabByWidget(tabWidget);
+    if (!tab || !window) {
+        return;
+    }
+
+    GtkWidget* dlg = gtk_dialog_new_with_buttons(
+        "Renommer l'onglet",
+        GTK_WINDOW(window),
+        static_cast<GtkDialogFlags>(GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+        "Annuler", GTK_RESPONSE_CANCEL,
+        "Enregistrer", GTK_RESPONSE_ACCEPT,
+        nullptr);
+
+    GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    gtk_widget_set_margin_start(box, 10);
+    gtk_widget_set_margin_end(box, 10);
+    gtk_widget_set_margin_top(box, 10);
+    gtk_widget_set_margin_bottom(box, 6);
+
+    GtkWidget* entry = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(entry), getTabDisplayTitle(*tab).c_str());
+    gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
+    gtk_box_pack_start(GTK_BOX(box), entry, TRUE, TRUE, 0);
+
+    gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dlg))), box);
+    gtk_widget_show_all(dlg);
+
+    if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_ACCEPT) {
+        const gchar* text = gtk_entry_get_text(GTK_ENTRY(entry));
+        if (text && *text) {
+            tab->customTitle = text;
+            tab->titleLocked = true;
+            updateTabLabel(*tab);
+        }
+    }
+    gtk_widget_destroy(dlg);
+}
+
+void Browser::resetTabTitle(GtkWidget* tabWidget) {
+    TabData* tab = findTabByWidget(tabWidget);
+    if (!tab) {
+        return;
+    }
+    tab->customTitle.clear();
+    tab->titleLocked = false;
+    updateTabLabel(*tab);
+}
+
+void Browser::togglePinTab(GtkWidget* tabWidget) {
+    TabData* tab = findTabByWidget(tabWidget);
+    if (!tab || !tab->tabWidget) {
+        return;
+    }
+    tab->pinned = !tab->pinned;
+    GtkStyleContext* ctx = gtk_widget_get_style_context(tab->tabWidget);
+    if (tab->pinned) {
+        gtk_style_context_add_class(ctx, "onglet-epingle");
+    } else {
+        gtk_style_context_remove_class(ctx, "onglet-epingle");
+    }
+    reorderTabsBar();
+}
+
+void Browser::addTabToFavorites(GtkWidget* tabWidget) {
+    TabData* tab = findTabByWidget(tabWidget);
+    if (!tab || !favorites) {
+        return;
+    }
+    const std::string url = getTabUrl(*tab);
+    if (url.empty()) {
+        return;
+    }
+    if (FavoritesJson::containsUrlRecursive(*favorites, url)) {
+        editTabFavorite(tabWidget);
+        return;
+    }
+    std::string nom = getTabDisplayTitle(*tab);
+    if (nom.empty() || nom == "Nouvel onglet") {
+        nom = url;
+    }
+    addFavorite(nom, url, "Général");
+    updateStarButton();
+}
+
+void Browser::editTabFavorite(GtkWidget* tabWidget) {
+    TabData* tab = findTabByWidget(tabWidget);
+    if (!tab || !favorites || !favoritesManager) {
+        return;
+    }
+    const std::string url = getTabUrl(*tab);
+    if (url.empty()) {
+        return;
+    }
+    std::string favName;
+    std::string favUrl;
+    if (!FavoritesJson::findByUrlRecursive(*favorites, url, favName, &favUrl)) {
+        return;
+    }
+    favoritesManager->promptRename(favName, favUrl.empty() ? url : favUrl, false);
+    updateStarButton();
+}
+
+void Browser::removeTabFavorite(GtkWidget* tabWidget) {
+    TabData* tab = findTabByWidget(tabWidget);
+    if (!tab || !favorites) {
+        return;
+    }
+    const std::string url = getTabUrl(*tab);
+    if (url.empty()) {
+        return;
+    }
+    std::string favName;
+    if (!FavoritesJson::findByUrlRecursive(*favorites, url, favName, nullptr)) {
+        return;
+    }
+    if (!confirmAction("Supprimer le favori", "Supprimer « " + favName + " » des favoris ?")) {
+        return;
+    }
+    FavoritesJson::removeByUrlRecursive(*favorites, url);
+    FileManager::writeJSON(FileManager::favoritesJSONPath(), *favorites);
+    refreshFavoritesBar();
+    updateStarButton();
+}
 
 void Browser::addNewTab(const std::string &url) {
     const std::string groupeCourant = tabsManager->getGroupeActif();
@@ -1987,10 +2228,15 @@ void Browser::addNewTab(const std::string &url) {
             return FALSE;
         }
         if (event->button == GDK_BUTTON_MIDDLE) {
+            TabData* tab = n->findTabByWidget(widget);
+            if (tab && tab->pinned) {
+                return TRUE;
+            }
             n->removeTab(widget);
             return TRUE;
         }
         if (event->button == GDK_BUTTON_SECONDARY) {
+            n->changeActiveTab(widget);
             n->showTabContextMenu(widget, event);
             return TRUE;
         }
@@ -2166,10 +2412,8 @@ void Browser::addNewTab(const std::string &url) {
                 if (tab.webView == webView && tab.label && GTK_IS_LABEL(tab.label)) {
                     const gchar* title = webkit_web_view_get_title(tab.webView);
                     const gchar* uri = webkit_web_view_get_uri(tab.webView);
-                    if (title) {
-                        std::string titreStr(title);
-                        std::string titreCourt = titreStr.length() > 20 ? titreStr.substr(0, 17) + "..." : titreStr;
-                        gtk_label_set_text(GTK_LABEL(tab.label), titreCourt.c_str());
+                    if (!tab.titleLocked) {
+                        browser->updateTabLabel(tab);
                     }
                     if (uri) {
                         tab.url = uri;
@@ -2876,21 +3120,26 @@ void Browser::persistSession() {
 }
 
 void Browser::fitWindowToMonitor() {
+    if (!window) {
+        return;
+    }
+
     GdkDisplay* display = gdk_display_get_default();
-    if (!display || !window) {
+    if (!display) {
         gtk_window_set_default_size(GTK_WINDOW(window), 1280, 800);
         return;
     }
 
-    // Moniteur sous le pointeur = écran où l'utilisateur lance l'app
+    // Moniteur sous le pointeur = écran où l'utilisateur a la souris
     GdkMonitor* monitor = nullptr;
+    gint pointerX = 0;
+    gint pointerY = 0;
     GdkSeat* seat = gdk_display_get_default_seat(display);
     if (seat) {
         GdkDevice* pointer = gdk_seat_get_pointer(seat);
         if (pointer) {
-            gint px = 0, py = 0;
-            gdk_device_get_position(pointer, nullptr, &px, &py);
-            monitor = gdk_display_get_monitor_at_point(display, px, py);
+            gdk_device_get_position(pointer, nullptr, &pointerX, &pointerY);
+            monitor = gdk_display_get_monitor_at_point(display, pointerX, pointerY);
         }
     }
     if (!monitor) {
@@ -2900,18 +3149,45 @@ void Browser::fitWindowToMonitor() {
         monitor = gdk_display_get_monitor(display, 0);
     }
 
-    if (monitor) {
-        GdkRectangle workarea;
-        gdk_monitor_get_workarea(monitor, &workarea);
-        const gint windowWidth = std::max(900, (workarea.width * 92) / 100);
-        const gint windowHeight = std::max(600, (workarea.height * 92) / 100);
-        gtk_window_set_default_size(GTK_WINDOW(window), windowWidth, windowHeight);
-        // Pas de gtk_window_move : évite de téléporter la fenêtre sur un autre écran
-        gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-    } else {
+    if (!monitor) {
         gtk_window_set_default_size(GTK_WINDOW(window), 1280, 800);
-        gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+        return;
     }
+
+    GdkRectangle workarea = {};
+    gdk_monitor_get_workarea(monitor, &workarea);
+
+    // Taille = zone utile du moniteur actif uniquement (pas le bureau virtuel 3 écrans)
+    gtk_window_set_default_size(GTK_WINDOW(window), workarea.width, workarea.height);
+    // Ne pas utiliser GTK_WIN_POS_CENTER : ça centre sur tout le desktop étendu
+    gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_NONE);
+
+    // Stocker la géométrie pour l'appliquer au map (avant maximize)
+    auto* geom = new GdkRectangle(workarea);
+    g_object_set_data_full(G_OBJECT(window), "weedly-target-workarea", geom,
+                           [](gpointer p) { delete static_cast<GdkRectangle*>(p); });
+
+    // Au premier affichage : placer sur ce moniteur puis maximiser dessus
+    g_signal_connect(window, "map-event", G_CALLBACK(+[](GtkWidget* widget, GdkEvent*, gpointer) -> gboolean {
+        auto* wa = static_cast<GdkRectangle*>(g_object_get_data(G_OBJECT(widget), "weedly-target-workarea"));
+        if (!wa || !GTK_IS_WINDOW(widget)) {
+            return FALSE;
+        }
+
+        // Positionner d'abord sur le moniteur de la souris (sinon maximize
+        // tombe sur le moniteur primary / bureau virtuel)
+        gtk_window_move(GTK_WINDOW(widget), wa->x + 8, wa->y + 8);
+        gtk_window_resize(GTK_WINDOW(widget),
+                          std::max(800, wa->width - 16),
+                          std::max(600, wa->height - 16));
+
+        // Maximiser = grand écran sur CE moniteur (barre de titre + chrome visibles)
+        gtk_window_maximize(GTK_WINDOW(widget));
+
+        // Une seule fois
+        g_object_set_data(G_OBJECT(widget), "weedly-target-workarea", nullptr);
+        return FALSE;
+    }), nullptr);
 }
 
 void Browser::preloadHomepage() {
@@ -3448,35 +3724,192 @@ void Browser::showHelp() {
 }
 
 
-void Browser::configureKeyboardShortcuts() {
-    g_signal_connect(window, "key-press-event", G_CALLBACK(+[](GtkWidget *, GdkEvent *event, gpointer user_data) {
-        auto* navigateur = static_cast<Browser*>(user_data);
+void Browser::enterFullscreenOnCurrentMonitor() {
+    if (!window || !GTK_IS_WINDOW(window)) {
+        return;
+    }
 
-        if (event->type == GDK_KEY_PRESS) {
-            GdkEventKey* key_event = (GdkEventKey*) event;
-            
-            if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_t) {
-                navigateur->addNewTab(navigateur->getHomepage());
-            } else if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_w) {
-                if (!navigateur->tabs.empty()) {
-                    navigateur->removeTab(navigateur->tabs.back().tabWidget);
-                }
-            } else if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_d) {
-                std::string url = navigateur->getCurrentURL();
-                if (!url.empty()) {
-                    navigateur->favoritesManager->addFavorite("Favori", url, "");
-                    navigateur->refreshFavoritesBar();
-                }
-            } else if ((key_event->state & GDK_CONTROL_MASK) && key_event->keyval == GDK_KEY_e) {
-                // Focus sur la barre d'URL
-                if (navigateur->urlBar) {
-                    gtk_widget_grab_focus(navigateur->urlBar);
-                    gtk_editable_set_position(GTK_EDITABLE(navigateur->urlBar), -1); // Place le curseur a la fin
-                }
-            }
+    GdkDisplay* display = gdk_display_get_default();
+    GdkWindow* gdkWin = gtk_widget_get_window(window);
+    if (!display || !gdkWin) {
+        gtk_window_fullscreen(GTK_WINDOW(window));
+        return;
+    }
+
+    // Moniteur où se trouve réellement la fenêtre (pas le bureau virtuel entier)
+    GdkMonitor* monitor = gdk_display_get_monitor_at_window(display, gdkWin);
+    if (!monitor) {
+        gint wx = 0, wy = 0, ww = 0, wh = 0;
+        gtk_window_get_position(GTK_WINDOW(window), &wx, &wy);
+        gtk_window_get_size(GTK_WINDOW(window), &ww, &wh);
+        monitor = gdk_display_get_monitor_at_point(display, wx + ww / 2, wy + wh / 2);
+    }
+    if (!monitor) {
+        monitor = gdk_display_get_primary_monitor(display);
+    }
+
+    gint monitorIndex = 0;
+    const gint n = gdk_display_get_n_monitors(display);
+    for (gint i = 0; i < n; ++i) {
+        if (gdk_display_get_monitor(display, i) == monitor) {
+            monitorIndex = i;
+            break;
         }
-        return FALSE;
-    }), this);
+    }
+
+    // Sortir du maximize avant plein écran pour éviter un mauvais géométrie
+    if (gdk_window_get_state(gdkWin) & GDK_WINDOW_STATE_MAXIMIZED) {
+        gtk_window_unmaximize(GTK_WINDOW(window));
+    }
+
+    GdkRectangle geo = {};
+    gdk_monitor_get_geometry(monitor, &geo);
+    // Ancrer la fenêtre sur ce moniteur avant fullscreen_on_monitor
+    gtk_window_move(GTK_WINDOW(window), geo.x + 1, geo.y + 1);
+
+    GdkScreen* screen = gdk_display_get_default_screen(display);
+    if (screen) {
+        gtk_window_fullscreen_on_monitor(GTK_WINDOW(window), screen, monitorIndex);
+    } else {
+        gtk_window_fullscreen(GTK_WINDOW(window));
+    }
+}
+
+void Browser::leaveFullscreen() {
+    if (window && GTK_IS_WINDOW(window)) {
+        gtk_window_unfullscreen(GTK_WINDOW(window));
+    }
+}
+
+bool Browser::handleKeyboardShortcut(GdkEventKey* event) {
+    if (!event || event->type != GDK_KEY_PRESS) {
+        return false;
+    }
+
+    const guint mods = event->state & gtk_accelerator_get_default_mod_mask();
+    const bool ctrl = (mods & GDK_CONTROL_MASK) != 0;
+    const bool shift = (mods & GDK_SHIFT_MASK) != 0;
+    const bool alt = (mods & GDK_MOD1_MASK) != 0;
+    const bool superKey = (mods & GDK_SUPER_MASK) != 0;
+    if (alt || superKey) {
+        return false;
+    }
+
+    const guint key = gdk_keyval_to_lower(event->keyval);
+
+    // F11 : plein écran uniquement sur le moniteur de la fenêtre
+    if (key == GDK_KEY_F11 && !ctrl && !shift) {
+        GdkWindow* gdkWin = window ? gtk_widget_get_window(window) : nullptr;
+        const bool isFs = gdkWin && (gdk_window_get_state(gdkWin) & GDK_WINDOW_STATE_FULLSCREEN);
+        if (isFs) {
+            leaveFullscreen();
+        } else {
+            enterFullscreenOnCurrentMonitor();
+        }
+        return true;
+    }
+
+    // F5 : rafraîchir
+    if (key == GDK_KEY_F5 && !ctrl && !shift) {
+        if (activeTab && activeTab->webView && WEBKIT_IS_WEB_VIEW(activeTab->webView)) {
+            webkit_web_view_reload(activeTab->webView);
+            return true;
+        }
+    }
+
+    if (!ctrl) {
+        return false;
+    }
+
+    // Ctrl+T ou Ctrl++ (pavé / plus) : nouvel onglet
+    if (!shift && (key == GDK_KEY_t || key == GDK_KEY_plus || key == GDK_KEY_KP_Add)) {
+        addNewTab(homepage.empty() ? "https://duckduckgo.com/" : homepage);
+        return true;
+    }
+    // AZERTY / certaines dispositions : Ctrl+Shift+= produit « + »
+    if (shift && (key == GDK_KEY_equal || key == GDK_KEY_plus || key == GDK_KEY_KP_Add)) {
+        addNewTab(homepage.empty() ? "https://duckduckgo.com/" : homepage);
+        return true;
+    }
+
+    // Ctrl+W / Ctrl+Shift+W : fermer l'onglet actif (dernier → ferme l'app)
+    if (key == GDK_KEY_w) {
+        if (activeTab && activeTab->tabWidget) {
+            removeTab(activeTab->tabWidget);
+        } else if (!tabs.empty()) {
+            removeTab(tabs.back().tabWidget);
+        } else {
+            closeApplication();
+        }
+        return true;
+    }
+
+    // Ctrl+Shift+D : dupliquer
+    if (shift && key == GDK_KEY_d) {
+        const std::string url = getCurrentURL();
+        if (!url.empty()) {
+            addNewTab(url);
+        }
+        return true;
+    }
+
+    // Ctrl+D : favori (sans Shift)
+    if (!shift && key == GDK_KEY_d) {
+        if (getPopoverFavoris() && getEntryNomFavori() && getEntryURLFavori()) {
+            gtk_entry_set_text(GTK_ENTRY(getEntryNomFavori()), getCurrentTitle().c_str());
+            gtk_entry_set_text(GTK_ENTRY(getEntryURLFavori()), getCurrentURL().c_str());
+            gtk_popover_popup(GTK_POPOVER(getPopoverFavoris()));
+        } else {
+            toggleCurrentPageFavorite();
+        }
+        return true;
+    }
+
+    // Ctrl+Shift+C : palette
+    if (shift && key == GDK_KEY_c) {
+        toggleCommandPalette();
+        return true;
+    }
+
+    // Ctrl+L / Ctrl+E : focus barre d'URL
+    if (!shift && (key == GDK_KEY_l || key == GDK_KEY_e)) {
+        focusUrlBar();
+        return true;
+    }
+
+    // Ctrl+H : aide
+    if (!shift && key == GDK_KEY_h) {
+        showHelp();
+        return true;
+    }
+
+    // Ctrl+R : rafraîchir
+    if (!shift && key == GDK_KEY_r) {
+        if (activeTab && activeTab->webView && WEBKIT_IS_WEB_VIEW(activeTab->webView)) {
+            webkit_web_view_reload(activeTab->webView);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Browser::configureKeyboardShortcuts() {
+    // Key snooper : reçoit les touches même quand le focus est dans WebKitWebView
+    if (keySnooperId == 0) {
+        keySnooperId = gtk_key_snooper_install(weedly_key_snooper, this);
+    }
+
+    // Filet de sécurité si le snooper n'est pas dispo
+    g_signal_connect(window, "key-press-event",
+                     G_CALLBACK(+[](GtkWidget*, GdkEvent* event, gpointer user_data) -> gboolean {
+                         auto* navigateur = static_cast<Browser*>(user_data);
+                         if (event && event->type == GDK_KEY_PRESS) {
+                             return navigateur->handleKeyboardShortcut(&event->key) ? TRUE : FALSE;
+                         }
+                         return FALSE;
+                     }),
+                     this);
 }
 
 
