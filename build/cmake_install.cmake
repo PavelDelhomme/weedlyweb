@@ -42,45 +42,35 @@ if(NOT DEFINED CMAKE_OBJDUMP)
   set(CMAKE_OBJDUMP "/usr/bin/objdump")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  if(EXISTS "$ENV{DESTDIR}/usr/local/bin/WeedlyWeb" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/bin/WeedlyWeb")
-    file(RPATH_CHECK
-         FILE "$ENV{DESTDIR}/usr/local/bin/WeedlyWeb"
-         RPATH "")
-  endif()
-  list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/bin/WeedlyWeb")
-  if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
-    message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
-  endif()
-  if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
-    message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
-  endif()
-  file(INSTALL DESTINATION "/usr/local/bin" TYPE EXECUTABLE FILES "/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/WeedlyWeb")
-  if(EXISTS "$ENV{DESTDIR}/usr/local/bin/WeedlyWeb" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/bin/WeedlyWeb")
-    if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}/usr/local/bin/WeedlyWeb")
-    endif()
-  endif()
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/src/core/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/src/ui/gtk/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/src/ui/qt/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/share/WeedlyWeb/config.json;/usr/local/share/WeedlyWeb/favorites.json;/usr/local/share/WeedlyWeb/style.css;/usr/local/share/WeedlyWeb/help.html")
-  if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
-    message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
-  endif()
-  if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
-    message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
-  endif()
-  file(INSTALL DESTINATION "/usr/local/share/WeedlyWeb" TYPE FILE FILES
-    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/settings/config.json"
-    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/datas/favorites.json"
-    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/styles/style.css"
-    "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/help/help.html"
-    )
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/weedlyweb" TYPE PROGRAM FILES "/home/pactivisme/Documents/Dev/Perso/weedlyweb/scripts/run-weedlyweb.sh")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE PROGRAM FILES "/home/pactivisme/Documents/Dev/Perso/weedlyweb/scripts/weedlyweb")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/applications" TYPE FILE FILES "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/desktop/weedlyweb.desktop")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/WeedlyWeb" TYPE DIRECTORY FILES "/home/pactivisme/Documents/Dev/Perso/weedlyweb/assets/")
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT

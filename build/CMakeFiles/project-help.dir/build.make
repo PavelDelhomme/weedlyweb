@@ -67,40 +67,11 @@ include CMakeFiles/project-help.dir/compiler_depend.make
 include CMakeFiles/project-help.dir/progress.make
 
 CMakeFiles/project-help:
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo 🌐\ WeedlyWeb\ -\ Guide\ de\ démarrage
-	/usr/bin/cmake -E echo ==================================
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo 📋\ Commandes\ principales\ :
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo \ \ make\ \ \ \ \ \ \ \ \ \ \ \ \ \ Compile\ le\ projet
-	/usr/bin/cmake -E echo \ \ make\ clean\ \ \ \ \ \ \ \ Nettoie\ le\ répertoire\ de\ build
-	/usr/bin/cmake -E echo \ \ make\ install\ \ \ \ \ \ Installe\ l'application
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo 🚀\ Pour\ démarrer\ rapidement\ :
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo \ \ 1.\ Installer\ les\ dépendances\ :
-	/usr/bin/cmake -E echo \ \ \ \ \ ./scripts/install-deps.sh
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo \ \ 2.\ Configurer\ CMake\ (si\ pas\ déjà\ fait)\ :
-	/usr/bin/cmake -E echo \ \ \ \ \ cmake\ -B\ build\ -S\ .
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo \ \ 3.\ Compiler\ :
-	/usr/bin/cmake -E echo \ \ \ \ \ make
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo \ \ 4.\ Lancer\ l'application\ :
-	/usr/bin/cmake -E echo \ \ \ \ \ .//home/pactivisme/Documents/Dev/Perso/weedlyweb/build/WeedlyWeb
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo 📚\ Documentation\ :
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo \ \ -\ README.md\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Documentation\ principale
-	/usr/bin/cmake -E echo \ \ -\ docs/QUICKSTART.md\ \ \ \ \ \ \ \ \ \ \ Guide\ de\ démarrage\ rapide
-	/usr/bin/cmake -E echo \ \ -\ docs/INSTALL_DEPENDENCIES.md\ Guide\ d'installation
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo 💡\ Astuce\ :\ Consultez\ README.md\ pour\ plus\ d'informations\ !
-	/usr/bin/cmake -E echo 
-	/usr/bin/cmake -E echo ==================================
-	/usr/bin/cmake -E echo 
+	/usr/bin/cmake -E echo WeedlyWeb\ —\ backends:\ GTK=ON\ Qt=ON
+	/usr/bin/cmake -E echo \ \ make\ /\ cmake\ --build\ build
+	/usr/bin/cmake -E echo \ \ ./scripts/run-weedlyweb.sh\ \ \ \ \ \ \ \ \ \ #\ GTK\ (défaut)
+	/usr/bin/cmake -E echo \ \ WEEDLYWEB_UI=qt\ ./scripts/run-weedlyweb.sh
+	/usr/bin/cmake -E echo \ \ Structure:\ src/core\ +\ src/ui/{gtk,qt,android,cocoa,win32}
 
 CMakeFiles/project-help.dir/codegen:
 .PHONY : CMakeFiles/project-help.dir/codegen

@@ -162,19 +162,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named WeedlyWeb
-
-# Build rule for target.
-WeedlyWeb: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 WeedlyWeb
-.PHONY : WeedlyWeb
-
-# fast build rule for target.
-WeedlyWeb/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/build
-.PHONY : WeedlyWeb/fast
-
-#=============================================================================
 # Target rules for targets named project-help
 
 # Build rule for target.
@@ -187,341 +174,70 @@ project-help/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/project-help.dir/build.make CMakeFiles/project-help.dir/build
 .PHONY : project-help/fast
 
-src/browser/Browser.o: src/browser/Browser.cpp.o
-.PHONY : src/browser/Browser.o
-
-# target to build an object file
-src/browser/Browser.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.o
-.PHONY : src/browser/Browser.cpp.o
-
-src/browser/Browser.i: src/browser/Browser.cpp.i
-.PHONY : src/browser/Browser.i
-
-# target to preprocess a source file
-src/browser/Browser.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.i
-.PHONY : src/browser/Browser.cpp.i
-
-src/browser/Browser.s: src/browser/Browser.cpp.s
-.PHONY : src/browser/Browser.s
-
-# target to generate assembly for a file
-src/browser/Browser.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/browser/Browser.cpp.s
-.PHONY : src/browser/Browser.cpp.s
-
-src/database/Database.o: src/database/Database.cpp.o
-.PHONY : src/database/Database.o
-
-# target to build an object file
-src/database/Database.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.o
-.PHONY : src/database/Database.cpp.o
-
-src/database/Database.i: src/database/Database.cpp.i
-.PHONY : src/database/Database.i
-
-# target to preprocess a source file
-src/database/Database.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.i
-.PHONY : src/database/Database.cpp.i
-
-src/database/Database.s: src/database/Database.cpp.s
-.PHONY : src/database/Database.s
-
-# target to generate assembly for a file
-src/database/Database.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/database/Database.cpp.s
-.PHONY : src/database/Database.cpp.s
-
-src/engine/ScriptEngine.o: src/engine/ScriptEngine.cpp.o
-.PHONY : src/engine/ScriptEngine.o
-
-# target to build an object file
-src/engine/ScriptEngine.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.o
-.PHONY : src/engine/ScriptEngine.cpp.o
-
-src/engine/ScriptEngine.i: src/engine/ScriptEngine.cpp.i
-.PHONY : src/engine/ScriptEngine.i
-
-# target to preprocess a source file
-src/engine/ScriptEngine.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.i
-.PHONY : src/engine/ScriptEngine.cpp.i
-
-src/engine/ScriptEngine.s: src/engine/ScriptEngine.cpp.s
-.PHONY : src/engine/ScriptEngine.s
-
-# target to generate assembly for a file
-src/engine/ScriptEngine.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/engine/ScriptEngine.cpp.s
-.PHONY : src/engine/ScriptEngine.cpp.s
-
-src/main.o: src/main.cpp.o
-.PHONY : src/main.o
-
-# target to build an object file
-src/main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/main.cpp.o
-.PHONY : src/main.cpp.o
-
-src/main.i: src/main.cpp.i
-.PHONY : src/main.i
-
-# target to preprocess a source file
-src/main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/main.cpp.i
-.PHONY : src/main.cpp.i
-
-src/main.s: src/main.cpp.s
-.PHONY : src/main.s
-
-# target to generate assembly for a file
-src/main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/main.cpp.s
-.PHONY : src/main.cpp.s
-
-src/managers/FavoritesManager.o: src/managers/FavoritesManager.cpp.o
-.PHONY : src/managers/FavoritesManager.o
-
-# target to build an object file
-src/managers/FavoritesManager.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.o
-.PHONY : src/managers/FavoritesManager.cpp.o
-
-src/managers/FavoritesManager.i: src/managers/FavoritesManager.cpp.i
-.PHONY : src/managers/FavoritesManager.i
-
-# target to preprocess a source file
-src/managers/FavoritesManager.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.i
-.PHONY : src/managers/FavoritesManager.cpp.i
-
-src/managers/FavoritesManager.s: src/managers/FavoritesManager.cpp.s
-.PHONY : src/managers/FavoritesManager.s
-
-# target to generate assembly for a file
-src/managers/FavoritesManager.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/FavoritesManager.cpp.s
-.PHONY : src/managers/FavoritesManager.cpp.s
-
-src/managers/FileManager.o: src/managers/FileManager.cpp.o
-.PHONY : src/managers/FileManager.o
-
-# target to build an object file
-src/managers/FileManager.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.o
-.PHONY : src/managers/FileManager.cpp.o
-
-src/managers/FileManager.i: src/managers/FileManager.cpp.i
-.PHONY : src/managers/FileManager.i
-
-# target to preprocess a source file
-src/managers/FileManager.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.i
-.PHONY : src/managers/FileManager.cpp.i
-
-src/managers/FileManager.s: src/managers/FileManager.cpp.s
-.PHONY : src/managers/FileManager.s
-
-# target to generate assembly for a file
-src/managers/FileManager.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/FileManager.cpp.s
-.PHONY : src/managers/FileManager.cpp.s
-
-src/managers/HTTPManager.o: src/managers/HTTPManager.cpp.o
-.PHONY : src/managers/HTTPManager.o
-
-# target to build an object file
-src/managers/HTTPManager.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.o
-.PHONY : src/managers/HTTPManager.cpp.o
-
-src/managers/HTTPManager.i: src/managers/HTTPManager.cpp.i
-.PHONY : src/managers/HTTPManager.i
-
-# target to preprocess a source file
-src/managers/HTTPManager.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.i
-.PHONY : src/managers/HTTPManager.cpp.i
-
-src/managers/HTTPManager.s: src/managers/HTTPManager.cpp.s
-.PHONY : src/managers/HTTPManager.s
-
-# target to generate assembly for a file
-src/managers/HTTPManager.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/HTTPManager.cpp.s
-.PHONY : src/managers/HTTPManager.cpp.s
-
-src/managers/MemoryManager.o: src/managers/MemoryManager.cpp.o
-.PHONY : src/managers/MemoryManager.o
-
-# target to build an object file
-src/managers/MemoryManager.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.o
-.PHONY : src/managers/MemoryManager.cpp.o
-
-src/managers/MemoryManager.i: src/managers/MemoryManager.cpp.i
-.PHONY : src/managers/MemoryManager.i
-
-# target to preprocess a source file
-src/managers/MemoryManager.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.i
-.PHONY : src/managers/MemoryManager.cpp.i
-
-src/managers/MemoryManager.s: src/managers/MemoryManager.cpp.s
-.PHONY : src/managers/MemoryManager.s
-
-# target to generate assembly for a file
-src/managers/MemoryManager.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/MemoryManager.cpp.s
-.PHONY : src/managers/MemoryManager.cpp.s
-
-src/managers/TabsManager.o: src/managers/TabsManager.cpp.o
-.PHONY : src/managers/TabsManager.o
-
-# target to build an object file
-src/managers/TabsManager.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.o
-.PHONY : src/managers/TabsManager.cpp.o
-
-src/managers/TabsManager.i: src/managers/TabsManager.cpp.i
-.PHONY : src/managers/TabsManager.i
-
-# target to preprocess a source file
-src/managers/TabsManager.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.i
-.PHONY : src/managers/TabsManager.cpp.i
-
-src/managers/TabsManager.s: src/managers/TabsManager.cpp.s
-.PHONY : src/managers/TabsManager.s
-
-# target to generate assembly for a file
-src/managers/TabsManager.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/managers/TabsManager.cpp.s
-.PHONY : src/managers/TabsManager.cpp.s
-
-src/rendering/RenderingEngine.o: src/rendering/RenderingEngine.cpp.o
-.PHONY : src/rendering/RenderingEngine.o
-
-# target to build an object file
-src/rendering/RenderingEngine.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.o
-.PHONY : src/rendering/RenderingEngine.cpp.o
-
-src/rendering/RenderingEngine.i: src/rendering/RenderingEngine.cpp.i
-.PHONY : src/rendering/RenderingEngine.i
-
-# target to preprocess a source file
-src/rendering/RenderingEngine.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.i
-.PHONY : src/rendering/RenderingEngine.cpp.i
-
-src/rendering/RenderingEngine.s: src/rendering/RenderingEngine.cpp.s
-.PHONY : src/rendering/RenderingEngine.s
-
-# target to generate assembly for a file
-src/rendering/RenderingEngine.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/rendering/RenderingEngine.cpp.s
-.PHONY : src/rendering/RenderingEngine.cpp.s
-
-src/utils/CVEAnalyzer.o: src/utils/CVEAnalyzer.cpp.o
-.PHONY : src/utils/CVEAnalyzer.o
-
-# target to build an object file
-src/utils/CVEAnalyzer.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.o
-.PHONY : src/utils/CVEAnalyzer.cpp.o
-
-src/utils/CVEAnalyzer.i: src/utils/CVEAnalyzer.cpp.i
-.PHONY : src/utils/CVEAnalyzer.i
-
-# target to preprocess a source file
-src/utils/CVEAnalyzer.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.i
-.PHONY : src/utils/CVEAnalyzer.cpp.i
-
-src/utils/CVEAnalyzer.s: src/utils/CVEAnalyzer.cpp.s
-.PHONY : src/utils/CVEAnalyzer.s
-
-# target to generate assembly for a file
-src/utils/CVEAnalyzer.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/CVEAnalyzer.cpp.s
-.PHONY : src/utils/CVEAnalyzer.cpp.s
-
-src/utils/CommandPalette.o: src/utils/CommandPalette.cpp.o
-.PHONY : src/utils/CommandPalette.o
-
-# target to build an object file
-src/utils/CommandPalette.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.o
-.PHONY : src/utils/CommandPalette.cpp.o
-
-src/utils/CommandPalette.i: src/utils/CommandPalette.cpp.i
-.PHONY : src/utils/CommandPalette.i
-
-# target to preprocess a source file
-src/utils/CommandPalette.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.i
-.PHONY : src/utils/CommandPalette.cpp.i
-
-src/utils/CommandPalette.s: src/utils/CommandPalette.cpp.s
-.PHONY : src/utils/CommandPalette.s
-
-# target to generate assembly for a file
-src/utils/CommandPalette.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/CommandPalette.cpp.s
-.PHONY : src/utils/CommandPalette.cpp.s
-
-src/utils/RequestInterceptor.o: src/utils/RequestInterceptor.cpp.o
-.PHONY : src/utils/RequestInterceptor.o
-
-# target to build an object file
-src/utils/RequestInterceptor.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.o
-.PHONY : src/utils/RequestInterceptor.cpp.o
-
-src/utils/RequestInterceptor.i: src/utils/RequestInterceptor.cpp.i
-.PHONY : src/utils/RequestInterceptor.i
-
-# target to preprocess a source file
-src/utils/RequestInterceptor.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.i
-.PHONY : src/utils/RequestInterceptor.cpp.i
-
-src/utils/RequestInterceptor.s: src/utils/RequestInterceptor.cpp.s
-.PHONY : src/utils/RequestInterceptor.s
-
-# target to generate assembly for a file
-src/utils/RequestInterceptor.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/RequestInterceptor.cpp.s
-.PHONY : src/utils/RequestInterceptor.cpp.s
-
-src/utils/Utils.o: src/utils/Utils.cpp.o
-.PHONY : src/utils/Utils.o
-
-# target to build an object file
-src/utils/Utils.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.o
-.PHONY : src/utils/Utils.cpp.o
-
-src/utils/Utils.i: src/utils/Utils.cpp.i
-.PHONY : src/utils/Utils.i
-
-# target to preprocess a source file
-src/utils/Utils.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.i
-.PHONY : src/utils/Utils.cpp.i
-
-src/utils/Utils.s: src/utils/Utils.cpp.s
-.PHONY : src/utils/Utils.s
-
-# target to generate assembly for a file
-src/utils/Utils.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/WeedlyWeb.dir/build.make CMakeFiles/WeedlyWeb.dir/src/utils/Utils.cpp.s
-.PHONY : src/utils/Utils.cpp.s
+#=============================================================================
+# Target rules for targets named WeedlyWebCore
+
+# Build rule for target.
+WeedlyWebCore: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 WeedlyWebCore
+.PHONY : WeedlyWebCore
+
+# fast build rule for target.
+WeedlyWebCore/fast:
+	$(MAKE) $(MAKESILENT) -f src/core/CMakeFiles/WeedlyWebCore.dir/build.make src/core/CMakeFiles/WeedlyWebCore.dir/build
+.PHONY : WeedlyWebCore/fast
+
+#=============================================================================
+# Target rules for targets named WeedlyWeb
+
+# Build rule for target.
+WeedlyWeb: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 WeedlyWeb
+.PHONY : WeedlyWeb
+
+# fast build rule for target.
+WeedlyWeb/fast:
+	$(MAKE) $(MAKESILENT) -f src/ui/gtk/CMakeFiles/WeedlyWeb.dir/build.make src/ui/gtk/CMakeFiles/WeedlyWeb.dir/build
+.PHONY : WeedlyWeb/fast
+
+#=============================================================================
+# Target rules for targets named WeedlyWebQt
+
+# Build rule for target.
+WeedlyWebQt: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 WeedlyWebQt
+.PHONY : WeedlyWebQt
+
+# fast build rule for target.
+WeedlyWebQt/fast:
+	$(MAKE) $(MAKESILENT) -f src/ui/qt/CMakeFiles/WeedlyWebQt.dir/build.make src/ui/qt/CMakeFiles/WeedlyWebQt.dir/build
+.PHONY : WeedlyWebQt/fast
+
+#=============================================================================
+# Target rules for targets named WeedlyWebQt_autogen_timestamp_deps
+
+# Build rule for target.
+WeedlyWebQt_autogen_timestamp_deps: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 WeedlyWebQt_autogen_timestamp_deps
+.PHONY : WeedlyWebQt_autogen_timestamp_deps
+
+# fast build rule for target.
+WeedlyWebQt_autogen_timestamp_deps/fast:
+	$(MAKE) $(MAKESILENT) -f src/ui/qt/CMakeFiles/WeedlyWebQt_autogen_timestamp_deps.dir/build.make src/ui/qt/CMakeFiles/WeedlyWebQt_autogen_timestamp_deps.dir/build
+.PHONY : WeedlyWebQt_autogen_timestamp_deps/fast
+
+#=============================================================================
+# Target rules for targets named WeedlyWebQt_autogen
+
+# Build rule for target.
+WeedlyWebQt_autogen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 WeedlyWebQt_autogen
+.PHONY : WeedlyWebQt_autogen
+
+# fast build rule for target.
+WeedlyWebQt_autogen/fast:
+	$(MAKE) $(MAKESILENT) -f src/ui/qt/CMakeFiles/WeedlyWebQt_autogen.dir/build.make src/ui/qt/CMakeFiles/WeedlyWebQt_autogen.dir/build
+.PHONY : WeedlyWebQt_autogen/fast
 
 # Help Target
 help:
@@ -535,50 +251,12 @@ help:
 	@echo "... install/strip"
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
+	@echo "... WeedlyWebQt_autogen"
+	@echo "... WeedlyWebQt_autogen_timestamp_deps"
 	@echo "... project-help"
 	@echo "... WeedlyWeb"
-	@echo "... src/browser/Browser.o"
-	@echo "... src/browser/Browser.i"
-	@echo "... src/browser/Browser.s"
-	@echo "... src/database/Database.o"
-	@echo "... src/database/Database.i"
-	@echo "... src/database/Database.s"
-	@echo "... src/engine/ScriptEngine.o"
-	@echo "... src/engine/ScriptEngine.i"
-	@echo "... src/engine/ScriptEngine.s"
-	@echo "... src/main.o"
-	@echo "... src/main.i"
-	@echo "... src/main.s"
-	@echo "... src/managers/FavoritesManager.o"
-	@echo "... src/managers/FavoritesManager.i"
-	@echo "... src/managers/FavoritesManager.s"
-	@echo "... src/managers/FileManager.o"
-	@echo "... src/managers/FileManager.i"
-	@echo "... src/managers/FileManager.s"
-	@echo "... src/managers/HTTPManager.o"
-	@echo "... src/managers/HTTPManager.i"
-	@echo "... src/managers/HTTPManager.s"
-	@echo "... src/managers/MemoryManager.o"
-	@echo "... src/managers/MemoryManager.i"
-	@echo "... src/managers/MemoryManager.s"
-	@echo "... src/managers/TabsManager.o"
-	@echo "... src/managers/TabsManager.i"
-	@echo "... src/managers/TabsManager.s"
-	@echo "... src/rendering/RenderingEngine.o"
-	@echo "... src/rendering/RenderingEngine.i"
-	@echo "... src/rendering/RenderingEngine.s"
-	@echo "... src/utils/CVEAnalyzer.o"
-	@echo "... src/utils/CVEAnalyzer.i"
-	@echo "... src/utils/CVEAnalyzer.s"
-	@echo "... src/utils/CommandPalette.o"
-	@echo "... src/utils/CommandPalette.i"
-	@echo "... src/utils/CommandPalette.s"
-	@echo "... src/utils/RequestInterceptor.o"
-	@echo "... src/utils/RequestInterceptor.i"
-	@echo "... src/utils/RequestInterceptor.s"
-	@echo "... src/utils/Utils.o"
-	@echo "... src/utils/Utils.i"
-	@echo "... src/utils/Utils.s"
+	@echo "... WeedlyWebCore"
+	@echo "... WeedlyWebQt"
 .PHONY : help
 
 

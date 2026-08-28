@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../libWeedlyWebCore.a CMakeFiles/WeedlyWebCore.dir/database/Database.cpp.o CMakeFiles/WeedlyWebCore.dir/managers/HTTPManager.cpp.o CMakeFiles/WeedlyWebCore.dir/managers/FileManager.cpp.o CMakeFiles/WeedlyWebCore.dir/managers/TabsManager.cpp.o CMakeFiles/WeedlyWebCore.dir/utils/CVEAnalyzer.cpp.o CMakeFiles/WeedlyWebCore.dir/utils/FavoritesJson.cpp.o CMakeFiles/WeedlyWebCore.dir/utils/PageEnhancements.cpp.o
+/usr/bin/ranlib ../../libWeedlyWebCore.a

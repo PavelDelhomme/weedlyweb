@@ -1,3 +1,15 @@
 {
-    "homepage": "https://www.duckduckgo.com"
+    "force_dark_mode": false,
+    "homepage": "https://www.duckduckgo.com",
+    "session_dirty": true,
+    "tabs": [
+        {
+            "group": "Par défaut",
+            "url": "https://duckduckgo.com/"
+        },
+        {
+            "group": "Par défaut",
+            "url": "https://www.duckduckgo.com"
+        }
+    ]
 }

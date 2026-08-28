@@ -1,7 +1,10 @@
 {
 	"InstallScripts" : 
 	[
-		"/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/cmake_install.cmake"
+		"/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/cmake_install.cmake",
+		"/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/src/core/cmake_install.cmake",
+		"/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/src/ui/gtk/cmake_install.cmake",
+		"/home/pactivisme/Documents/Dev/Perso/weedlyweb/build/src/ui/qt/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

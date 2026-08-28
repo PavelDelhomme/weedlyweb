@@ -1,0 +1,6 @@
+set(__QT_DEPLOY_TARGET_WeedlyWebCore_FILE /home/pactivisme/Documents/Dev/Perso/weedlyweb/build/libWeedlyWebCore.a)
+set(__QT_DEPLOY_TARGET_WeedlyWebCore_TYPE STATIC_LIBRARY)
+set(__QT_DEPLOY_TARGET_WeedlyWeb_FILE /home/pactivisme/Documents/Dev/Perso/weedlyweb/build/WeedlyWeb)
+set(__QT_DEPLOY_TARGET_WeedlyWeb_TYPE EXECUTABLE)
+set(__QT_DEPLOY_TARGET_WeedlyWebQt_FILE /home/pactivisme/Documents/Dev/Perso/weedlyweb/build/WeedlyWebQt)
+set(__QT_DEPLOY_TARGET_WeedlyWebQt_TYPE EXECUTABLE)
